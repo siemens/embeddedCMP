@@ -1,0 +1,813 @@
+git log -p --ignore-all-space mbedtls/port/ksdk/ksdk_mbedtls_config.h
+commit da2988dc2365f15bff40cbe1b1a73cb61cfd34c6
+Author: Christian Epple <Christian.Epple@siemens.com>
+Date:   Fri Mar 8 09:37:37 2019 +0100
+
+    enable support for ECC curve secp521r1 in mbed TLS
+
+diff --git a/mbedtls/port/ksdk/ksdk_mbedtls_config.h b/mbedtls/port/ksdk/ksdk_mbedtls_config.h
+index 9a3bcc0..dbe8d89 100644
+--- a/mbedtls/port/ksdk/ksdk_mbedtls_config.h
++++ b/mbedtls/port/ksdk/ksdk_mbedtls_config.h
+@@ -339,7 +339,7 @@ void *pvPortCalloc(size_t num, size_t size); /*Calloc for HEAP3.*/
+ #define MBEDTLS_MPI_WINDOW_SIZE 1
+ #define MBEDTLS_ECP_WINDOW_SIZE 2
+ #define MBEDTLS_MPI_MAX_SIZE 512 /* Maximum number of bytes for usable MPIs. */
+-#define MBEDTLS_ECP_MAX_BITS 384 /* Maximum bit size of groups */
++#define MBEDTLS_ECP_MAX_BITS 521 /* Maximum bit size of groups */
+
+ /**************************** KSDK end ****************************************/
+
+***************************************************************************************************
+
+git log -p --ignore-all-space mbedtls/include/mbedtls/oid.h
+commit e55fbc07bd58b0d36a49b4e13af0b31d57bf49c2
+Author: Christian Epple <Christian.Epple@siemens.com>
+Date:   Tue Mar 19 09:53:40 2019 +0100
+
+    modify hmac oid to match definition in RFC4210
+
+diff --git a/mbedtls/include/mbedtls/oid.h b/mbedtls/include/mbedtls/oid.h
+index c164826..b730fb3 100644
+--- a/mbedtls/include/mbedtls/oid.h
++++ b/mbedtls/include/mbedtls/oid.h
+@@ -219,7 +219,8 @@
+  */
+ #define MBEDTLS_OID_DIGEST_ALG_MD2              MBEDTLS_OID_RSA_COMPANY "\x02\x02" /**< id-mbedtls_md2 OBJECT IDENTIFIER ::= { iso(1) member-body(2) us(840) rsadsi(113549) digestAlgorithm(2) 2 } */
+ #define MBEDTLS_OID_DIGEST_ALG_MD4              MBEDTLS_OID_RSA_COMPANY "\x02\x04" /**< id-mbedtls_md4 OBJECT IDENTIFIER ::= { iso(1) member-body(2) us(840) rsadsi(113549) digestAlgorithm(2) 4 } */
+-#define MBEDTLS_OID_DIGEST_ALG_MD5              MBEDTLS_OID_RSA_COMPANY "\x02\x05" /**< id-mbedtls_md5 OBJECT IDENTIFIER ::= { iso(1) member-body(2) us(840) rsadsi(113549) digestAlgorithm(2) 5 } */
++//#define MBEDTLS_OID_DIGEST_ALG_MD5              MBEDTLS_OID_RSA_COMPANY "\x02\x05" /**< id-mbedtls_md5 OBJECT IDENTIFIER ::= { iso(1) member-body(2) us(840) rsadsi(113549) digestAlgorithm(2) 5 } */
++#define MBEDTLS_OID_DIGEST_ALG_MD5               "\x2b\x06\x01\x05\x05\x08\x01\x01"    /**< id-hmacWithSHA1 OBJECT IDENTIFIER ::= { iso(1) identified-organization(3) dod(6) internet(1) security(5) mechanisms(5) ipsec(8) isakmpOakley(1) 1 } */
+ #define MBEDTLS_OID_DIGEST_ALG_SHA1             MBEDTLS_OID_ISO_IDENTIFIED_ORG MBEDTLS_OID_OIW_SECSIG_SHA1 /**< id-mbedtls_sha1 OBJECT IDENTIFIER ::= { iso(1) identified-organization(3) oiw(14) secsig(3) algorithms(2) 26 } */
+ #define MBEDTLS_OID_DIGEST_ALG_SHA224           MBEDTLS_OID_NIST_ALG "\x02\x04" /**< id-sha224 OBJECT IDENTIFIER ::= { joint-iso-itu-t(2) country(16) us(840) organization(1) gov(101) csor(3) nistalgorithm(4) hashalgs(2) 4 } */
+ #define MBEDTLS_OID_DIGEST_ALG_SHA256           MBEDTLS_OID_NIST_ALG "\x02\x01" /**< id-mbedtls_sha256 OBJECT IDENTIFIER ::= { joint-iso-itu-t(2) country(16) us(840) organization(1) gov(101) csor(3) nistalgorithm(4) hashalgs(2) 1 } */
+@@ -228,7 +229,8 @@
+
+ #define MBEDTLS_OID_DIGEST_ALG_SHA512           MBEDTLS_OID_NIST_ALG "\x02\x03" /**< id-mbedtls_sha512 OBJECT IDENTIFIER ::= { joint-iso-itu-t(2) country(16) us(840) organization(1) gov(101) csor(3) nistalgorithm(4) hashalgs(2) 3 } */
+
+-#define MBEDTLS_OID_HMAC_SHA1                   MBEDTLS_OID_RSA_COMPANY "\x02\x07" /**< id-hmacWithSHA1 OBJECT IDENTIFIER ::= { iso(1) member-body(2) us(840) rsadsi(113549) digestAlgorithm(2) 7 } */
++//#define MBEDTLS_OID_HMAC_SHA1                   MBEDTLS_OID_RSA_COMPANY "\x02\x07" /**< id-hmacWithSHA1 OBJECT IDENTIFIER ::= { iso(1) member-body(2) us(840) rsadsi(113549) digestAlgorithm(2) 7 } */
++#define MBEDTLS_OID_HMAC_SHA1                   "\x2b\x06\x01\x05\x05\x08\x01\x02"    /**< id-hmacWithSHA1 OBJECT IDENTIFIER ::= { iso(1) identified-organization(3) dod(6) internet(1) security(5) mechanisms(5) ipsec(8) isakmpOakley(1) 2 } */
+
+ #define MBEDTLS_OID_HMAC_SHA224                 MBEDTLS_OID_RSA_COMPANY "\x02\x08" /**< id-hmacWithSHA224 OBJECT IDENTIFIER ::= { iso(1) member-body(2) us(840) rsadsi(113549) digestAlgorithm(2) 8 } */
+
+***************************************************************************************************
+
+git log -p --ignore-all-space mbedtls/include/mbedtls/platform.h
+commit 28eeab47171da25130d2848c101f4813186ca5a4
+Author: Christian Epple <Christian.Epple@siemens.com>
+Date:   Tue Mar 12 12:16:29 2019 +0100
+
+    fix memory leaks
+
+    add heap usage debug messages
+
+diff --git a/mbedtls/include/mbedtls/platform.h b/mbedtls/include/mbedtls/platform.h
+index be318f7..6d7948d 100644
+--- a/mbedtls/include/mbedtls/platform.h
++++ b/mbedtls/include/mbedtls/platform.h
+@@ -139,6 +139,35 @@ int mbedtls_platform_set_calloc_free( void * (*calloc_func)( size_t, size_t ),
+ #else /* !MBEDTLS_PLATFORM_MEMORY */
+ #define mbedtls_free       free
+ #define mbedtls_calloc     calloc
++
++#if 0 /* for debugging of heap memory usage; cmplib & client also use these methods */
++# define HEAP_ALLOC_DEBUG_MESSAGES     /* used to suppress debug messsages from bignum.c */
++# undef mbedtls_calloc
++# define mbedtls_calloc(count, size) debug_calloc(count, size, __FILE__, __LINE__, __func__)
++# undef mbedtls_free
++# define mbedtls_free(ptr)     debug_free(ptr, __FILE__, __LINE__, __func__)
++
++static inline void *debug_calloc(size_t nmemb, size_t size, const char *file,
++               int line, const char *func){
++
++       int* loc;
++       loc = (int*)calloc(nmemb, size);
++       if( !loc ) {
++               printf("ERROR:  Error allocating memory!");
++       } else {
++               printf("MEM: ####alloc### at addr=0x%x size=%d in %s:%d %s\n", loc, size, file, line, func);
++       }
++       return (void *)loc;
++}
++
++static inline void debug_free(void *ptr, const char *file,
++               int line, const char *func) {
++
++       printf("MEM: freed at addr=0x%x in %s:%d %s\n", ptr, file, line, func);
++       free(ptr);
++}
++#endif /* heap memory usage debug messages */
++
+ #endif /* MBEDTLS_PLATFORM_MEMORY && !MBEDTLS_PLATFORM_{FREE,CALLOC}_MACRO */
+
+ /*
+
+***************************************************************************************************
+
+git log -p --ignore-all-space mbedtls/library/bignum.c
+commit 28eeab47171da25130d2848c101f4813186ca5a4
+Author: Christian Epple <Christian.Epple@siemens.com>
+Date:   Tue Mar 12 12:16:29 2019 +0100
+
+    fix memory leaks
+
+    add heap usage debug messages
+
+diff --git a/mbedtls/library/bignum.c b/mbedtls/library/bignum.c
+index a7e4370..84cd02d 100644
+--- a/mbedtls/library/bignum.c
++++ b/mbedtls/library/bignum.c
+@@ -59,6 +59,14 @@
+ #define mbedtls_free       free
+ #endif
+
++/* suppress heap debugging messages if activated in platform.h */
++#ifdef HEAP_ALLOC_DEBUG_MESSAGES
++#undef mbedtls_calloc
++#define mbedtls_calloc calloc
++#undef mbedtls_free
++#define mbedtls_free free
++#endif
++
+ #define ciL    (sizeof(mbedtls_mpi_uint))         /* chars in limb  */
+ #define biL    (ciL << 3)               /* bits  in limb  */
+ #define biH    (ciL << 2)               /* half limb size */
+
+***************************************************************************************************
+
+git log -p --ignore-all-space mbedtls/library/asn1write.c
+commit 0a409bc7a5636eba1d93ec504639999073f4fe63
+Author: Christian Epple <Christian.Epple@siemens.com>
+Date:   Fri Mar 8 10:19:51 2019 +0100
+
+    patch mbedtls_asn1_store_named_data() in mbed TLS to allow multiple identical OIDs in Distinguished Names (DN)
+
+diff --git a/mbedtls/library/asn1write.c b/mbedtls/library/asn1write.c
+index a4c87b8..37a1b1a 100644
+--- a/mbedtls/library/asn1write.c
++++ b/mbedtls/library/asn1write.c
+@@ -335,7 +335,7 @@ mbedtls_asn1_named_data *mbedtls_asn1_store_named_data( mbedtls_asn1_named_data
+ {
+     mbedtls_asn1_named_data *cur;
+
+-    if( ( cur = mbedtls_asn1_find_named_data( *head, oid, oid_len ) ) == NULL )
++    if( 1 || ( cur = mbedtls_asn1_find_named_data( *head, oid, oid_len ) ) == NULL )
+     {
+         // Add new entry if not present yet based on OID
+         //
+
+***************************************************************************************************
+
+git log -p --ignore-all-space libcoap-master/src/debug.c
+commit 7b791c549f5e8404a7b7628de60a8eb84d4906ec
+Author: Christian Epple <Christian.Epple@siemens.com>
+Date:   Tue Mar 26 10:43:06 2019 +0100
+
+    improve debugging output
+
+diff --git a/libcoap-master/src/debug.c b/libcoap-master/src/debug.c
+index f32e4f9..2f88320 100644
+--- a/libcoap-master/src/debug.c
++++ b/libcoap-master/src/debug.c
+@@ -35,7 +35,8 @@
+ #include "net.h"
+
+ #ifdef WITH_LWIP
+-# define fprintf(fd, ...) LWIP_PLATFORM_DIAG((__VA_ARGS__))
++# undef fprintf
++# define fprintf(fd, ...) LWIP_PLATFORM_DIAG((__VA_ARGS__))
+ # define fflush(...)
+ #endif
+
+***************************************************************************************************
+
+git log -p --ignore-all-space lwip/src/apps/httpd/fs.c
+commit a84f4c34b8b31ae962b5111ff9e8950cc6b05edb
+Author: Andreas Kretschmer <andreas.kretschmer@siemens.com>
+Date:   Fri Jan 4 16:24:23 2019 +0100
+
+    Webserver from SD Card running
+
+diff --git a/lwip/src/apps/httpd/fs.c b/lwip/src/apps/httpd/fs.c
+index 84ab03c..b9ed38b 100644
+--- a/lwip/src/apps/httpd/fs.c
++++ b/lwip/src/apps/httpd/fs.c
+@@ -61,7 +61,6 @@ int fs_read_custom(struct fs_file *file, char *buffer, int count);
+ err_t
+ fs_open(struct fs_file *file, const char *name)
+ {
+-  const struct fsdata_file *f;
+
+   if ((file == NULL) || (name == NULL)) {
+      return ERR_ARG;
+@@ -73,8 +72,8 @@ fs_open(struct fs_file *file, const char *name)
+     return ERR_OK;
+   }
+   file->is_custom_file = 0;
+-#endif /* LWIP_HTTPD_CUSTOM_FILES */
+-
++#else
++  const struct fsdata_file *f;
+   for (f = FS_ROOT; f != NULL; f = f->next) {
+       if (!strcmp(name, (const char *)f->name)) {
+         file->data = (const char *)f->data;
+@@ -92,6 +91,7 @@ fs_open(struct fs_file *file, const char *name)
+         return ERR_OK;
+       }
+     }
++#endif /* LWIP_HTTPD_CUSTOM_FILES */
+   /* file not found */
+   return ERR_VAL;
+ }
+
+***************************************************************************************************
+
+git log -p --ignore-all-space lwip/src/include/lwip/apps/httpd_opts.h
+commit 7b791c549f5e8404a7b7628de60a8eb84d4906ec
+Author: Christian Epple <Christian.Epple@siemens.com>
+Date:   Tue Mar 26 10:43:06 2019 +0100
+
+    improve debugging output
+
+diff --git a/lwip/src/include/lwip/apps/httpd_opts.h b/lwip/src/include/lwip/apps/httpd_opts.h
+index ac9d203..1ff0ae6 100644
+--- a/lwip/src/include/lwip/apps/httpd_opts.h
++++ b/lwip/src/include/lwip/apps/httpd_opts.h
+@@ -155,7 +155,7 @@
+
+ /** Set this to 1 to enable timing each file sent */
+ #if !defined LWIP_HTTPD_TIMING || defined __DOXYGEN__
+-#define LWIP_HTTPD_TIMING                   1
++#define LWIP_HTTPD_TIMING                   0
+ #endif
+ /** Set this to 1 to enable timing each file sent */
+ #if !defined HTTPD_DEBUG_TIMING || defined __DOXYGEN__
+
+commit 76b07c58dc4c8757376a035e62cfdcaf6851899b
+Author: Andreas Kretschmer <andreas.kretschmer@siemens.com>
+Date:   Tue Jan 15 09:35:53 2019 +0100
+
+    stack size increased, cleanups
+
+diff --git a/lwip/src/include/lwip/apps/httpd_opts.h b/lwip/src/include/lwip/apps/httpd_opts.h
+index e3f6261..ac9d203 100644
+--- a/lwip/src/include/lwip/apps/httpd_opts.h
++++ b/lwip/src/include/lwip/apps/httpd_opts.h
+@@ -118,8 +118,7 @@
+ #endif
+
+ #if !defined HTTPD_DEBUG || defined __DOXYGEN__
+-// TODO AK: disable debugging, LWIP_DBG_OFF
+-#define HTTPD_DEBUG         LWIP_DBG_ON
++#define HTTPD_DEBUG         LWIP_DBG_OFF
+ #endif
+
+ /** Set this to 1 to use a memp pool for allocating
+
+commit 81bf9c7bb92a76eb63bee4588bf492de4917060f
+Author: Andreas Kretschmer <andreas.kretschmer@siemens.com>
+Date:   Mon Jan 7 13:42:29 2019 +0100
+
+    CGI support enabled
+
+diff --git a/lwip/src/include/lwip/apps/httpd_opts.h b/lwip/src/include/lwip/apps/httpd_opts.h
+index 85d0007..e3f6261 100644
+--- a/lwip/src/include/lwip/apps/httpd_opts.h
++++ b/lwip/src/include/lwip/apps/httpd_opts.h
+@@ -78,7 +78,7 @@
+  * Use this CGI handler if you want CGI information passed on to SSI.
+  */
+ #if !defined LWIP_HTTPD_CGI_SSI || defined __DOXYGEN__
+-#define LWIP_HTTPD_CGI_SSI        0
++#define LWIP_HTTPD_CGI_SSI        1
+ #endif
+
+ /** Set this to 1 to support SSI (Server-Side-Includes)
+@@ -99,7 +99,7 @@
+  * can be used.
+  */
+ #if !defined LWIP_HTTPD_SSI || defined __DOXYGEN__
+-#define LWIP_HTTPD_SSI            0
++#define LWIP_HTTPD_SSI            1
+ #endif
+
+ /** Set this to 1 to implement an SSI tag handler callback that gets a const char*
+
+@@ -156,11 +156,11 @@
+
+ /** Set this to 1 to enable timing each file sent */
+ #if !defined LWIP_HTTPD_TIMING || defined __DOXYGEN__
+-#define LWIP_HTTPD_TIMING                   0
++#define LWIP_HTTPD_TIMING                   1
+ #endif
+ /** Set this to 1 to enable timing each file sent */
+ #if !defined HTTPD_DEBUG_TIMING || defined __DOXYGEN__
+-#define HTTPD_DEBUG_TIMING                  LWIP_DBG_OFF
++#define HTTPD_DEBUG_TIMING                  LWIP_DBG_ON
+ #endif
+
+ /** Set this to one to show error pages when parsing a request fails instead
+@@ -179,7 +179,7 @@
+  * include the "Connection: keep-alive" header (pass argument "-11" to makefsdata).
+  */
+ #if !defined LWIP_HTTPD_SUPPORT_11_KEEPALIVE || defined __DOXYGEN__
+-#define LWIP_HTTPD_SUPPORT_11_KEEPALIVE     0
++#define LWIP_HTTPD_SUPPORT_11_KEEPALIVE     1
+ #endif
+
+ /** Set this to 1 to support HTTP request coming in in multiple packets/pbufs */
+
+commit a84f4c34b8b31ae962b5111ff9e8950cc6b05edb
+Author: Andreas Kretschmer <andreas.kretschmer@siemens.com>
+Date:   Fri Jan 4 16:24:23 2019 +0100
+
+    Webserver from SD Card running
+
+diff --git a/lwip/src/include/lwip/apps/httpd_opts.h b/lwip/src/include/lwip/apps/httpd_opts.h
+index 7497d47..85d0007 100644
+--- a/lwip/src/include/lwip/apps/httpd_opts.h
++++ b/lwip/src/include/lwip/apps/httpd_opts.h
+@@ -104,7 +104,8 @@
+
+ /** This string is passed in the HTTP header as "Server: " */
+ #if !defined HTTPD_SERVER_AGENT || defined __DOXYGEN__
+-#define HTTPD_SERVER_AGENT "lwIP/" LWIP_VERSION_STRING " (http://savannah.nongnu.org/projects/lwip)"
++// #define HTTPD_SERVER_AGENT "lwIP/" LWIP_VERSION_STRING " (http://savannah.nongnu.org/projects/lwip)"
++#define HTTPD_SERVER_AGENT "lwIP"
+ #endif
+
+ /** Set this to 1 if you want to include code that creates HTTP headers
+@@ -113,7 +114,7 @@
+  * the (readonly) fsdata will grow a bit as every file includes the HTTP
+  * header. */
+ #if !defined LWIP_HTTPD_DYNAMIC_HEADERS || defined __DOXYGEN__
+-#define LWIP_HTTPD_DYNAMIC_HEADERS 0
++#define LWIP_HTTPD_DYNAMIC_HEADERS 1
+ #endif
+
+ #if !defined HTTPD_DEBUG || defined __DOXYGEN__
+@@ -279,7 +280,7 @@
+  *    Called to free resources allocated by fs_open_custom().
+  */
+ #if !defined LWIP_HTTPD_CUSTOM_FILES || defined __DOXYGEN__
+-#define LWIP_HTTPD_CUSTOM_FILES       0
++#define LWIP_HTTPD_CUSTOM_FILES       1
+ #endif
+
+ /** Set this to 1 to support fs_read() to dynamically read file data.
+@@ -314,7 +315,7 @@
+ /** Set this to 1 to include "fsdata_custom.c" instead of "fsdata.c" for the
+  * file system (to prevent changing the file included in CVS) */
+ #if !defined HTTPD_USE_CUSTOM_FSDATA || defined __DOXYGEN__
+-#define HTTPD_USE_CUSTOM_FSDATA 0
++#define HTTPD_USE_CUSTOM_FSDATA 1
+ #endif
+
+ /**
+
+commit 9c44c26f022c43057c85306dcecf422b21038b55
+Author: Andreas Kretschmer <andreas.kretschmer@siemens.com>
+Date:   Thu Jan 3 17:25:40 2019 +0100
+
+    pin and clock configuration merged with SD card example
+
+diff --git a/lwip/src/include/lwip/apps/httpd_opts.h b/lwip/src/include/lwip/apps/httpd_opts.h
+index 2669745..7497d47 100644
+--- a/lwip/src/include/lwip/apps/httpd_opts.h
++++ b/lwip/src/include/lwip/apps/httpd_opts.h
+@@ -117,7 +117,8 @@
+ #endif
+
+ #if !defined HTTPD_DEBUG || defined __DOXYGEN__
+-#define HTTPD_DEBUG         LWIP_DBG_OFF
++// TODO AK: disable debugging, LWIP_DBG_OFF
++#define HTTPD_DEBUG         LWIP_DBG_ON
+ #endif
+
+ /** Set this to 1 to use a memp pool for allocating
+
+***************************************************************************************************
+
+git log -p --ignore-all-space lwip_httpd_mbedtls/httpd_mbedtls.c
+commit 56e7f30bd5ca72dfa2ea4ebe5edbe4bc31d2666f
+Author: Andreas Kretschmer <andreas.kretschmer@siemens.com>
+Date:   Fri Jan 18 10:56:44 2019 +0100
+
+    fix order of extra certs, cleanup web interface
+
+diff --git a/lwip_httpd_mbedtls/httpd_mbedtls.c b/lwip_httpd_mbedtls/httpd_mbedtls.c
+index 9a7ef8a..d6783e2 100644
+--- a/lwip_httpd_mbedtls/httpd_mbedtls.c
++++ b/lwip_httpd_mbedtls/httpd_mbedtls.c
+@@ -144,5 +144,10 @@ typedef struct
+ } default_filename;
+
+ const default_filename g_psDefaultFilenames[] = {
+-  {"/index.shtml", 1}, {"/index.ssi", 1}, {"/index.shtm", 1}, {"/index.html", 0}, {"/index.htm", 0}};
++  {"wwwroot/index.htm",   0 },
++  {"wwwroot/index.shtml", 1 },
++  {"wwwroot/index.ssi",   1 },
++  {"wwwroot/index.shtm",  1 },
++  {"wwwroot/index.html",  0 }
++  };
+
+ #define NUM_DEFAULT_FILENAMES (sizeof(g_psDefaultFilenames) /   \
+
+commit 21132d0f546e4e30ddd5e6396df5887f61736a65
+Author: Andreas Kretschmer <andreas.kretschmer@siemens.com>
+Date:   Tue Jan 15 10:00:57 2019 +0100
+
+    HTTP Proxy stuff dropped
+
+diff --git a/lwip_httpd_mbedtls/httpd_mbedtls.c b/lwip_httpd_mbedtls/httpd_mbedtls.c
+index 308eb3c..9a7ef8a 100644
+--- a/lwip_httpd_mbedtls/httpd_mbedtls.c
++++ b/lwip_httpd_mbedtls/httpd_mbedtls.c
+@@ -84,6 +84,7 @@
+ #include "lwip/stats.h"
+ #include "lwip/apps/fs.h"
+-#include "apps/http/httpd_structs.h"
++#include "apps/httpd/httpd_structs.h"
++#include "lwip/sys.h"
+ #include "lwip/tcp.h"
+
+ #include <string.h>
+
+commit 81bf9c7bb92a76eb63bee4588bf492de4917060f
+Author: Andreas Kretschmer <andreas.kretschmer@siemens.com>
+Date:   Mon Jan 7 13:42:29 2019 +0100
+
+    CGI support enabled
+
+diff --git a/lwip_httpd_mbedtls/httpd_mbedtls.c b/lwip_httpd_mbedtls/httpd_mbedtls.c
+index 5a2841a..308eb3c 100644
+--- a/lwip_httpd_mbedtls/httpd_mbedtls.c
++++ b/lwip_httpd_mbedtls/httpd_mbedtls.c
+@@ -1711,18 +1711,18 @@ http_get_404_file(struct http_state *hs, const char **uri)
+ {
+   err_t err;
+
+-  *uri = "/404.html";
++  *uri = "/wwwroot/404.html";
+   err = fs_open(&hs->file_handle, *uri);
+   if (err != ERR_OK)
+   {
+     /* 404.html doesn't exist. Try 404.htm instead. */
+-    *uri = "/404.htm";
++    *uri = "/wwwroot/404.htm";
+     err = fs_open(&hs->file_handle, *uri);
+     if (err != ERR_OK)
+     {
+       /* 404.htm doesn't exist either. Try 404.shtml instead. */
+-      *uri = "/404.shtml";
++      *uri = "/wwwroot/404.shtml";
+       err = fs_open(&hs->file_handle, *uri);
+       if (err != ERR_OK)
+       {
+         /* 404.htm doesn't exist either. Indicate to the caller that it should
+
+***************************************************************************************************
+
+git log -p --ignore-all-space sdmmc/port/fsl_sdmmc_event.c
+commit 8dadea5c8c1ff6c349e9f740de5da3ec3475b948
+Author: Andreas Kretschmer <andreas.kretschmer@siemens.com>
+Date:   Fri Jan 4 13:35:17 2019 +0100
+
+    Running pin configuration
+
+diff --git a/sdmmc/port/fsl_sdmmc_event.c b/sdmmc/port/fsl_sdmmc_event.c
+index cd8e3a8..f69151b 100644
+--- a/sdmmc/port/fsl_sdmmc_event.c
++++ b/sdmmc/port/fsl_sdmmc_event.c
+@@ -7,6 +7,7 @@
+  */
+
+ #include "fsl_sdmmc_event.h"
++#include "sys.h"
+
+ /*******************************************************************************
+  * Definitions
+@@ -31,8 +32,6 @@ static volatile uint32_t g_eventCardDetect;
+ /*! @brief transfer complete event. */
+ static volatile uint32_t g_eventTransferComplete;
+
+-/*! @brief Time variable unites as milliseconds. */
+-volatile uint32_t g_eventTimeMilliseconds;
+
+ /*******************************************************************************
+  * Code
+@@ -40,14 +39,12 @@ volatile uint32_t g_eventTimeMilliseconds;
+ void SDMMCEVENT_InitTimer(void)
+ {
+     /* Set systick reload value to generate 1ms interrupt */
+-    SysTick_Config(CLOCK_GetFreq(kCLOCK_CoreSysClk) / 1000U);
+-}
+
+-void SysTick_Handler(void)
+-{
+-    g_eventTimeMilliseconds++;
++    // SysTick_Config(CLOCK_GetFreq(kCLOCK_CoreSysClk) / 1000U);
+ }
+
++
++
+ static volatile uint32_t *SDMMCEVENT_GetInstance(sdmmc_event_t eventType)
+ {
+     volatile uint32_t *event;
+@@ -92,10 +89,10 @@ bool SDMMCEVENT_Wait(sdmmc_event_t eventType, uint32_t timeoutMilliseconds)
+
+     if (timeoutMilliseconds && event)
+     {
+-        startTime = g_eventTimeMilliseconds;
++        startTime = sys_now();
+         do
+         {
+-            elapsedTime = (g_eventTimeMilliseconds - startTime);
++            elapsedTime = (sys_now() - startTime);
+         } while ((*event == 0U) && (elapsedTime < timeoutMilliseconds));
+         *event = 0U;
+
+@@ -134,10 +131,10 @@ void SDMMCEVENT_Delete(sdmmc_event_t eventType)
+
+ void SDMMCEVENT_Delay(uint32_t milliseconds)
+ {
+-    uint32_t startTime = g_eventTimeMilliseconds;
++    uint32_t startTime = sys_now();
+     uint32_t periodTime = 0;
+     while (periodTime < milliseconds)
+     {
+-        periodTime = g_eventTimeMilliseconds - startTime;
++        periodTime = sys_now() - startTime;
+     }
+ }
+
+***************************************************************************************************
+
+commit 5c36c46a69a07b834246af133d80d88d53c42e1c
+Author: Andreas Kretschmer <andreas.kretschmer@siemens.com>
+Date:   Fri Jan 25 16:15:11 2019 +0100
+
+    1st outgoing request
+
+diff --git a/libcoap-master/include/coap/mem.h b/libcoap-master/include/coap/mem.h
+index 06ce9fa..6c0157b 100644
+--- a/libcoap-master/include/coap/mem.h
++++ b/libcoap-master/include/coap/mem.h
+@@ -75,7 +75,8 @@ static inline void *coap_malloc(size_t size) {
+  * Wrapper function to coap_free_type() for backwards compatibility.
+  */
+ static inline void coap_free(void *object) {
+-  coap_free_type(COAP_STRING, object);
++  // coap_free_type(COAP_STRING, object);
++       free(object);
+ }
+
+ #endif /* not WITH_LWIP */
+@@ -100,7 +100,9 @@
+  * made conditional.
+  */
+ static inline void *coap_malloc(size_t size) {
+-  LWIP_ASSERT("coap_malloc must not be used in lwIP", 0);
++       void *ret=malloc(size);
++       LWIP_ASSERT("OOM in coap_malloc()", ret);
++       return ret;
+ }
+
+ static inline void coap_free(void *pointer) {
+
+***************************************************************************************************
+
+git log -p --ignore-all-space libcoap-master/src/coap_io_lwip.c
+commit 5db5a455ad0286e4148092dfcff51e3ff8f79671
+Author: Andreas Kretschmer <andreas.kretschmer@siemens.com>
+Date:   Mon Jan 28 15:50:24 2019 +0100
+
+    COAP CR exchange running
+
+diff --git a/libcoap-master/src/coap_io_lwip.c b/libcoap-master/src/coap_io_lwip.c
+index 8ae3b57..5b50b3d 100644
+--- a/libcoap-master/src/coap_io_lwip.c
++++ b/libcoap-master/src/coap_io_lwip.c
+@@ -14,7 +14,7 @@
+
+ void coap_packet_populate_endpoint(coap_packet_t *packet, coap_endpoint_t *target)
+ {
+-       printf("FIXME no endpoint populated\n");
++       // printf("FIXME no endpoint populated\n");
+ }
+ void coap_packet_copy_source(coap_packet_t *packet, coap_address_t *target)
+ {
+
+***************************************************************************************************
+
+diff -u frdmk64f_CMP_test/libcoap-master/include/coap/libcoap.h MK64FN1M0xxx12_Project/libcoap-master/include/coap/libcoap.h
+--- frdmk64f_CMP_test/libcoap-master/include/coap/libcoap.h     2019-07-22 15:46:55.802698200 +0200
++++ MK64FN1M0xxx12_Project/libcoap-master/include/coap/libcoap.h        2019-07-22 16:45:23.727070300 +0200
+@@ -19,7 +19,7 @@
+  * The CONTIKI variable is within the Contiki build environment! */
+
+ #if !defined (CONTIKI)
+-#include <netinet/in.h>
++//#include <netinet/in.h>
+ #include <sys/socket.h>
+ #endif /* CONTIKI */
+
+***************************************************************************************************
+
+diff -u frdmk64f_CMP_test/libcoap-master/include/coap/address.h MK64FN1M0xxx12_Project/libcoap-master/include/coap/address.h
+--- frdmk64f_CMP_test/libcoap-master/include/coap/address.h     2019-07-22 15:46:55.366378900 +0200
++++ MK64FN1M0xxx12_Project/libcoap-master/include/coap/address.h        2019-07-22 16:50:27.439335800 +0200
+@@ -18,7 +18,6 @@
+ #include <assert.h>
+ #include <stdint.h>
+ #include <string.h>
+-#include <sys/types.h>
+ #include "libcoap.h"
+
+ #ifdef WITH_LWIP
+
+***************************************************************************************************
+
+diff -u frdmk64f_CMP_test/libcoap-master/include/coap/net.h MK64FN1M0xxx12_Project/libcoap-master/include/coap/net.h
+--- frdmk64f_CMP_test/libcoap-master/include/coap/net.h 2019-07-22 15:46:55.913779500 +0200
++++ MK64FN1M0xxx12_Project/libcoap-master/include/coap/net.h    2019-07-26 08:04:16.559183300 +0200
+@@ -13,7 +13,7 @@
+ #include <assert.h>
+ #include <stdlib.h>
+ #include <string.h>
+-#include <sys/time.h>
++//#include <sys/time.h>
+ #include <time.h>
+
+ #ifdef WITH_LWIP
+
+***************************************************************************************************
+
+diff -u frdmk64f_CMP_test/libcoap-master/include/coap/coap_io.h MK64FN1M0xxx12_Project/libcoap-master/include/coap/coap_io.h
+--- frdmk64f_CMP_test/libcoap-master/include/coap/coap_io.h     2019-07-22 15:46:55.587541200 +0200
++++ MK64FN1M0xxx12_Project/libcoap-master/include/coap/coap_io.h        2019-07-26 08:07:57.454755800 +0200
+@@ -11,7 +11,7 @@
+ #define _COAP_IO_H_
+
+ #include <assert.h>
+-#include <sys/types.h>
++//#include <sys/types.h>
+
+ #include "address.h"
+
+***************************************************************************************************
+
+diff -u frdmk64f_CMP_test/libcoap-master/include/coap/encode.h MK64FN1M0xxx12_Project/libcoap-master/include/coap/encode.h
+--- frdmk64f_CMP_test/libcoap-master/include/coap/encode.h      2019-07-22 15:46:55.727643700 +0200
++++ MK64FN1M0xxx12_Project/libcoap-master/include/coap/encode.h 2019-07-26 08:10:25.753109300 +0200
+@@ -13,7 +13,7 @@
+ #if (BSD >= 199103) || defined(WITH_CONTIKI)
+ # include <string.h>
+ #else
+-# include <strings.h>
++# include <string.h>
+ #endif
+
+ #define Nn 8  /* duplicate definition of N if built on sky motes */
+
+***************************************************************************************************
+
+diff -u frdmk64f_CMP_test/lwip/src/include/lwip/opt.h MK64FN1M0xxx12_Project/lwip/src/include/lwip/opt.h
+--- frdmk64f_CMP_test/lwip/src/include/lwip/opt.h       2019-07-31 08:53:31.799411700 +0200
++++ MK64FN1M0xxx12_Project/lwip/src/include/lwip/opt.h  2019-07-29 10:19:56.083391200 +0200
+@@ -364,7 +364,7 @@
+  * include path somewhere.
+  */
+ #if !defined MEMP_USE_CUSTOM_POOLS || defined __DOXYGEN__
+-#define MEMP_USE_CUSTOM_POOLS           0
++#define MEMP_USE_CUSTOM_POOLS           1
+ #endif
+
+ /**
+
+***************************************************************************************************
+
+diff -u frdmk64f_CMP_test/libcoap-master/src/net.c MK64FN1M0xxx12_Project/libcoap-master/src/net.c
+--- frdmk64f_CMP_test/libcoap-master/src/net.c  2019-07-22 15:46:57.022590900 +0200
++++ MK64FN1M0xxx12_Project/libcoap-master/src/net.c     2019-07-29 10:32:47.967014400 +0200
+@@ -19,7 +19,7 @@
+ #elif HAVE_SYS_UNISTD_H
+ #include <sys/unistd.h>
+ #endif
+-#include <sys/types.h>
++//#include <sys/types.h>
+ #ifdef HAVE_SYS_SOCKET_H
+ #include <sys/socket.h>
+ #endif
+@@ -33,7 +33,7 @@
+ #ifdef WITH_LWIP
+ #include <lwip/pbuf.h>
+ #include <lwip/udp.h>
+-#include <lwip/timers.h>
++//#include <lwip/timers.h>
+ #endif
+
+ #include "debug.h"
+@@ -348,7 +348,7 @@
+
+   coap_clock_init();
+ #ifdef WITH_LWIP
+-  prng_init(LWIP_RAND());
++  prng_init(rand());
+ #endif /* WITH_LWIP */
+ #ifdef WITH_CONTIKI
+   prng_init((ptrdiff_t)listen_addr ^ clock_offset);
+
+***************************************************************************************************
+
+diff -uZ frdmk64f_CMP_test/fatfs/fatfs_include/ffconf.h MK64FN1M0xxx12_Project/fatfs/fatfs_include/ffconf.h
+--- frdmk64f_CMP_test/fatfs/fatfs_include/ffconf.h      2019-07-31 08:53:26.048218200 +0200
++++ MK64FN1M0xxx12_Project/fatfs/fatfs_include/ffconf.h 2019-07-29 13:21:13.553117900 +0200
+@@ -10,7 +10,7 @@
+ /*---------------------------------------------------------------------------/
+ / MSDK adaptation configuration
+ /---------------------------------------------------------------------------*/
+-#define RAM_DISK_ENABLE
++#define SD_DISK_ENABLE
+ /* Available options are:
+ /      RAM_DISK_ENABLE
+ /      USB_DISK_ENABLE
+
+***************************************************************************************************
+
+diff -uZ frdmk64f_CMP_test/mbedtls/port/ksdk/ksdk_mbedtls_config.h MK64FN1M0xxx12_Project/mbedtls/port/ksdk/ksdk_mbedtls_config.h
+--- frdmk64f_CMP_test/mbedtls/port/ksdk/ksdk_mbedtls_config.h   2019-07-31 08:53:40.338606000 +0200
++++ MK64FN1M0xxx12_Project/mbedtls/port/ksdk/ksdk_mbedtls_config.h      2019-07-29 15:23:27.169643900 +0200
+@@ -918,16 +918,16 @@
+  *
+  * Comment macros to disable the curve and functions for it
+  */
+-//#define MBEDTLS_ECP_DP_SECP192R1_ENABLED
+-//#define MBEDTLS_ECP_DP_SECP224R1_ENABLED
++#define MBEDTLS_ECP_DP_SECP192R1_ENABLED
++#define MBEDTLS_ECP_DP_SECP224R1_ENABLED
+ #define MBEDTLS_ECP_DP_SECP256R1_ENABLED
+-//#define MBEDTLS_ECP_DP_SECP384R1_ENABLED
++#define MBEDTLS_ECP_DP_SECP384R1_ENABLED
+ //#ifndef MBEDTLS_FREESCALE_LTC_PKHA /* PKHA suports only <=512 */
+-//#define MBEDTLS_ECP_DP_SECP521R1_ENABLED
++#define MBEDTLS_ECP_DP_SECP521R1_ENABLED
+ //#endif
+ //#define MBEDTLS_ECP_DP_SECP192K1_ENABLED
+ //#define MBEDTLS_ECP_DP_SECP224K1_ENABLED
+-//#define MBEDTLS_ECP_DP_SECP256K1_ENABLED
++#define MBEDTLS_ECP_DP_SECP256K1_ENABLED
+ //#define MBEDTLS_ECP_DP_BP256R1_ENABLED
+ //#define MBEDTLS_ECP_DP_BP384R1_ENABLED
+ //#define MBEDTLS_ECP_DP_BP512R1_ENABLED
+
+***************************************************************************************************
+
+diff -u frdmk64f_CMP_test/lwip/src/include/lwip/apps/httpd.h MK64FN1M0xxx12_Project/lwip/src/include/lwip/apps/httpd.h
+--- frdmk64f_CMP_test/lwip/src/include/lwip/apps/httpd.h      2019-07-31 09:57:45.073895200 +0200
++++ MK64FN1M0xxx12_Project/lwip/src/include/lwip/apps/httpd.h 2019-07-31 17:12:43.668408500 +0200
+@@ -111,8 +111,7 @@
+  * is allocated to file->state via fs_state_init() from fs_open() or fs_open_custom().
+  * Content creation via SSI or complete dynamic files can retrieve the CGI params from there.
+  */
+-extern void httpd_cgi_handler(struct fs_file *file, const char* uri, int iNumParams,
+-                              char **pcParam, char **pcValue
++extern void httpd_cgi_handler(const char* uri, int iNumParams, char **pcParam, char **pcValue
+ #if defined(LWIP_HTTPD_FILE_STATE) && LWIP_HTTPD_FILE_STATE
+                                      , void *connection_state
+ #endif /* LWIP_HTTPD_FILE_STATE */
+
+***************************************************************************************************
+
+diff -u frdmk64f_CMP_test/libcoap-master/coap_config.h MK64FN1M0xxx12_Project/libcoap-master/coap_config.h
+--- frdmk64f_CMP_test/libcoap-master/coap_config.h      2019-07-22 15:46:53.759202900 +0200
++++ MK64FN1M0xxx12_Project/libcoap-master/coap_config.h 2019-07-22 16:34:04.668572200 +0200
+@@ -11,7 +11,7 @@
+ #define PACKAGE_VERSION "?"
+ #define PACKAGE_STRING PACKAGE_NAME PACKAGE_VERSION
+
+-#define assert(x) LWIP_ASSERT("CoAP assert failed", x)
++//#define assert(x) LWIP_ASSERT("CoAP assert failed", x)
+
+ /* it's just provided by libc. i hope we don't get too many of those, as
+  * actually we'd need autotools again to find out what environment we're
+
+***************************************************************************************************
+
+diff -u frdmk64f_CMP_test/cmpclient/lwip_helper.c MK64FN1M0xxx12_Project/cmpclient/lwip
+_helper.c
+--- frdmk64f_CMP_test/cmpclient/lwip_helper.c   2019-07-26 12:01:56.020210100 +0200
++++ MK64FN1M0xxx12_Project/cmpclient/lwip_helper.c      2019-07-26 13:58:27.802667100 +0200
+@@ -16,7 +16,9 @@
+ #include "lwip/timeouts.h"
+ #include "lwip/init.h"
+ #include "netif/ethernet.h"
+-#include "ethernetif.h"
++//#include "ethernetif.h"
++/* for SDK version >= 2.6 use the following*/
++#include "enet_ethernetif.h"
+ #include "board.h"
+
+ /*******************************************************************************
+

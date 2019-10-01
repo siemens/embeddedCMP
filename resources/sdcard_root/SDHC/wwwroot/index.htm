@@ -1,0 +1,121 @@
+<!--
+ *  Copyright (c) 2019 Siemens AG
+ *
+ *  Licensed under the Apache License, Version 2.0
+ *
+ *  SPDX-License-Identifier: Apache-2.0
+-->
+<html>
+<head><title>CMP Procedures</title></head>
+<style>
+table, th, td {
+  border: 1px solid black;
+  border-collapse: collapse;
+}
+th, td {
+  padding: 5px;
+  text-align: left;
+}
+</style>
+<body bgcolor="lightgray" text="black">
+<h1>CMP Procedures</h1>
+<table>
+	<tbody>
+		<th colspan="3">
+			Click a link below to start a CMP procedure
+		</th>
+		<tr>
+			<td>Imprinting</td>
+			<td><a href="/wwwroot/index.htm?cmd=ir&prot=http">Start Imprinting using HTTP</a></td>
+			<td><a href="/wwwroot/index.htm?cmd=ir&prot=coap">Start Imprinting using COAP</a></td>
+		</tr>
+		<tr>
+			<td>Bootstrapping</td>
+			<td><a href="/wwwroot/index.htm?cmd=cr&prot=http">Start Bootstrapping using HTTP</a></td>
+			<td><a href="/wwwroot/index.htm?cmd=cr&prot=coap">Start Bootstrapping using COAP</a></td>
+		</tr>
+		<tr>
+			<td>Updating</td>
+			<td><a href="/wwwroot/index.htm?cmd=kur&prot=http">Start Updating using HTTP </a></td>
+			<td><a href="/wwwroot/index.htm?cmd=kur&prot=coap">Start Updating usingCOAP </a></td>
+		</tr>
+		<th colspan="3">
+			Click a link below to download PPKI (w/ LRA) certificates and chains
+		</th>
+		<tr>
+			<td>Manufacturer Certificate</td>
+			<td><a href="/certs/ppki/lra/vendor/vd_cert.pem">Download Certificate</a></td>
+			<td><a href="/certs/ppki/lra/vendor/vd_chain.pem">Download Chain</a></td>
+		</tr>
+		<tr>
+			<td>Operational Certificate</td>
+			<td><a href="/certs/ppki/lra/operat/op_cert.pem">Download Certificate</a></td>
+			<td><a href="/certs/ppki/lra/operat/op_chain.pem">Download Chain</a></td>
+		</tr>
+	    <th colspan="3">
+			Click a link below to download PPKI (w/ LRA) unencrypted private keys<br/>
+			NEVER PROVIDE THIS FUNCTION IN A PRODUCTIVE ENVIRONMENT
+		</th>
+		<tr>
+			<td>Manufacturer Private Key</td>
+			<td colspan="2"><a href="/certs/ppki/lra/vendor/vd_priv.pem">Download Key</a></td>
+		</tr>
+		<tr>
+			<td>Operational Private Key</td>
+			<td colspan="2"><a href="/certs/ppki/lra/operat/op_priv.pem">Download Key</a></td>
+		</tr>
+        <th colspan="3">
+			Click a link below to download PPKI (w/o LRA) certificates and chains
+		</th>
+		<tr>
+			<td>Manufacturer Certificate</td>
+			<td><a href="/certs/ppki/direct/vendor/vd_cert.pem">Download Certificate</a></td>
+			<td><a href="/certs/ppki/direct/vendor/vd_chain.pem">Download Chain</a></td>
+		</tr>
+		<tr>
+			<td>Operational Certificate</td>
+			<td><a href="/certs/ppki/direct/operat/op_cert.pem">Download Certificate</a></td>
+			<td><a href="/certs/ppki/direct/operat/op_chain.pem">Download Chain</a></td>
+		</tr>
+        <th colspan="3">
+			Click a link below to download PPKI (w/ LRA) unencrypted private keys<br/>
+			NEVER PROVIDE THIS FUNCTION IN A PRODUCTIVE ENVIRONMENT
+		</th>
+		<tr>
+			<td>Manufacturer Private Key</td>
+			<td colspan="2"><a href="/certs/ppki/direct/vendor/vd_priv.pem">Download Key</a></td>
+		</tr>
+		<tr>
+			<td>Operational Private Key</td>
+			<td colspan="2"><a href="/certs/ppki/direct/operat/op_priv.pem">Download Key</a></td>
+		</tr>
+		<th colspan="3">
+			Click a link below to download INSTA certificates and chains
+		</th>
+		<tr>
+			<td>Manufacturer Certificate</td>
+			<td><a href="/certs/insta/vendor/vd_cert.pem">Download Certificate</a></td>
+			<td><a href="/certs/insta/vendor/vd_chain.pem">Download Chain</a></td>
+		</tr>
+		<tr>
+			<td>Operational Certificate</td>
+			<td><a href="/certs/insta/operat/op_cert.pem">Download Certificate</a></td>
+			<td><a href="/certs/insta/operat/op_chain.pem">Download Chain</a></td>
+		</tr>
+		<th colspan="3">
+			Click a link below to download INSTA unencrypted private keys<br/>
+			NEVER PROVIDE THIS FUNCTION IN A PRODUCTIVE ENVIRONMENT
+		</th>
+		<tr>
+			<td>Manufacturer Private Key</td>
+			<td colspan="2"><a href="/certs/insta/vendor/vd_priv.pem">Download Key</a></td>
+		</tr>
+		<tr>
+			<td>Operational Private Key</td>
+			<td colspan="2"><a href="/certs/insta/operat/op_priv.pem">Download Key</a></td>
+		</tr>
+
+	</tbody>
+</table>
+</body>
+</html>
