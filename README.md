@@ -6,8 +6,9 @@ SPDX-License-Identifier: Apache-2.0-->
 
 # frdmk64f_CMP-Client
 
-The frdmk64f_CMP-Client provides source code, documentation, and other files for a
-proof-of-concept CMP client on the NXP FRDM-K64F platform based on the Kinetis SDK (KSDK).
+This project provides source code, documentation, and other files for a CMP client
+mplemented on the NXP FRDM-K64F platform based on the Kinetis SDK (KSDK).
+It is a fork of [CMPclient-embedded-lib](https://github.com/nokia/CMPclient-embedded-lib) by Martin Peylo at Nokia.
 
 ## License
 
@@ -15,12 +16,12 @@ This software is licensed under the Apache License, Version 2.0.
 
 ## Disclaimer
 
-Please note that this software and associated documentation files is a prototypic 
+Please note that this software and associated documentation files is a prototypical
 implementation and merely serves as proof-of-concept.
-It is explicitly not guaranteed that all related functionality and hardening measures 
-needed for productive software have been implemented. 
-The development procedures and processes for proof-of-concept implementation are 
-not sufficient to assure product-grade software quality. Therefore the code, scripts, 
+It is explicitly not guaranteed that all related functionality and hardening measures
+needed for productive software have been implemented.
+The development procedures and processes for proof-of-concept implementation are
+not sufficient to assure product-grade software quality. Therefore the code, scripts,
 configuration, and documentation of the software are provided ‘as is’
 and can only serve as an example or starting point for further development.
 
