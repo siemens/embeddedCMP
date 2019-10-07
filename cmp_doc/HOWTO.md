@@ -16,14 +16,14 @@ SPDX-License-Identifier: Apache-2.0-->
 
 # SDK installation
 
-- Register at [www.nxp.com](http://www.nxp.com/) and create an account. 
+- Register at [www.nxp.com](http://www.nxp.com/) and create an account.
 - Download the [Kinetis SDK for the FRDM-K64F](https://www.nxp.com/support/developer-resources/software-development-tools/mcuxpresso-software-and-tools/mcuxpresso-software-development-kit-sdk:MCUXpresso-SDK) (tested with version 2.6).
 - After clicking the "Download" button, choose "Select Development Board" from the page popping up. Here you can search for the "frdm-k64f" board. Click on the suggested board and perform "Build MCUXpresso SDK" step on the right side.
 - Add all desired middleware by clicking on "Add software component" (for the CMP_Client: CMSIS DSP Libary, FatFS, lwIP, mbedtls, MMCAU, sdmmc stack, USB stack) and download the SDK.
 - Download the [MCUXpresso IDE](https://www.nxp.com/support/developer-resources/software-development-tools/mcuxpresso-software-and-tools/mcuxpresso-integrated-development-environment-ide:MCUXpresso-IDE) 
 - Choose the appropriate IDE version which is determined by the SDK version (see "System Requirements").
 - After installation of the IDE, open MCUXpresso and drag and drop the SDK zip file into the "Installed SDKs" view of MCUXpresso IDE.
-	
+
 Note that the Download Manager (NetSession Interface) is not needed -
 its use can be declined on the bottom of the page, then click OK.
 
@@ -197,8 +197,8 @@ for the input field with label "Serial port:", select, e.g., "COM5").
 	- Use a web browser (chrome is preferred because it does not have tight timeouts) and connect to the https server running on the FRDM-K64F board, go to
 		"https://IP_address_of_FRDM-K64F_board/wwwroot/index.htm"
 	- Accept TLS server certificate as trusted in browser
-	- Select one of the usecases: 
-		- Imprinting, Botstrapping, Updating and 
+	- Select one of the usecases:
+		- imprinting, bootstrapping, or updating a certificate
 		- HTTP or CoAP as transport
 - For UART terminal based 'CLI':
 	- Follow the instructions on the terminal
