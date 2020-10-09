@@ -7,7 +7,7 @@ SPDX-License-Identifier: Apache-2.0-->
 # frdmk64f_CMP-Client
 
 This project provides source code, documentation, and other files for a CMP client
-mplemented on the NXP FRDM-K64F platform based on the Kinetis SDK (KSDK).
+implemented on the NXP FRDM-K64F platform based on the Kinetis SDK (KSDK).
 It is a fork of [CMPclient-embedded-lib](https://github.com/nokia/CMPclient-embedded-lib) by Martin Peylo at Nokia.
 
 This prototypical code explicitly does not have production quality
@@ -49,8 +49,8 @@ please refer to [HOWTO.md](/cmp_doc/HOWTO.md).
 
 ## Software architecture
 
-The following picture gives a rough overview of the software components used by the embeded CMP client.
-The bulk of the unterlying software is part of the Kinetis SDK or the Git repository of libcoap.
+The following picture gives a rough overview of the software components used by the embedded CMP client.
+The bulk of the underlying software is part of the Kinetis SDK or the Git repository of libcoap.
 
 ![SW architecture](/cmp_doc/sw_architecture.jpg)
 
