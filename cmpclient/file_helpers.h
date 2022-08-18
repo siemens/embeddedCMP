@@ -29,5 +29,6 @@ int write_private_key_pem(mbedtls_pk_context *key, const char *output_file);
 
 int write_cert_pem(mbedtls_x509_crt* cert, const char *output_file);
 
+#define FILE_ERR_FILE_READ				-0x1001	/** ERROR in reading file  */
 
 #endif /* FILE_HELPERS_H_ */

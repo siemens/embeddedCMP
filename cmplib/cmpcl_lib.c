@@ -90,7 +90,7 @@ int setStr( unsigned char **dst, const unsigned char *src, const size_t len)
         mbedtls_free( *dst);
     if( (*dst = (unsigned char*) mbedtls_calloc(1, len)) == NULL) {
         CMPERRS("Error allocating space\n");
-        exit(1); /* TODO: handle better */
+        exit(CMPCL_ER_MEMORY_ALLOCATION); /* TODO: handle better */
     }
     memcpy( *dst, src, len); /* TODO: catch error */
     return 0;
@@ -101,11 +101,15 @@ int write_to_file( char *output_file, const unsigned char *data, size_t len) {
     FILE* f;
 
     if ((f = fopen(output_file, "wb")) == NULL)
-        return (-1); /* TODO: improve error code */
+    {
+    	CMPDBGV("fopen failed for %s", output_file);
+        return (CMPCL_ERR_FILE_OPEN);
+    }
 
     if (fwrite(data, 1, len, f) != len) {
+    	CMPDBGV("fwrite failed for %s", output_file);
         fclose(f);
-        return (-1); /* TODO: improve error code */
+        return (CMPCL_ERR_FILE_WRITE);
     }
 
     CMPDBGV("Binary data written to %s", output_file);
@@ -160,7 +164,7 @@ int cmp_x509_crt_verify( mbedtls_x509_crt *crt,
 
     if( trust_ca == NULL ) {
         CMPDBGS("Empty trusted certs chain. Abort verification.");
-        return 1; /* TODO: which return value? */
+        return CMPCL_ERR_EMPTY_TRUST_CA;
     }
 
     if (exp_name != NULL) {
@@ -169,7 +173,7 @@ int cmp_x509_crt_verify( mbedtls_x509_crt *crt,
 
             if (expected_cn == NULL) {  /*CN extraction failed */
                 CMPERRS("Failed to extract CN name");
-                ret = -1;
+                ret = CMPCL_ERR_EXTRACT_CN;
                 goto err;
             }
         }

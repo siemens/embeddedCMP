@@ -241,19 +241,19 @@ int cmpcl_CRMFwrite_CertReqMsg_der( unsigned char **p, unsigned char *start,
 #define POPO_INPUT_BUF_SIZE 1024 /* TODO: that is not overly effective, but what to do? */
     popo_input_buf = mbedtls_calloc(1, POPO_INPUT_BUF_SIZE);
     if (!popo_input_buf) {
-        len = -1;
+        len = CMPCL_ERR_MEMORY_ALLOCATION;
         goto err;
     }
 
     sig = mbedtls_calloc(1, MBEDTLS_MPI_MAX_SIZE);
     if (!sig) {
-        len = -1;
+        len = CMPCL_ERR_MEMORY_ALLOCATION;
         goto err;
     }
 
     hash = mbedtls_calloc(1, MBEDTLS_MD_MAX_SIZE);
     if (!hash) {
-        len = -1;
+        len = CMPCL_ERR_MEMORY_ALLOCATION;
         goto err;
     }
 
@@ -315,7 +315,7 @@ int cmpcl_CRMFwrite_CertReqMsg_der( unsigned char **p, unsigned char *start,
         /* TODO: maybe add further POP methods: keyEncipherment, keyAgreement */
       default:
         CMPERRV("POPO method %d not supported", ctx->popo_method);
-        len = -1; /* TODO: improve error code */
+        len = CMPCL_ERR_POPO_METHOD;
         goto err;
     }
 
@@ -392,7 +392,7 @@ int cmpcl_CRMFwrite_CertRequest_der( unsigned char **p, unsigned char *start,
     if( (ctx->body_type == MBEDTLS_CMP_PKIBODY_KUR) ) {
         if( ctx->cl_cert == NULL) {
             CMPERRS("No client cert provided; KUR ONLY with OldCert!");
-            return -1; /* TODO: improve error code */
+            return CMPCL_ERR_KUR_OLDCERT;
         }
 //        CMPDBGS("Include OldCertId")
         /* oldCertId */
@@ -775,7 +775,7 @@ int cmpcl_CMPwrite_PKIMessage_der( cmp_ctx *ctx, unsigned char *start,
           break;
       default:
         CMPERRV("NOT SUPPORTED PKIBody_type %d\n", ctx->body_type);
-        return -1; /* TODO: improve error code */
+        return CMPCL_ERR_UNSUPPORTED_BODYTYPE;
     }
     protPart_len += body_len; // both header and body are protected
 
@@ -852,6 +852,14 @@ int cmpcl_CMPwrite_PKIMessage_der( cmp_ctx *ctx, unsigned char *start,
 #ifdef DEVELOPMENT /* for debugging */
     write_to_file("PKIMessage.der", *p, len);
 #endif
+
+#ifdef DEBUG_ASN1
+    int i;
+    CMPINFOV("\r\n **Request** \r\n");
+    for(i = 0; i < len+1; i++)
+    	PRINTF("0x%02X ", *(*p+i));
+#endif
+
 
     CMPINFOV("produced PKIMessage header length: %d", g_wr_len_header);
     if( g_wr_len_certTemplate > 0 )

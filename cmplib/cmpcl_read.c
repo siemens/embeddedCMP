@@ -34,6 +34,8 @@
 #include "mbedtls/asn1write.h"
 #include "mbedtls/md.h"
 #include "mbedtls/pk.h"
+#include "mbedtls/error.h"
+
 
 #include <string.h>
 
@@ -54,6 +56,12 @@ static void zeroize( void *v, size_t n ) {
 
 
 #define PARSE_ASN1_CONSTRUCTED_TAG(expected) ((ret = mbedtls_asn1_get_tag( &p, end, &len, MBEDTLS_ASN1_CONSTRUCTED | expected ) ) != 0)
+
+#define MBEDTLS_ERR(ret, err_buf, CMPCL_ER_BUF_LEN)  \
+			do{\
+				mbedtls_strerror( ret, err_buf, CMPCL_ER_BUF_LEN ); \
+				CMPERRV("mbedtls error -0x%04X: %s", -ret, err_buf); \
+			}while(0);
 
 static size_t g_rc_len_extraCerts = 0;
 static size_t g_rc_n_extraCerts = 0;
@@ -401,7 +409,7 @@ static int cmp_header_parse_check_der( cmp_ctx *ctx, cmp_pkimessage *cmp,
             if (cmp->pbmp == NULL) {
                 CMPERRS("Out of memory!");
                 cmp_pkimessage_free( cmp );
-                return -1; /* TODO: improve error code */
+                return CMPCL_ERR_MEMORY_ALLOCATION;
             }
 
             /*
@@ -424,7 +432,7 @@ static int cmp_header_parse_check_der( cmp_ctx *ctx, cmp_pkimessage *cmp,
             if( cmp->pbmp->salt == NULL ) {
                 CMPERRS("Out of memory!");
                 cmp_pkimessage_free( cmp );
-                return -1; /* TODO: improve error code */
+                return CMPCL_ERR_MEMORY_ALLOCATION;
             }
             cmp->pbmp->salt_len = sublen;
             memcpy(cmp->pbmp->salt, prot_alg_params_buf.p, cmp->pbmp->salt_len);
@@ -638,6 +646,7 @@ static int cmp_pkibody_PKIStatusInfo_parse_der( cmp_PKIStatusInfo *sinfo,
 {
     int ret;
     size_t len;
+    char err_buf[CMPCL_ER_BUF_LEN];
 
     /*
      PKIStatusInfo ::= SEQUENCE {
@@ -676,8 +685,10 @@ static int cmp_pkibody_PKIStatusInfo_parse_der( cmp_PKIStatusInfo *sinfo,
      */
 
     if( ( ret = mbedtls_asn1_get_int( &p, end, &sinfo->PKIStatus ) ) != 0 )
-        return( ret ); /* TODO: improve */
-
+    {
+    	MBEDTLS_ERR( ret, err_buf, CMPCL_ER_BUF_LEN );
+        return( CMPCL_ERR_ASN1_PARSING );
+    }
     /* not accepted ? */
     int ok = sinfo->PKIStatus == CMP_PKISTATUS_ACCEPTED;
     if(ok) {
@@ -703,9 +714,13 @@ static int cmp_pkibody_PKIStatusInfo_parse_der( cmp_PKIStatusInfo *sinfo,
         if ( ( ret = mbedtls_asn1_get_sequence_of( &p, p+len,
                         sinfo->statusString,
                         MBEDTLS_ASN1_UTF8_STRING)))
-            return( ret ); /* TODO: improve */
+        {
+        	MBEDTLS_ERR( ret, err_buf, CMPCL_ER_BUF_LEN );
+        	return( CMPCL_ERR_ASN1_PARSING );
+
+        }
         /* TODO: that length thing doesn't really work; three more garbage bytes are printed */
-        CMPERRV("Response with first statusString: %*s",
+        CMPERRV("Response with first statusString: %.*s",
                 (int) sinfo->statusString->buf.len,
                 sinfo->statusString->buf.p);
     }
@@ -728,13 +743,15 @@ static int cmp_pkibody_PKIStatusInfo_parse_der( cmp_PKIStatusInfo *sinfo,
         if (len > 4)
             CMPWARNS("PKIFailureInfo field has more than four bytes!");
     } else {
-        return( ret ); /* TODO: improve */
+    	MBEDTLS_ERR( ret, err_buf, CMPCL_ER_BUF_LEN );
+        return( CMPCL_ERR_ASN1_PARSING );
     }
 
     if( p != end )
     {
-        return( MBEDTLS_ERR_X509_INVALID_FORMAT +
-                MBEDTLS_ERR_ASN1_LENGTH_MISMATCH );
+    	MBEDTLS_ERR( MBEDTLS_ERR_X509_INVALID_FORMAT +
+                MBEDTLS_ERR_ASN1_LENGTH_MISMATCH, err_buf, CMPCL_ER_BUF_LEN );
+        return( CMPCL_ERR_ASN1_PARSING );
     }
     return 0;
 }
@@ -793,7 +810,7 @@ TODO         encryptedCert   [1] EncryptedValue
         break;
     default:
         CMPERRV("Error, unsupported CertOrEncCert choice %d\n", certChoice);
-        ret = -1; /* TODO: improve error code */
+        ret = CMPCL_ERR_CERT_OR_ENCCERT;
         break;
     }
 
@@ -932,7 +949,7 @@ static int cmp_pkibody_crepmsg_parse_der( cmp_CertRepMessage *crep,
     crep->response = mbedtls_calloc(1, sizeof(struct cmp_CertResponse));
     if( (ret = cmp_pkibody_certrep_parse_der( crep->response, p, p+len )) != 0) {
         CMPERRS("Parsing of cerRep body failed!");
-        return -1; /* TODO: improve error code */
+        return CMPCL_ERR_CERTREP_B_PARSING;
     }
     p += len;
 
@@ -994,6 +1011,13 @@ int cmp_pkimessage_parse_check_der(cmp_ctx *ctx, int expected_type, cmp_pkimessa
     unsigned char *p, *end;
 
     CMPINFOV("----"); // end of transmission
+#ifdef DEBUG_ASN1
+    CMPINFOV("\r\n **Reply** \r\n");
+    int i;
+    for(i = 0; i < buflen+1; i++)
+    	PRINTF("0x%02X ", *(buf+i));
+    CMPINFOV("\r\n----");
+#endif
 
     /* needed to print sizes of chosen parts of the message
      * initialize to zero for each new PKIMessage
@@ -1074,7 +1098,7 @@ int cmp_pkimessage_parse_check_der(cmp_ctx *ctx, int expected_type, cmp_pkimessa
 
     if ( bodytype != MBEDTLS_CMP_PKIBODY_ERROR && bodytype != expected_type) {
         CMPERRV("Wrong response type %d", bodytype);
-        ret = -1; /* TODO: improve error code */
+        ret = CMPCL_ERR_WRONG_RESP_TYPE;
         goto err;
     }
 
@@ -1087,7 +1111,7 @@ int cmp_pkimessage_parse_check_der(cmp_ctx *ctx, int expected_type, cmp_pkimessa
             return( MBEDTLS_ERR_X509_INVALID_FORMAT );
         if ( ( cmp->crep = mbedtls_calloc(1, sizeof(struct cmp_CertRepMessage ) ) ) == NULL) {
             CMPERRS("Out of memory!");
-            ret = -1; /* TODO: improve error code */
+            ret = CMPCL_ERR_MEMORY_ALLOCATION;
             goto err;
         };
         ret = cmp_pkibody_crepmsg_parse_der( cmp->crep, p, p+len );
@@ -1109,7 +1133,7 @@ int cmp_pkimessage_parse_check_der(cmp_ctx *ctx, int expected_type, cmp_pkimessa
         break;
     default:
         CMPERRV("Unsupported body type %d", bodytype);
-        ret = -1; /* TODO: improve error code */
+        ret = CMPCL_ERR_UNSUPPORTED_BODYTYPE;
         break;
     }
 
@@ -1253,8 +1277,8 @@ int cmp_pkimessage_parse_check_der(cmp_ctx *ctx, int expected_type, cmp_pkimessa
         }
 
         if( ( ret = cmp_x509_crt_verify(ctx->extraCerts, //mbedtls_x509_crt *crt,
-                ctx->prot_trust_anchor, //mbedtls_x509_crt *trust_ca,
-                ctx->prot_crls, //mbedtls_x509_crl *ca_crl,
+                ctx->enrol_trust_anchor, //mbedtls_x509_crt *trust_ca,
+                ctx->enrol_crls, //mbedtls_x509_crl *ca_crl,
                 &cmp->sender, //mbedtls_x509_name *exp_name,
                 "Signer cert" //description
                 )) != 0) {
