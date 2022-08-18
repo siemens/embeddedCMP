@@ -65,7 +65,7 @@ int cmpcl_do_transaction(cmp_ctx *ctx, const int body_type) {
 
 	if (len < 0) {
 		CMPERRV("cmpcl_CMPwrite_PKIMessage der returned %d", len);
-		ret =  -1; /* TODO: improve error code? */
+		ret = len; /* updating error code*/
 		goto err;
 	}
 
@@ -80,6 +80,7 @@ int cmpcl_do_transaction(cmp_ctx *ctx, const int body_type) {
 	cmp_response = mbedtls_calloc(1, sizeof(cmp_pkimessage));
 	if (!cmp_response) {
 		CMPERRS("alloc cmp");
+		ret = CMPCL_ERR_MEMORY_ALLOCATION;
 		goto err;
 	}
 	cmp_pkimessage_init(cmp_response);
@@ -127,7 +128,7 @@ int cmpcl_do_transaction(cmp_ctx *ctx, const int body_type) {
 
     } else {
         CMPDBGS("No Certificate received\n");
-        ret = -1; /* TODO: improve error code */
+        ret = CMPCL_ERR_CERT_NOT_RECEIVED;
         goto err;
     }
 
@@ -156,7 +157,7 @@ int cmpcl_do_transaction(cmp_ctx *ctx, const int body_type) {
 
 	    if (len < 0) {
 	        CMPERRV("cmpcl_CMPwrite_PKIMessage der returned %d", len);
-	        ret = -1; /* TODO: improve error code? */
+	        ret = len; /* updating error code */
 	        goto err;
 	    }
 

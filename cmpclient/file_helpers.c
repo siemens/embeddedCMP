@@ -107,7 +107,7 @@ int append_certs_from_pem(mbedtls_x509_crt *crt, const char *path_to_pem) {
 	len = read_file(&pem_str, path_to_pem);
 	if (len < 0) {
 		CMPERRV("Loading certs from %s FAILED", path_to_pem);
-		return -1; /*TODO: improve error code */
+		return FILE_ERR_FILE_READ;
 	}
 
     if( len == 0) {
@@ -129,7 +129,7 @@ int append_crls_from_pem(mbedtls_x509_crl *crl, const char *path_to_pem) {
     len = read_file(&pem_str, path_to_pem);
     if (len < 0) {
         CMPERRV("Loading CRLs from %s FAILED", path_to_pem);
-        return -1; /*TODO: improve error code */
+        return FILE_ERR_FILE_READ;
     }
 
     if( len == 0) {
@@ -151,7 +151,7 @@ int parse_key_from_pem(mbedtls_pk_context *pk_ctx, const char *path_to_pem) {
 	int len = read_file(&pem_str, path_to_pem);
 	if (len <= 0) {
 		CMPERRV("Loading KEY from %s FAILED", path_to_pem);
-		return -1; /*TODO: improve error code */
+		return FILE_ERR_FILE_READ;
 	}
 	int ret = mbedtls_pk_parse_key(pk_ctx, pem_str, len + 1, NULL, 0);
 	if (ret != 0)
