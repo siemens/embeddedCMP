@@ -719,10 +719,14 @@ static int cmp_pkibody_PKIStatusInfo_parse_der( cmp_PKIStatusInfo *sinfo,
         	return( CMPCL_ERR_ASN1_PARSING );
 
         }
-        /* TODO: that length thing doesn't really work; three more garbage bytes are printed */
-        CMPERRV("Response with first statusString: %.*s",
-                (int) sinfo->statusString->buf.len,
-                sinfo->statusString->buf.p);
+        mbedtls_asn1_sequence *StatusString = sinfo->statusString;
+        while(StatusString)
+        {
+        	CMPERRV("Response statusString: %.*s",
+                (int) StatusString->buf.len,
+				StatusString->buf.p);
+        	StatusString = StatusString->next;
+        }
     }
 
     if( p == end )
@@ -970,6 +974,7 @@ static int cmp_pkibody_errmsgcnt_parse_der( cmp_ErrorMsgContent *emc,
 {
     int ret;
     size_t len;
+    char err_buf[CMPCL_ER_BUF_LEN];
 
     /*
        ErrorMsgContent ::= SEQUENCE {
@@ -988,15 +993,61 @@ static int cmp_pkibody_errmsgcnt_parse_der( cmp_ErrorMsgContent *emc,
     if ((ret = cmp_pkibody_PKIStatusInfo_parse_der( &emc->pKIStatusInfo, p, p+len)))
         return(ret); /* TODO improve */
 
+    p += len;
+    if(p == end)
+    	return 0;
 
-    if( p+len != end )
+    /*errorCode              INTEGER           OPTIONAL,*/
+    unsigned char *tmpp = p;
+
+    if( ( ret = mbedtls_asn1_get_tag( &tmpp, end, &len,	MBEDTLS_ASN1_INTEGER ) ) == 0 )
     {
-        if( p+len < end ) {
-            CMPDBGS("Additional errorCode and/or errorDetails in errorMsgBody ignored");
-        } else {
-            return( MBEDTLS_ERR_X509_INVALID_FORMAT + MBEDTLS_ERR_ASN1_LENGTH_MISMATCH );
-        }
+		if( ( ret = mbedtls_asn1_get_int( &p, end, &emc->errorCode ) ) != 0 )
+		{
+			MBEDTLS_ERR( ret, err_buf, CMPCL_ER_BUF_LEN );
+			return( CMPCL_ERR_ASN1_PARSING );
+		}
+		CMPERRV( "Response with Error Code: %d", emc->errorCode );
+		if(p == end)
+			return 0;
     }
+
+    /*
+            errorDetails           PKIFreeText       OPTIONAL
+               PKIFreeText ::= SEQUENCE SIZE (1..MAX) OF UTF8String
+      */
+	tmpp = p;
+	if( ( ret = mbedtls_asn1_get_tag( &tmpp, end, &len,
+				   MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE ) ) == 0 )
+	{
+	   len += tmpp-p;
+	   emc->errorDetails = (mbedtls_asn1_sequence *) mbedtls_calloc(1,
+												sizeof(mbedtls_asn1_sequence));
+	   if ( ( ret = mbedtls_asn1_get_sequence_of( &p, p+len,
+			   	   	   emc->errorDetails,
+					   MBEDTLS_ASN1_UTF8_STRING)))
+	   {
+		MBEDTLS_ERR( ret, err_buf, CMPCL_ER_BUF_LEN );
+		return( CMPCL_ERR_ASN1_PARSING );
+
+	   }
+	   mbedtls_asn1_sequence *ErrorDetails = emc->errorDetails;
+	   while(ErrorDetails)
+	   {
+		CMPERRV("Response Error Details: %.*s",
+			   (int) ErrorDetails->buf.len,
+			   ErrorDetails->buf.p);
+		ErrorDetails = ErrorDetails->next;
+	   }
+	}
+
+	 if( p != end )
+	    {
+	    	MBEDTLS_ERR( MBEDTLS_ERR_X509_INVALID_FORMAT +
+	                MBEDTLS_ERR_ASN1_LENGTH_MISMATCH, err_buf, CMPCL_ER_BUF_LEN );
+	        return( CMPCL_ERR_ASN1_PARSING );
+	    }
+
     return 0;
 }
 
@@ -1121,9 +1172,8 @@ int cmp_pkimessage_parse_check_der(cmp_ctx *ctx, int expected_type, cmp_pkimessa
         if( PARSE_ASN1_CONSTRUCTED_TAG( MBEDTLS_ASN1_SEQUENCE ) )
             return( MBEDTLS_ERR_X509_INVALID_FORMAT );
         cmp->error = mbedtls_calloc( 1, sizeof (cmp_ErrorMsgContent));
-        if (cmp_pkibody_errmsgcnt_parse_der( cmp->error, p, p+len )) {
+        if ((ret = cmp_pkibody_errmsgcnt_parse_der( cmp->error, p, p+len )) != 0 ) {
             CMPERRS("PKIBody error message parse failed!");
-            ret = -1;
             goto err;
         }
         ret = -1;
