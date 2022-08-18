@@ -226,7 +226,7 @@ typedef struct cmp_CertifiedKeyPair {
  */
 typedef struct cmp_ErrorMsgContent {
     cmp_PKIStatusInfo pKIStatusInfo;
-    int *errorCode; /* OPTIONAL */
+    int errorCode; /* OPTIONAL */
     mbedtls_asn1_sequence *errorDetails; /* OPTIONAL PKIFreetext */
 } cmp_ErrorMsgContent;
 
