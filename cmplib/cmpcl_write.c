@@ -856,7 +856,7 @@ int cmpcl_CMPwrite_PKIMessage_der( cmp_ctx *ctx, unsigned char *start,
 #ifdef DEBUG_ASN1
     int i;
     CMPINFOV("\r\n **Request** \r\n");
-    for(i = 0; i < len+1; i++)
+    for(i = 0; i < len; i++)
     	PRINTF("0x%02X ", *(*p+i));
 #endif
 

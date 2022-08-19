@@ -73,11 +73,11 @@ int cmp_ctx_init(cmp_ctx *ctx, mbedtls_ctr_drbg_context *ctr_drbg,
 	ctx->send_receive_cb = send_receive_func;
 
 	if ((ctx->shost = strdup(shost)) == NULL) {
-		return CMPCL_ERR_HOST_IP;
+		return CMPCL_ERR_HOST_STR_MEMORY_ALLOCATION;
 	}
 	ctx->sport = srv_port;
 	if ((ctx->spath = strdup(spath)) == NULL) {
-		return CMPCL_ERR_HOST_PATH;
+		return CMPCL_ERR_HOST_STR_MEMORY_ALLOCATION;
 	}
 
 	/* If there's a timesource ... */

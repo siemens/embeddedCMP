@@ -65,7 +65,7 @@ int cmpcl_do_transaction(cmp_ctx *ctx, const int body_type) {
 
 	if (len < 0) {
 		CMPERRV("cmpcl_CMPwrite_PKIMessage der returned %d", len);
-		ret = len; /* updating error code*/
+		ret = len; /* if negative, len is an error code*/
 		goto err;
 	}
 
@@ -157,7 +157,7 @@ int cmpcl_do_transaction(cmp_ctx *ctx, const int body_type) {
 
 	    if (len < 0) {
 	        CMPERRV("cmpcl_CMPwrite_PKIMessage der returned %d", len);
-	        ret = len; /* updating error code */
+	        ret = len; /* if negative, len is an error code */
 	        goto err;
 	    }
 

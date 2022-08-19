@@ -1065,7 +1065,7 @@ int cmp_pkimessage_parse_check_der(cmp_ctx *ctx, int expected_type, cmp_pkimessa
 #ifdef DEBUG_ASN1
     CMPINFOV("\r\n **Reply** \r\n");
     int i;
-    for(i = 0; i < buflen+1; i++)
+    for(i = 0; i < buflen; i++)
     	PRINTF("0x%02X ", *(buf+i));
     CMPINFOV("\r\n----");
 #endif
