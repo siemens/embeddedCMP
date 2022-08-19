@@ -202,5 +202,5 @@ for the input field with label "Serial port:", select, e.g., "COM5").
 		- HTTP or CoAP as transport
 - For UART terminal based 'CLI':
 	- Follow the instructions on the terminal
-	- Make sure inbound firewall rules is allowed for LRA running on PC, Otherwise client will not be able to communicate with LRA.
+	- Make sure that on a Windows host inbound messages to the CMP server (e.g., LRA) application are allowed by the firewall rules. Otherwise the client will not be able to communicate with the server.
 - Watch the Debug console output on the UART terminal for results and diagnostics.
