@@ -90,7 +90,7 @@ int setStr( unsigned char **dst, const unsigned char *src, const size_t len)
         mbedtls_free( *dst);
     if( (*dst = (unsigned char*) mbedtls_calloc(1, len)) == NULL) {
         CMPERRS("Error allocating space\n");
-        exit(CMPCL_ER_MEMORY_ALLOCATION); /* TODO: handle better */
+        return CMPCL_ERR_MEMORY_ALLOCATION;
     }
     memcpy( *dst, src, len); /* TODO: catch error */
     return 0;

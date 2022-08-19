@@ -57,12 +57,13 @@ static void zeroize( void *v, size_t n ) {
 
 #define PARSE_ASN1_CONSTRUCTED_TAG(expected) ((ret = mbedtls_asn1_get_tag( &p, end, &len, MBEDTLS_ASN1_CONSTRUCTED | expected ) ) != 0)
 
-#define MBEDTLS_ERR(ret, err_buf, CMPCL_ER_BUF_LEN)  \
+#define MBEDTLS_ERR(ret)  \
 			do{\
 				mbedtls_strerror( ret, err_buf, CMPCL_ER_BUF_LEN ); \
 				CMPERRV("mbedtls error -0x%04X: %s", -ret, err_buf); \
 			}while(0);
 
+char err_buf[CMPCL_ER_BUF_LEN];
 static size_t g_rc_len_extraCerts = 0;
 static size_t g_rc_n_extraCerts = 0;
 static size_t g_rc_len_caPubs = 0;
@@ -637,6 +638,31 @@ static int cmp_header_parse_check_der( cmp_ctx *ctx, cmp_pkimessage *cmp,
     return 0;
 }
 
+/*
+ * Parse PKIFreeText in DER Format
+ */
+static int cmp_pkibody_PKIFreeText_parse_der(unsigned char **p, unsigned char *end,
+                                                        mbedtls_asn1_sequence **outSeq)
+{
+    int ret;
+    *outSeq = (mbedtls_asn1_sequence *) mbedtls_calloc(1,
+                                             sizeof(mbedtls_asn1_sequence));
+    if ( ( ret = mbedtls_asn1_get_sequence_of( p, end,
+            *outSeq, MBEDTLS_ASN1_UTF8_STRING)))
+    {
+        MBEDTLS_ERR( ret);
+        return CMPCL_ERR_ASN1_PARSING;
+
+    }
+    mbedtls_asn1_sequence *Strings = *outSeq;
+    for( ;Strings; Strings = Strings->next)
+    {
+        CMPERRV(" %.*s",
+            (int) Strings->buf.len,
+            Strings->buf.p);
+    }
+    return 0;
+}
 
 /*
  * Parse CMP PKIStatusInfo in DER format
@@ -646,7 +672,6 @@ static int cmp_pkibody_PKIStatusInfo_parse_der( cmp_PKIStatusInfo *sinfo,
 {
     int ret;
     size_t len;
-    char err_buf[CMPCL_ER_BUF_LEN];
 
     /*
      PKIStatusInfo ::= SEQUENCE {
@@ -686,13 +711,13 @@ static int cmp_pkibody_PKIStatusInfo_parse_der( cmp_PKIStatusInfo *sinfo,
 
     if( ( ret = mbedtls_asn1_get_int( &p, end, &sinfo->PKIStatus ) ) != 0 )
     {
-    	MBEDTLS_ERR( ret, err_buf, CMPCL_ER_BUF_LEN );
-        return( CMPCL_ERR_ASN1_PARSING );
+    	MBEDTLS_ERR(ret);
+        return CMPCL_ERR_ASN1_PARSING;
     }
     /* not accepted ? */
     int ok = sinfo->PKIStatus == CMP_PKISTATUS_ACCEPTED;
     if(ok) {
-        CMPDBGV( "Response with PKIStatus: %d", sinfo->PKIStatus );
+        CMPDBGV( "Response with PKIStatus: CMP_PKISTATUS_ACCEPTED");
     } else {
         CMPERRV( "Response with PKIStatus: %d", sinfo->PKIStatus );
     }
@@ -709,24 +734,9 @@ static int cmp_pkibody_PKIStatusInfo_parse_der( cmp_PKIStatusInfo *sinfo,
                     MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE ) ) == 0 )
     {
         len += tmpp-p;
-        sinfo->statusString = (mbedtls_asn1_sequence *) mbedtls_calloc(1,
-                                                 sizeof(mbedtls_asn1_sequence));
-        if ( ( ret = mbedtls_asn1_get_sequence_of( &p, p+len,
-                        sinfo->statusString,
-                        MBEDTLS_ASN1_UTF8_STRING)))
-        {
-        	MBEDTLS_ERR( ret, err_buf, CMPCL_ER_BUF_LEN );
-        	return( CMPCL_ERR_ASN1_PARSING );
-
-        }
-        mbedtls_asn1_sequence *StatusString = sinfo->statusString;
-        while(StatusString)
-        {
-        	CMPERRV("Response statusString: %.*s",
-                (int) StatusString->buf.len,
-				StatusString->buf.p);
-        	StatusString = StatusString->next;
-        }
+        CMPERRV("Response StatusString(s): ");
+        if(( ret = cmp_pkibody_PKIFreeText_parse_der(&p, p+len, &sinfo->statusString)) != 0)
+             return ret;
     }
 
     if( p == end )
@@ -747,14 +757,13 @@ static int cmp_pkibody_PKIStatusInfo_parse_der( cmp_PKIStatusInfo *sinfo,
         if (len > 4)
             CMPWARNS("PKIFailureInfo field has more than four bytes!");
     } else {
-    	MBEDTLS_ERR( ret, err_buf, CMPCL_ER_BUF_LEN );
+    	MBEDTLS_ERR( ret);
         return( CMPCL_ERR_ASN1_PARSING );
     }
 
     if( p != end )
     {
-    	MBEDTLS_ERR( MBEDTLS_ERR_X509_INVALID_FORMAT +
-                MBEDTLS_ERR_ASN1_LENGTH_MISMATCH, err_buf, CMPCL_ER_BUF_LEN );
+    	MBEDTLS_ERR( MBEDTLS_ERR_X509_INVALID_FORMAT + MBEDTLS_ERR_ASN1_LENGTH_MISMATCH);
         return( CMPCL_ERR_ASN1_PARSING );
     }
     return 0;
@@ -974,7 +983,6 @@ static int cmp_pkibody_errmsgcnt_parse_der( cmp_ErrorMsgContent *emc,
 {
     int ret;
     size_t len;
-    char err_buf[CMPCL_ER_BUF_LEN];
 
     /*
        ErrorMsgContent ::= SEQUENCE {
@@ -1004,7 +1012,7 @@ static int cmp_pkibody_errmsgcnt_parse_der( cmp_ErrorMsgContent *emc,
     {
 		if( ( ret = mbedtls_asn1_get_int( &p, end, &emc->errorCode ) ) != 0 )
 		{
-			MBEDTLS_ERR( ret, err_buf, CMPCL_ER_BUF_LEN );
+			MBEDTLS_ERR( ret );
 			return( CMPCL_ERR_ASN1_PARSING );
 		}
 		CMPERRV( "Response with Error Code: %d", emc->errorCode );
@@ -1021,32 +1029,17 @@ static int cmp_pkibody_errmsgcnt_parse_der( cmp_ErrorMsgContent *emc,
 				   MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE ) ) == 0 )
 	{
 	   len += tmpp-p;
-	   emc->errorDetails = (mbedtls_asn1_sequence *) mbedtls_calloc(1,
-												sizeof(mbedtls_asn1_sequence));
-	   if ( ( ret = mbedtls_asn1_get_sequence_of( &p, p+len,
-			   	   	   emc->errorDetails,
-					   MBEDTLS_ASN1_UTF8_STRING)))
-	   {
-		MBEDTLS_ERR( ret, err_buf, CMPCL_ER_BUF_LEN );
-		return( CMPCL_ERR_ASN1_PARSING );
-
-	   }
-	   mbedtls_asn1_sequence *ErrorDetails = emc->errorDetails;
-	   while(ErrorDetails)
-	   {
-		CMPERRV("Response Error Details: %.*s",
-			   (int) ErrorDetails->buf.len,
-			   ErrorDetails->buf.p);
-		ErrorDetails = ErrorDetails->next;
-	   }
+	   CMPERRV("Response Error Detail(s): ");
+	   if((ret = cmp_pkibody_PKIFreeText_parse_der(&p, p+len, &emc->errorDetails)) != 0)
+	       return ret;
 	}
 
-	 if( p != end )
-	    {
-	    	MBEDTLS_ERR( MBEDTLS_ERR_X509_INVALID_FORMAT +
-	                MBEDTLS_ERR_ASN1_LENGTH_MISMATCH, err_buf, CMPCL_ER_BUF_LEN );
-	        return( CMPCL_ERR_ASN1_PARSING );
-	    }
+    if( p != end )
+    {
+        MBEDTLS_ERR( MBEDTLS_ERR_X509_INVALID_FORMAT +
+                MBEDTLS_ERR_ASN1_LENGTH_MISMATCH );
+        return CMPCL_ERR_ASN1_PARSING;
+    }
 
     return 0;
 }
@@ -1406,7 +1399,7 @@ void cmp_ErrorMsgContent_free(cmp_ErrorMsgContent *cerr) {
     if( cerr == NULL)
         return;
     cmp_PKIStatusInfo_free( &cerr->pKIStatusInfo );
-    /* TODO: potentially free optional fields errorCode and errorDetails */
+    cmp_asn1_sequence_free(cerr->errorDetails);
     zeroize( cerr, sizeof( cmp_ErrorMsgContent ) );
 }
 

@@ -136,7 +136,7 @@ int cmp_ctx_set_reference(cmp_ctx *ctx, const unsigned char *ref,
 /* **************************************************************** */
 int cmp_ctx_set_messageTime(cmp_ctx *ctx, const char *msgTime) {
 	if (strlen(msgTime) != MBEDTLS_X509_RFC5280_UTC_TIME_LEN - 1) {
-		return ( CMPCL_ERR_MSGTIME_LEN);
+		return CMPCL_ERR_MSGTIME_LEN;
 	}
 	if (!ctx->messageTime)
 		ctx->messageTime = mbedtls_calloc(1, MBEDTLS_X509_RFC5280_UTC_TIME_LEN + 1);
