@@ -59,11 +59,11 @@ static void zeroize( void *v, size_t n ) {
 
 #define MBEDTLS_ERR(ret)  \
 			do{\
+			    char err_buf[CMPCL_ER_BUF_LEN];\
 				mbedtls_strerror( ret, err_buf, CMPCL_ER_BUF_LEN ); \
 				CMPERRV("mbedtls error -0x%04X: %s", -ret, err_buf); \
 			}while(0);
 
-char err_buf[CMPCL_ER_BUF_LEN];
 static size_t g_rc_len_extraCerts = 0;
 static size_t g_rc_n_extraCerts = 0;
 static size_t g_rc_len_caPubs = 0;

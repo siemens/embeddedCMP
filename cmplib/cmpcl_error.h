@@ -18,8 +18,6 @@ extern "C" {
 #endif
 
 
-#define CMPCL_ERR_HOST_STR_MEMORY_ALLOCATION    -0x0002		/** Error in setting server IP  */
-#define CMPCL_ERR_HOST_PATH                     -0x0003		/** Error in setting server PATH  */
 #define CMPCL_ERR_MEMORY_ALLOCATION             -0x0004		/** Error in memory allocation  */
 #define CMPCL_ERR_PBM_PARM                      -0x0005		/** Error in setting PBM Parameter */
 #define CMPCL_ERR_MSGTIME_LEN                   -0x0006		/** Invalid length of UTC_TIME, must be equal to 14(MBEDTLS_X509_RFC5280_UTC_TIME_LEN - 1) */
