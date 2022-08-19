@@ -1320,8 +1320,8 @@ int cmp_pkimessage_parse_check_der(cmp_ctx *ctx, int expected_type, cmp_pkimessa
         }
 
         if( ( ret = cmp_x509_crt_verify(ctx->extraCerts, //mbedtls_x509_crt *crt,
-                ctx->enrol_trust_anchor, //mbedtls_x509_crt *trust_ca,
-                ctx->enrol_crls, //mbedtls_x509_crl *ca_crl,
+                ctx->prot_trust_anchor, //mbedtls_x509_crt *trust_ca,
+                ctx->prot_crls, //mbedtls_x509_crl *ca_crl,
                 &cmp->sender, //mbedtls_x509_name *exp_name,
                 "Signer cert" //description
                 )) != 0) {
