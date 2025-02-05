@@ -199,10 +199,10 @@ int cmpcl_CMPwrite_CertConfCont_der( unsigned char **p,
      *  -- as is used to create and verify the certificate signature
      */
     /* TODO: how to best access the received cert? */
-    CMPCL_ASN1_CHK_ADD( ret, mbedtls_md(mbedtls_md_info_from_type( ctx->new_cert->sig_md ),
-            ctx->new_cert->raw.p, ctx->new_cert->raw.len, hash ), ret );
+    CMPCL_ASN1_CHK_ADD(ret, mbedtls_md(mbedtls_md_info_from_type(ctx->new_cert->MBEDTLS_PRIVATE(sig_md)),
+                                       ctx->new_cert->raw.p, ctx->new_cert->raw.len, hash), ret);
 
-    hash_len = mbedtls_md_get_size(mbedtls_md_info_from_type( ctx->new_cert->sig_md ) );
+    hash_len = mbedtls_md_get_size(mbedtls_md_info_from_type(ctx->new_cert->MBEDTLS_PRIVATE(sig_md)));
 
     CMPCL_ASN1_CHK_ADD( len, mbedtls_asn1_write_octet_string(p, start, hash, hash_len), ret );
 
@@ -294,7 +294,7 @@ int cmpcl_CRMFwrite_CertReqMsg_der( unsigned char **p, unsigned char *start,
         CMPCL_ASN1_CHK_ADD(ret, mbedtls_md(mbedtls_md_info_from_type( ctx->popo_md_alg ), popo_input_p, popo_input_len, hash ), len);
 
         /* TODO the last parameters f_rng and p_rng need to come from outside for EC keys... */
-        CMPCL_ASN1_CHK_ADD(ret, mbedtls_pk_sign( ctx->new_key, ctx->popo_md_alg, hash, 0, sig, &sig_len, NULL, NULL ), len);
+        CMPCL_ASN1_CHK_ADD(ret, mbedtls_pk_sign( ctx->new_key, ctx->popo_md_alg, hash, 0, sig, MBEDTLS_MPI_MAX_SIZE, &sig_len, NULL, NULL ), len);
 
         /*
          * Write data to output buffer
@@ -516,7 +516,7 @@ static int msg_sig_alg_prot( mbedtls_pk_context *key,
 
     /* TODO the last parameters f_rng and p_rng need to come from outside for EC keys... */
 
-    return mbedtls_pk_sign( key, md, hash, 0, sig, sig_len, NULL, NULL );
+    return mbedtls_pk_sign( key, md, hash, 0, sig, MBEDTLS_MPI_MAX_SIZE, sig_len, NULL, NULL );
 }
 
 /* **************************************************************** */
