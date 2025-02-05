@@ -54,14 +54,15 @@ static mbedtls_pk_context pkey;
 
 const char *pers = "ssl_server";
 
-int mbedtls_init_entropy() {
+int mbedtls_init_entropy()
+{
 
     int ret = -1;
     mbedtls_entropy_init(&entropy);
     mbedtls_ctr_drbg_init(&ctr_drbg);
 
-    if( ( ret = mbedtls_ctr_drbg_seed(&ctr_drbg, mbedtls_entropy_func, &entropy,
-            (const unsigned char *) pers, strlen(pers)) ) != 0) {
+    if ((ret = mbedtls_ctr_drbg_seed(&ctr_drbg, mbedtls_entropy_func, &entropy,
+                                     (const unsigned char *) pers, strlen(pers))) != 0) {
         PRINTF(" FAIL! mbedtls_ctr_drbg_seed returned : 0x04x", -ret);
         return -1;
     }
@@ -70,13 +71,15 @@ int mbedtls_init_entropy() {
 
 #if CMP_CLIENT_HTTPD
 static void mbed_tls_debug(void *ctx, int level, const char *file, int line,
-        const char *str) {
+                           const char *str)
+{
     ((void) level);
     PRINTF("%s(%d):%s", file, line, str);
     // PRINTF("\r\n%s, at line %d in file %s\n", str, line, file);
 }
 
-int setup_httpd_tls() {
+int setup_httpd_tls()
+{
     mbedtls_ssl_init(&ssl);
     mbedtls_ssl_config_init(&conf);
 #if defined(MBEDTLS_SSL_CACHE_C)
@@ -102,21 +105,21 @@ int setup_httpd_tls() {
     int ret = append_certs_from_pem(&srvcert, TLS_SERVER_CRT);
     if (ret != 0) {
         PRINTF("\r\n error parsing TLS server certificate from %s:%d\r\n",
-        TLS_SERVER_CRT, ret);
+               TLS_SERVER_CRT, ret);
         return -1;
     }
 
     ret = append_certs_from_pem(&srvcert, TLS_SERVER_CHAIN);
     if (ret != 0) {
         PRINTF("\r\n error parsing TLS server chain from %s:%d\r\n",
-        TLS_SERVER_CHAIN, ret);
+               TLS_SERVER_CHAIN, ret);
         return -1;
     }
 
     ret = parse_key_from_pem(&pkey, TLS_SERVER_KEY);
     if (ret != 0) {
         PRINTF("\r\n error parsing TLS server key from %s:%d\r\n",
-        TLS_SERVER_KEY, ret);
+               TLS_SERVER_KEY, ret);
         return -1;
     }
 
@@ -129,10 +132,10 @@ int setup_httpd_tls() {
      * 3. Setting up the SSL data.
      */
     if ((ret = mbedtls_ssl_config_defaults(&conf, MBEDTLS_SSL_IS_SERVER,
-    MBEDTLS_SSL_TRANSPORT_STREAM,
-    MBEDTLS_SSL_PRESET_DEFAULT)) != 0) {
+                                           MBEDTLS_SSL_TRANSPORT_STREAM,
+                                           MBEDTLS_SSL_PRESET_DEFAULT)) != 0) {
         PRINTF(" failed\r\n  ! mbedtls_ssl_config_defaults returned %d\r\n\r\n",
-                ret);
+               ret);
         return -1;
     }
 
@@ -140,12 +143,12 @@ int setup_httpd_tls() {
     mbedtls_ssl_conf_dbg(&conf, mbed_tls_debug, NULL);
 #if defined(MBEDTLS_SSL_CACHE_C)
     mbedtls_ssl_conf_session_cache(&conf, &cache, mbedtls_ssl_cache_get,
-            mbedtls_ssl_cache_set);
+                                   mbedtls_ssl_cache_set);
 #endif
     mbedtls_ssl_conf_ca_chain(&conf, srvcert.next, NULL);
     if ((ret = mbedtls_ssl_conf_own_cert(&conf, &srvcert, &pkey)) != 0) {
         PRINTF(" failed\r\n  ! mbedtls_ssl_conf_own_cert returned %d\r\n\r\n",
-                ret);
+               ret);
         return -1;
     }
 

@@ -24,11 +24,11 @@
 #include "mbedtls/build_info.h"
 
 /*#if !defined(MBEDTLS_CONFIG_FILE)
-#include "mbedtls/config.h"
-#else
-#include MBEDTLS_CONFIG_FILE
-#endif
-*/
+ #include "mbedtls/config.h"
+ #else
+ #include MBEDTLS_CONFIG_FILE
+ #endif
+ */
 
 #include "cmpcl_int.h"
 
@@ -61,8 +61,8 @@ static size_t g_wr_prot_len = 0;
 
 
 /* **************************************************************** */
-int cmpcl_CMPwrite_CertConfCont_der( unsigned char **p,
-        unsigned char *start, cmp_ctx *ctx)
+int cmpcl_CMPwrite_CertConfCont_der(unsigned char **p,
+                                    unsigned char *start, cmp_ctx *ctx)
 {
     int ret;
     size_t len = 0;
@@ -167,8 +167,13 @@ int cmpcl_CMPwrite_CertConfCont_der( unsigned char **p,
      *    -- certificate already exists
      *    }
      */
-    if( ctx->new_cert_fail_info != 0 )
-        CMPCL_ASN1_CHK_ADD( len, mbedtls_asn1_write_bitstring(p, start, (unsigned char *) &ctx->new_cert_fail_info, 26 ), ret );
+    if (ctx->new_cert_fail_info != 0) {
+        CMPCL_ASN1_CHK_ADD(len,
+                           mbedtls_asn1_write_bitstring(p, start,
+                                                        (unsigned char *) &ctx->new_cert_fail_info,
+                                                        26),
+                           ret);
+    }
 
 
     /* statusString  PKIFreeText     OPTIONAL
@@ -182,16 +187,19 @@ int cmpcl_CMPwrite_CertConfCont_der( unsigned char **p,
      */
 
     /* PKIStatus ::= INTEGER */
-    CMPCL_ASN1_CHK_ADD( len, mbedtls_asn1_write_int(p, start, ctx->new_cert_fail_info ? CMP_PKISTATUS_REJECTION : CMP_PKISTATUS_ACCEPTED ), ret );
+    CMPCL_ASN1_CHK_ADD(len,
+                       mbedtls_asn1_write_int(p, start,
+                                              ctx->new_cert_fail_info ? CMP_PKISTATUS_REJECTION :
+                                              CMP_PKISTATUS_ACCEPTED), ret);
 
     /* PKIStatusInfo ::= SEQUENCE */
-    CMPCL_ASN1_CHK_ADD( len, mbedtls_asn1_write_len(p, start, len ), ret );
-    CMPCL_ASN1_CHK_ADD( len, mbedtls_asn1_write_tag( p, start, MBEDTLS_ASN1_CONSTRUCTED |
-                                                    MBEDTLS_ASN1_SEQUENCE ), ret );
+    CMPCL_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(p, start, len), ret);
+    CMPCL_ASN1_CHK_ADD(len, mbedtls_asn1_write_tag(p, start, MBEDTLS_ASN1_CONSTRUCTED |
+                                                   MBEDTLS_ASN1_SEQUENCE), ret);
 
 
     /* certReqId   INTEGER, */
-    CMPCL_ASN1_CHK_ADD( len, mbedtls_asn1_write_int(p, start, ctx->certReqId ), ret );
+    CMPCL_ASN1_CHK_ADD(len, mbedtls_asn1_write_int(p, start, ctx->certReqId), ret);
 
     /*
      * certHash    OCTET STRING,
@@ -204,28 +212,28 @@ int cmpcl_CMPwrite_CertConfCont_der( unsigned char **p,
 
     hash_len = mbedtls_md_get_size(mbedtls_md_info_from_type(ctx->new_cert->MBEDTLS_PRIVATE(sig_md)));
 
-    CMPCL_ASN1_CHK_ADD( len, mbedtls_asn1_write_octet_string(p, start, hash, hash_len), ret );
+    CMPCL_ASN1_CHK_ADD(len, mbedtls_asn1_write_octet_string(p, start, hash, hash_len), ret);
 
 
     /* CertStatus ::= SEQUENCE */
-    CMPCL_ASN1_CHK_ADD( len, mbedtls_asn1_write_len(p, start, len ), ret );
-    CMPCL_ASN1_CHK_ADD( len, mbedtls_asn1_write_tag( p, start, MBEDTLS_ASN1_CONSTRUCTED |
-                                                    MBEDTLS_ASN1_SEQUENCE ), ret );
+    CMPCL_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(p, start, len), ret);
+    CMPCL_ASN1_CHK_ADD(len, mbedtls_asn1_write_tag(p, start, MBEDTLS_ASN1_CONSTRUCTED |
+                                                   MBEDTLS_ASN1_SEQUENCE), ret);
 
     /* CertConfirmContent ::= SEQUENCE OF CertStatus */
-    CMPCL_ASN1_CHK_ADD( len, mbedtls_asn1_write_len(p, start, len ), ret );
-    CMPCL_ASN1_CHK_ADD( len, mbedtls_asn1_write_tag( p, start, MBEDTLS_ASN1_CONSTRUCTED |
-                                                    MBEDTLS_ASN1_SEQUENCE ), ret );
+    CMPCL_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(p, start, len), ret);
+    CMPCL_ASN1_CHK_ADD(len, mbedtls_asn1_write_tag(p, start, MBEDTLS_ASN1_CONSTRUCTED |
+                                                   MBEDTLS_ASN1_SEQUENCE), ret);
 
-    err:
+err:
     mbedtls_free(hash);
-    return( (int) len );
+    return (int) len;
 }
 
 
 /* **************************************************************** */
-int cmpcl_CRMFwrite_CertReqMsg_der( unsigned char **p, unsigned char *start,
-                                      cmp_ctx *ctx)
+int cmpcl_CRMFwrite_CertReqMsg_der(unsigned char **p, unsigned char *start,
+                                   cmp_ctx *ctx)
 {
     int ret;
     size_t len = 0;
@@ -268,76 +276,96 @@ int cmpcl_CRMFwrite_CertReqMsg_der( unsigned char **p, unsigned char *start,
 
 
     switch (ctx->popo_method) {
-      case CMP_CTX_POPO_RAVERIFIED:
-        CMPCL_ASN1_CHK_ADD( len, mbedtls_asn1_write_null( p, start ), len );
-        len--; /* -1 is as we're intentionally overwriting the SEQUENCE TAG from the function for IMPLICIT */
-        (*p)++;       /* +1 is as we're intentionally overwriting the SEQUENCE TAG from the function for IMPLICIT */
-        CMPCL_ASN1_CHK_ADD( len, mbedtls_asn1_write_tag( p, start,
-                MBEDTLS_ASN1_CONTEXT_SPECIFIC | MBEDTLS_ASN1_CONSTRUCTED | 0 /* raVerified */ ), len );
-        break;
-      case CMP_CTX_POPO_SIGNATURE:
-        /* TODO
-           poposkInput contains the data to be signed, when present.  This
-           field MUST be present when the certificate template does not
-           contain both the public key value and a subject name value.
+        case CMP_CTX_POPO_RAVERIFIED:
+            CMPCL_ASN1_CHK_ADD(len, mbedtls_asn1_write_null(p, start), len);
+            len--; /* -1 is as we're intentionally overwriting the SEQUENCE TAG from the function for IMPLICIT */
+            (*p)++;   /* +1 is as we're intentionally overwriting the SEQUENCE TAG from the function for IMPLICIT */
+            CMPCL_ASN1_CHK_ADD(len,
+                               mbedtls_asn1_write_tag(p, start,
+                                                      MBEDTLS_ASN1_CONTEXT_SPECIFIC |
+                                                      MBEDTLS_ASN1_CONSTRUCTED | 0 /* raVerified */),
+                               len);
+            break;
+        case CMP_CTX_POPO_SIGNATURE:
+            /* TODO
+               poposkInput contains the data to be signed, when present.  This
+               field MUST be present when the certificate template does not
+               contain both the public key value and a subject name value.
 
-           So far this implements RFC4211 section 4.1.3 with omitted poposkInput
-         */
-        popo_input_p = popo_input_buf+POPO_INPUT_BUF_SIZE;
+               So far this implements RFC4211 section 4.1.3 with omitted poposkInput
+             */
+            popo_input_p = popo_input_buf+POPO_INPUT_BUF_SIZE;
 
-        /*
-         * cmpcl_CRMFwrite_CertRequest_der() called just to get input for popo
-         */
-        CMPCL_ASN1_CHK_ADD( popo_input_len, cmpcl_CRMFwrite_CertRequest_der( &popo_input_p, popo_input_buf, ctx ), len );
+            /*
+             * cmpcl_CRMFwrite_CertRequest_der() called just to get input for popo
+             */
+            CMPCL_ASN1_CHK_ADD(popo_input_len,
+                               cmpcl_CRMFwrite_CertRequest_der(&popo_input_p, popo_input_buf, ctx),
+                               len);
 
-        /* create hash of popo_input */
-        CMPCL_ASN1_CHK_ADD(ret, mbedtls_md(mbedtls_md_info_from_type( ctx->popo_md_alg ), popo_input_p, popo_input_len, hash ), len);
+            /* create hash of popo_input */
+            CMPCL_ASN1_CHK_ADD(ret,
+                               mbedtls_md(mbedtls_md_info_from_type(ctx->popo_md_alg), popo_input_p,
+                                          popo_input_len, hash),
+                               len);
 
-        /* TODO the last parameters f_rng and p_rng need to come from outside for EC keys... */
-        CMPCL_ASN1_CHK_ADD(ret, mbedtls_pk_sign( ctx->new_key, ctx->popo_md_alg, hash, 0, sig, MBEDTLS_MPI_MAX_SIZE, &sig_len, NULL, NULL ), len);
+            /* TODO the last parameters f_rng and p_rng need to come from outside for EC keys... */
+            CMPCL_ASN1_CHK_ADD(ret,
+                               mbedtls_pk_sign(ctx->new_key, ctx->popo_md_alg, hash, 0, sig,
+                                               MBEDTLS_MPI_MAX_SIZE,
+                                               &sig_len, NULL, NULL), len);
 
-        /*
-         * Write data to output buffer
-         */
-        pk_alg = mbedtls_pk_get_type( ctx->new_key );
-        if( pk_alg == MBEDTLS_PK_ECKEY )
-          pk_alg = MBEDTLS_PK_ECDSA;
-        if( ( ret = mbedtls_oid_get_oid_by_sig_alg( pk_alg, ctx->popo_md_alg, &sig_oid, &sig_oid_len ) ) != 0 )
-          CMPERRS("ERROR getting OID\n");
+            /*
+             * Write data to output buffer
+             */
+            pk_alg = mbedtls_pk_get_type(ctx->new_key);
+            if (pk_alg == MBEDTLS_PK_ECKEY) {
+                pk_alg = MBEDTLS_PK_ECDSA;
+            }
+            if ((ret =
+                     mbedtls_oid_get_oid_by_sig_alg(pk_alg, ctx->popo_md_alg, &sig_oid,
+                                                    &sig_oid_len)) != 0) {
+                CMPERRS("ERROR getting OID\n");
+            }
 
-        CMPCL_ASN1_CHK_ADD( sig_and_oid_len, mbedtls_x509_write_sig( p, start, sig_oid, sig_oid_len, sig, sig_len), len );
-        len += sig_and_oid_len;
-        g_wr_len_popo = sig_and_oid_len;
+            CMPCL_ASN1_CHK_ADD(sig_and_oid_len,
+                               mbedtls_x509_write_sig(p, start, sig_oid, sig_oid_len, sig, sig_len),
+                               len);
+            len += sig_and_oid_len;
+            g_wr_len_popo = sig_and_oid_len;
 
 
-        CMPCL_ASN1_CHK_ADD( len, mbedtls_asn1_write_len( p, start, sig_and_oid_len ), len );
-        CMPCL_ASN1_CHK_ADD( len, mbedtls_asn1_write_tag( p, start,
-                MBEDTLS_ASN1_CONTEXT_SPECIFIC | MBEDTLS_ASN1_CONSTRUCTED | 1 /* signature */), len );
+            CMPCL_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(p, start, sig_and_oid_len), len);
+            CMPCL_ASN1_CHK_ADD(len,
+                               mbedtls_asn1_write_tag(p, start,
+                                                      MBEDTLS_ASN1_CONTEXT_SPECIFIC |
+                                                      MBEDTLS_ASN1_CONSTRUCTED | 1 /* signature */),
+                               len);
 
-        break;
+            break;
         /* TODO: maybe add further POP methods: keyEncipherment, keyAgreement */
-      default:
-        CMPERRV("POPO method %d not supported", ctx->popo_method);
-        len = CMPCL_ERR_POPO_METHOD;
-        goto err;
+        default:
+            CMPERRV("POPO method %d not supported", ctx->popo_method);
+            len = CMPCL_ERR_POPO_METHOD;
+            goto err;
     }
 
     /* Cert Request */
-    CMPCL_ASN1_CHK_ADD( len, cmpcl_CRMFwrite_CertRequest_der( p, start, ctx ), len );
+    CMPCL_ASN1_CHK_ADD(len, cmpcl_CRMFwrite_CertRequest_der(p, start, ctx), len);
 
     /*
      * CertReqMsg ::= SEQUENCE
      */
-    CMPCL_ASN1_CHK_ADD( len, mbedtls_asn1_write_len( p, start, len ), len );
-    CMPCL_ASN1_CHK_ADD( len, mbedtls_asn1_write_tag( p, start, MBEDTLS_ASN1_CONSTRUCTED |
-                                                    MBEDTLS_ASN1_SEQUENCE ), len );
+    CMPCL_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(p, start, len), len);
+    CMPCL_ASN1_CHK_ADD(len, mbedtls_asn1_write_tag(p, start, MBEDTLS_ASN1_CONSTRUCTED |
+                                                   MBEDTLS_ASN1_SEQUENCE), len);
 
 err:
     /* cleanup */
     mbedtls_free(popo_input_buf);
     mbedtls_free(sig);
     mbedtls_free(hash);
-    return( (int) len );
+    return (int) len;
 }
 
 
@@ -362,8 +390,8 @@ err:
  *  extensions   [9] Extensions            OPTIONAL }
  */
 
-int cmpcl_CRMFwrite_CertRequest_der( unsigned char **p, unsigned char *start,
-                                       cmp_ctx *ctx)
+int cmpcl_CRMFwrite_CertRequest_der(unsigned char **p, unsigned char *start,
+                                    cmp_ctx *ctx)
 {
     int ret;
     size_t len = 0;
@@ -392,8 +420,8 @@ int cmpcl_CRMFwrite_CertRequest_der( unsigned char **p, unsigned char *start,
      * }
      */
 
-    if( (ctx->body_type == MBEDTLS_CMP_PKIBODY_KUR) ) {
-        if( ctx->cl_cert == NULL) {
+    if ((ctx->body_type == MBEDTLS_CMP_PKIBODY_KUR)) {
+        if (ctx->cl_cert == NULL) {
             CMPERRS("No client cert provided; KUR ONLY with OldCert!");
             return CMPCL_ERR_KUR_OLDCERT;
         }
@@ -401,41 +429,48 @@ int cmpcl_CRMFwrite_CertRequest_der( unsigned char **p, unsigned char *start,
         /* oldCertId */
 
         /* serialNumber INTEGER */
-        MBEDTLS_ASN1_CHK_ADD( ctrl_len, mbedtls_asn1_write_raw_buffer( p, start, ctx->cl_cert->serial.p, ctx->cl_cert->serial.len ) );
-        MBEDTLS_ASN1_CHK_ADD( ctrl_len, mbedtls_asn1_write_len( p, start, ctx->cl_cert->serial.len ) );
-        MBEDTLS_ASN1_CHK_ADD( ctrl_len, mbedtls_asn1_write_tag( p, start, MBEDTLS_ASN1_INTEGER ) );
+        MBEDTLS_ASN1_CHK_ADD(ctrl_len,
+                             mbedtls_asn1_write_raw_buffer(p, start, ctx->cl_cert->serial.p,
+                                                           ctx->cl_cert->serial.len));
+        MBEDTLS_ASN1_CHK_ADD(ctrl_len, mbedtls_asn1_write_len(p, start, ctx->cl_cert->serial.len));
+        MBEDTLS_ASN1_CHK_ADD(ctrl_len, mbedtls_asn1_write_tag(p, start, MBEDTLS_ASN1_INTEGER));
         int ser_len = ctrl_len;
 
         /*  issuer GeneralName */
-        MBEDTLS_ASN1_CHK_ADD( ctrl_len, mbedtls_asn1_write_raw_buffer( p, start, ctx->cl_cert->issuer_raw.p, ctx->cl_cert->issuer_raw.len ) );
+        MBEDTLS_ASN1_CHK_ADD(ctrl_len,
+                             mbedtls_asn1_write_raw_buffer(p, start, ctx->cl_cert->issuer_raw.p,
+                                                           ctx->cl_cert->issuer_raw.len));
         /* clCert->issuer_raw is already DER encoded with tag and length */
 
         /* TODO: find out why this tag is necessary */
-        MBEDTLS_ASN1_CHK_ADD( ctrl_len, mbedtls_asn1_write_len( p, start, ctrl_len - ser_len ) );
-        MBEDTLS_ASN1_CHK_ADD( ctrl_len, mbedtls_asn1_write_tag( p, start, MBEDTLS_ASN1_CONTEXT_SPECIFIC |
-                                                                MBEDTLS_ASN1_CONSTRUCTED | 4 ) );
+        MBEDTLS_ASN1_CHK_ADD(ctrl_len, mbedtls_asn1_write_len(p, start, ctrl_len - ser_len));
+        MBEDTLS_ASN1_CHK_ADD(ctrl_len,
+                             mbedtls_asn1_write_tag(p, start, MBEDTLS_ASN1_CONTEXT_SPECIFIC |
+                                                    MBEDTLS_ASN1_CONSTRUCTED | 4));
 
         /* CertId ::= SEQUENCE */
-        MBEDTLS_ASN1_CHK_ADD( ctrl_len, mbedtls_asn1_write_len( p, start, ctrl_len ) );
-        MBEDTLS_ASN1_CHK_ADD( ctrl_len, mbedtls_asn1_write_tag( p, start, MBEDTLS_ASN1_CONSTRUCTED |
-                                                           MBEDTLS_ASN1_SEQUENCE ) );
+        MBEDTLS_ASN1_CHK_ADD(ctrl_len, mbedtls_asn1_write_len(p, start, ctrl_len));
+        MBEDTLS_ASN1_CHK_ADD(ctrl_len, mbedtls_asn1_write_tag(p, start, MBEDTLS_ASN1_CONSTRUCTED |
+                                                              MBEDTLS_ASN1_SEQUENCE));
         /* type OBJECT IDENTIFIER */
 #define OLD_CERT_ID_OID "\x2B\x06\x01\x05\x05\x07\x05\x01\x05" /* 1.3.6.1.5.5.7.5.1.5 */
-        MBEDTLS_ASN1_CHK_ADD( ctrl_len, mbedtls_asn1_write_oid( p, start, OLD_CERT_ID_OID, strlen(OLD_CERT_ID_OID) ) );
+        MBEDTLS_ASN1_CHK_ADD(ctrl_len,
+                             mbedtls_asn1_write_oid(p, start, OLD_CERT_ID_OID,
+                                                    strlen(OLD_CERT_ID_OID)));
 
         /* AttributeTypeAndValue ::= SEQUENCE */
-        MBEDTLS_ASN1_CHK_ADD( ctrl_len, mbedtls_asn1_write_len( p, start, ctrl_len ) );
-        MBEDTLS_ASN1_CHK_ADD( ctrl_len, mbedtls_asn1_write_tag( p, start, MBEDTLS_ASN1_CONSTRUCTED |
-                                                                MBEDTLS_ASN1_SEQUENCE ) );
+        MBEDTLS_ASN1_CHK_ADD(ctrl_len, mbedtls_asn1_write_len(p, start, ctrl_len));
+        MBEDTLS_ASN1_CHK_ADD(ctrl_len, mbedtls_asn1_write_tag(p, start, MBEDTLS_ASN1_CONSTRUCTED |
+                                                              MBEDTLS_ASN1_SEQUENCE));
 
     }
     /*
        Controls ::= SEQUENCE
-    */
+     */
 
-    MBEDTLS_ASN1_CHK_ADD( ctrl_len, mbedtls_asn1_write_len( p, start, ctrl_len ) );
-    MBEDTLS_ASN1_CHK_ADD( ctrl_len, mbedtls_asn1_write_tag( p, start, MBEDTLS_ASN1_CONSTRUCTED |
-                                                       MBEDTLS_ASN1_SEQUENCE ) );
+    MBEDTLS_ASN1_CHK_ADD(ctrl_len, mbedtls_asn1_write_len(p, start, ctrl_len));
+    MBEDTLS_ASN1_CHK_ADD(ctrl_len, mbedtls_asn1_write_tag(p, start, MBEDTLS_ASN1_CONSTRUCTED |
+                                                          MBEDTLS_ASN1_SEQUENCE));
     len += ctrl_len;
 
     /* certTemplate */
@@ -451,20 +486,26 @@ int cmpcl_CRMFwrite_CertRequest_der( unsigned char **p, unsigned char *start,
     /* publicKey    [6] SubjectPublicKeyInfo  OPTIONAL */
     if (ctx->new_key) {
 
-      MBEDTLS_ASN1_CHK_ADD( pub_len, mbedtls_pk_write_pubkey_der( ctx->new_key, start, *p - start ) );
-      pub_len -= 1; /* -1 is as we're intentionally overwriting the SEQUENCE TAG from the function for IMPLICIT */
-      *p -= pub_len; /* mbedtls_pk_write_pubkey_der() did not update *p */
-      MBEDTLS_ASN1_CHK_ADD( pub_len, mbedtls_asn1_write_tag( p, start,
-              MBEDTLS_ASN1_CONTEXT_SPECIFIC | MBEDTLS_ASN1_CONSTRUCTED | 6 /* SubjectPublicKeyInfo */) );
-      tmpl_len += pub_len;
+        MBEDTLS_ASN1_CHK_ADD(pub_len, mbedtls_pk_write_pubkey_der(ctx->new_key, start, *p - start));
+        pub_len -= 1; /* -1 is as we're intentionally overwriting the SEQUENCE TAG from the function for IMPLICIT */
+        *p -= pub_len; /* mbedtls_pk_write_pubkey_der() did not update *p */
+        MBEDTLS_ASN1_CHK_ADD(pub_len,
+                             mbedtls_asn1_write_tag(p, start,
+                                                    MBEDTLS_ASN1_CONTEXT_SPECIFIC |
+                                                    MBEDTLS_ASN1_CONSTRUCTED |
+                                                    6 /* SubjectPublicKeyInfo */));
+        tmpl_len += pub_len;
     }
 
     /* subject      [5] Name                  OPTIONAL */
     if (ctx->subject) {
-      MBEDTLS_ASN1_CHK_ADD( subj_len, mbedtls_x509_write_names( p, start, ctx->subject ) );
-      MBEDTLS_ASN1_CHK_ADD( subj_len, mbedtls_asn1_write_len( p, start, subj_len ) );
-      MBEDTLS_ASN1_CHK_ADD( subj_len, mbedtls_asn1_write_tag( p, start, MBEDTLS_ASN1_CONTEXT_SPECIFIC | MBEDTLS_ASN1_CONSTRUCTED | 5 ) );
-      tmpl_len += subj_len;
+        MBEDTLS_ASN1_CHK_ADD(subj_len, mbedtls_x509_write_names(p, start, ctx->subject));
+        MBEDTLS_ASN1_CHK_ADD(subj_len, mbedtls_asn1_write_len(p, start, subj_len));
+        MBEDTLS_ASN1_CHK_ADD(subj_len,
+                             mbedtls_asn1_write_tag(p, start,
+                                                    MBEDTLS_ASN1_CONTEXT_SPECIFIC |
+                                                    MBEDTLS_ASN1_CONSTRUCTED | 5));
+        tmpl_len += subj_len;
     }
 
     /* validity     [4] OptionalValidity      OPTIONAL */
@@ -477,25 +518,25 @@ int cmpcl_CRMFwrite_CertRequest_der( unsigned char **p, unsigned char *start,
     /*
        CertTemplate ::= SEQUENCE
      */
-    MBEDTLS_ASN1_CHK_ADD( tmpl_len, mbedtls_asn1_write_len( p, start, tmpl_len ) );
-    MBEDTLS_ASN1_CHK_ADD( tmpl_len, mbedtls_asn1_write_tag( p, start, MBEDTLS_ASN1_CONSTRUCTED |
-                                                            MBEDTLS_ASN1_SEQUENCE ) );
+    MBEDTLS_ASN1_CHK_ADD(tmpl_len, mbedtls_asn1_write_len(p, start, tmpl_len));
+    MBEDTLS_ASN1_CHK_ADD(tmpl_len, mbedtls_asn1_write_tag(p, start, MBEDTLS_ASN1_CONSTRUCTED |
+                                                          MBEDTLS_ASN1_SEQUENCE));
     len += tmpl_len;
     g_wr_len_certTemplate = tmpl_len;
 
     /*
        certReqId     INTEGER,          -- ID for matching request and reply
      */
-    MBEDTLS_ASN1_CHK_ADD( len, mbedtls_asn1_write_int( p, start, ctx->certReqId ) );
+    MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_int(p, start, ctx->certReqId));
 
     /*
      * CertRequest ::= SEQUENCE
      */
-    MBEDTLS_ASN1_CHK_ADD( len, mbedtls_asn1_write_len( p, start, len ) );
-    MBEDTLS_ASN1_CHK_ADD( len, mbedtls_asn1_write_tag( p, start, MBEDTLS_ASN1_CONSTRUCTED |
-                                                    MBEDTLS_ASN1_SEQUENCE ) );
+    MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(p, start, len));
+    MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_tag(p, start, MBEDTLS_ASN1_CONSTRUCTED |
+                                                     MBEDTLS_ASN1_SEQUENCE));
 
-    return( (int) len );
+    return (int) len;
 }
 
 
@@ -503,28 +544,28 @@ int cmpcl_CRMFwrite_CertRequest_der( unsigned char **p, unsigned char *start,
 /* DER-writing functions */
 /* **************************************************************** */
 
-static int msg_sig_alg_prot( mbedtls_pk_context *key,
-                             mbedtls_md_type_t md,
-                             const unsigned char* input,
-                             size_t in_len,
-                             unsigned char *sig,
-                             size_t *sig_len)
+static int msg_sig_alg_prot(mbedtls_pk_context *key,
+                            mbedtls_md_type_t md,
+                            const unsigned char *input,
+                            size_t in_len,
+                            unsigned char *sig,
+                            size_t *sig_len)
 {
     unsigned char hash[MBEDTLS_MD_MAX_SIZE];
 
-    mbedtls_md( mbedtls_md_info_from_type( md ), input, in_len, hash );
+    mbedtls_md(mbedtls_md_info_from_type(md), input, in_len, hash);
 
     /* TODO the last parameters f_rng and p_rng need to come from outside for EC keys... */
 
-    return mbedtls_pk_sign( key, md, hash, 0, sig, MBEDTLS_MPI_MAX_SIZE, sig_len, NULL, NULL );
+    return mbedtls_pk_sign(key, md, hash, 0, sig, MBEDTLS_MPI_MAX_SIZE, sig_len, NULL, NULL);
 }
 
 /* **************************************************************** */
-int cmpcl_CMPwrite_PKIMessage_protection_der( unsigned char **p,
-                                              unsigned char *start,
-                                              cmp_ctx *ctx,
-                                              const unsigned char* input,
-                                              const size_t in_len) /* TODO that random stuff for ECDSA... */
+int cmpcl_CMPwrite_PKIMessage_protection_der(unsigned char **p,
+                                             unsigned char *start,
+                                             cmp_ctx *ctx,
+                                             const unsigned char *input,
+                                             const size_t in_len)  /* TODO that random stuff for ECDSA... */
 {
     int ret;
     size_t len = -1;
@@ -532,77 +573,89 @@ int cmpcl_CMPwrite_PKIMessage_protection_der( unsigned char **p,
     size_t prot_len = 0;
 
     prot = mbedtls_calloc(1, MBEDTLS_MPI_MAX_SIZE);
-    if (!prot)
+    if (!prot) {
         goto err;
+    }
 
 
     if (ctx->secret && ctx->pbmp) { /* MSG_MAC_ALG */
-       if ( (ret = cmp_PBM_new( ctx->pbmp,
-                          ctx->secret,
-                          ctx->secret_len,
-                          input,
-                          in_len,
-                          prot,
-                          &prot_len)) != 0)
-           goto err;
-    } else if (ctx->cl_key && ctx->sig_prot_md_alg) {/* MSG_SIG_ALG */
-        if ( (ret = msg_sig_alg_prot( ctx->cl_key,
-                          ctx->sig_prot_md_alg,
-                          input,
-                          in_len,
-                          prot,
-                          &prot_len)) != 0)
+        if ((ret = cmp_PBM_new(ctx->pbmp,
+                               ctx->secret,
+                               ctx->secret_len,
+                               input,
+                               in_len,
+                               prot,
+                               &prot_len)) != 0) {
             goto err;
+        }
+    } else if (ctx->cl_key && ctx->sig_prot_md_alg) {/* MSG_SIG_ALG */
+        if ((ret = msg_sig_alg_prot(ctx->cl_key,
+                                    ctx->sig_prot_md_alg,
+                                    input,
+                                    in_len,
+                                    prot,
+                                    &prot_len)) != 0) {
+            goto err;
+        }
     } else {
-        CMPWARNS( "No credentials for protection. Message unprotected!");
+        CMPWARNS("No credentials for protection. Message unprotected!");
         mbedtls_free(prot);
         return 0;
     }
 
-    if (*p < start || (size_t)( *p - start ) < prot_len )
-        return( MBEDTLS_ERR_ASN1_BUF_TOO_SMALL );
+    if (*p < start || (size_t) (*p - start) < prot_len) {
+        return MBEDTLS_ERR_ASN1_BUF_TOO_SMALL;
+    }
 
     len = prot_len;
     (*p) -= len;
-    memcpy( *p, prot, len );
+    memcpy(*p, prot, len);
 
-    if (*p - start < 1 )
-        return( MBEDTLS_ERR_ASN1_BUF_TOO_SMALL );
+    if (*p - start < 1) {
+        return MBEDTLS_ERR_ASN1_BUF_TOO_SMALL;
+    }
 
     *--(*p) = 0;
     len += 1;
 
-    MBEDTLS_ASN1_CHK_ADD( len, mbedtls_asn1_write_len( p, start, len ) );
-    MBEDTLS_ASN1_CHK_ADD( len, mbedtls_asn1_write_tag( p, start, MBEDTLS_ASN1_BIT_STRING ) );
+    MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(p, start, len));
+    MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_tag(p, start, MBEDTLS_ASN1_BIT_STRING));
 
-    MBEDTLS_ASN1_CHK_ADD( len, mbedtls_asn1_write_len( p, start, len ) );
-    MBEDTLS_ASN1_CHK_ADD( len, mbedtls_asn1_write_tag( p, start, MBEDTLS_ASN1_CONTEXT_SPECIFIC | MBEDTLS_ASN1_CONSTRUCTED | 0 ) );
+    MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(p, start, len));
+    MBEDTLS_ASN1_CHK_ADD(len,
+                         mbedtls_asn1_write_tag(p, start,
+                                                MBEDTLS_ASN1_CONTEXT_SPECIFIC |
+                                                MBEDTLS_ASN1_CONSTRUCTED | 0));
 
 err:
     mbedtls_free(prot);
-    return( (int) len );
+    return (int) len;
 }
 
 static int mbedtls_asn1_buf_cmp(mbedtls_asn1_buf *buf1, mbedtls_asn1_buf *buf2)
 {
-	if (buf1 == NULL && buf2 == NULL)
-		return 0;
-	if (buf1 == NULL)
-		return -1;
-	if (buf2 == NULL)
-		return 1;
-	if (buf1->len != buf2->len)
-		return buf1->len - buf2->len;
-	return memcmp( buf1->p, buf2->p, buf1->len );
+    if (buf1 == NULL && buf2 == NULL) {
+        return 0;
+    }
+    if (buf1 == NULL) {
+        return -1;
+    }
+    if (buf2 == NULL) {
+        return 1;
+    }
+    if (buf1->len != buf2->len) {
+        return buf1->len - buf2->len;
+    }
+    return memcmp(buf1->p, buf2->p, buf1->len);
 }
 
 static int same_cert(mbedtls_x509_crt *crt1, mbedtls_x509_crt *crt2)
 {
-	return mbedtls_asn1_buf_cmp( &crt1->serial, &crt2->serial ) == 0 &&
-           mbedtls_asn1_buf_cmp( &crt1->issuer_raw, &crt2->issuer_raw ) == 0; // TODO use better DN comparison
+    return mbedtls_asn1_buf_cmp(&crt1->serial, &crt2->serial) == 0 &&
+           mbedtls_asn1_buf_cmp(&crt1->issuer_raw, &crt2->issuer_raw) == 0;   // TODO use better DN comparison
 }
 
-static size_t cmpcl_CMPwrite_ExtraCerts_der( unsigned char **p,
+static size_t cmpcl_CMPwrite_ExtraCerts_der(unsigned char **p,
                                             unsigned char *start,
                                             cmp_ctx *ctx)
 {
@@ -619,33 +672,41 @@ static size_t cmpcl_CMPwrite_ExtraCerts_der( unsigned char **p,
         ctx->body_type == MBEDTLS_CMP_PKIBODY_CR ||
         ctx->body_type == MBEDTLS_CMP_PKIBODY_KUR ||
         ctx->body_type == MBEDTLS_CMP_PKIBODY_RR) {
-        while(crt)
-            {
-                if (mbedtls_asn1_buf_cmp( &crt->issuer_raw, &crt->subject_raw ) != 0 && // TODO use better DN comparison
-                    !same_cert(crt, ctx->cl_cert)) {
-                    size_t sub_len = 0;
-                    MBEDTLS_ASN1_CHK_ADD( sub_len, mbedtls_asn1_write_raw_buffer( p, start, crt->raw.p, crt->raw.len ));
-                    len += sub_len;
-                    g_wr_n_extraCerts++;
-                }
-                crt = crt->next;
-            }
-            if(ctx->cl_cert)
-            {
+        while (crt) {
+            if (mbedtls_asn1_buf_cmp(&crt->issuer_raw, &crt->subject_raw) != 0 &&       // TODO use better DN comparison
+                !same_cert(crt, ctx->cl_cert)) {
                 size_t sub_len = 0;
-                MBEDTLS_ASN1_CHK_ADD( sub_len, mbedtls_asn1_write_raw_buffer( p, start, ctx->cl_cert->raw.p, ctx->cl_cert->raw.len ));
+                MBEDTLS_ASN1_CHK_ADD(sub_len,
+                                     mbedtls_asn1_write_raw_buffer(p, start, crt->raw.p,
+                                                                   crt->raw.len));
                 len += sub_len;
                 g_wr_n_extraCerts++;
             }
+            crt = crt->next;
+        }
+        if (ctx->cl_cert) {
+            size_t sub_len = 0;
+            MBEDTLS_ASN1_CHK_ADD(sub_len,
+                                 mbedtls_asn1_write_raw_buffer(p, start, ctx->cl_cert->raw.p,
+                                                               ctx->cl_cert->raw.len));
+            len += sub_len;
+            g_wr_n_extraCerts++;
+        }
     }
-    if(len) {
+    if (len) {
         g_wr_len_extraCerts = len; /* to print out extraCerts total size */
 
-        MBEDTLS_ASN1_CHK_ADD( len, mbedtls_asn1_write_len( p, start, len ) );
-        MBEDTLS_ASN1_CHK_ADD( len, mbedtls_asn1_write_tag( p, start, MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE ) );
+        MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(p, start, len));
+        MBEDTLS_ASN1_CHK_ADD(len,
+                             mbedtls_asn1_write_tag(p, start,
+                                                    MBEDTLS_ASN1_CONSTRUCTED |
+                                                    MBEDTLS_ASN1_SEQUENCE));
 
-        MBEDTLS_ASN1_CHK_ADD( len, mbedtls_asn1_write_len( p, start, len ) );
-        MBEDTLS_ASN1_CHK_ADD( len, mbedtls_asn1_write_tag( p, start, MBEDTLS_ASN1_CONTEXT_SPECIFIC | MBEDTLS_ASN1_CONSTRUCTED | 1 ) );
+        MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(p, start, len));
+        MBEDTLS_ASN1_CHK_ADD(len,
+                             mbedtls_asn1_write_tag(p, start,
+                                                    MBEDTLS_ASN1_CONTEXT_SPECIFIC |
+                                                    MBEDTLS_ASN1_CONSTRUCTED | 1));
     }
 
     return len;
@@ -653,8 +714,8 @@ static size_t cmpcl_CMPwrite_ExtraCerts_der( unsigned char **p,
 
 
 /* **************************************************************** */
-int cmpcl_CMPwrite_PKIMessage_der( cmp_ctx *ctx, unsigned char *start,
-        size_t size, unsigned char **myp, int unprotected)  /* TODO that random stuff for ECDSA... */
+int cmpcl_CMPwrite_PKIMessage_der(cmp_ctx *ctx, unsigned char *start,
+                                  size_t size, unsigned char **myp, int unprotected) /* TODO that random stuff for ECDSA... */
 {
     int ret;
     unsigned char *x;
@@ -696,7 +757,7 @@ int cmpcl_CMPwrite_PKIMessage_der( cmp_ctx *ctx, unsigned char *start,
     /*
      * extraCerts    [1] SEQUENCE SIZE (1..MAX) OF CMPCertificate }    OPTIONAL
      */
-    MBEDTLS_ASN1_CHK_ADD( extraCerts_len, cmpcl_CMPwrite_ExtraCerts_der( p, start, ctx));
+    MBEDTLS_ASN1_CHK_ADD(extraCerts_len, cmpcl_CMPwrite_ExtraCerts_der(p, start, ctx));
     g_wr_n_extraCerts = 0; /* to avoid that the static var is being incremented in this "dummy" call */
 
 
@@ -715,12 +776,15 @@ int cmpcl_CMPwrite_PKIMessage_der( cmp_ctx *ctx, unsigned char *start,
     prot_end_p = *p; /* from this point the real signature will need to be written later */
     /* MBEDTLS_ECDSA_MAX_LEN is max ECDSA len, ECDSA signatures have variable size */
 
-    if( ctx->cl_key && (mbedtls_pk_get_type(ctx->cl_key) == MBEDTLS_PK_ECKEY) ) {
+    if (ctx->cl_key && (mbedtls_pk_get_type(ctx->cl_key) == MBEDTLS_PK_ECKEY)) {
         prot_len = MBEDTLS_ECDSA_MAX_LEN; /* preliminary (maximal) length */
         *p -= prot_len; // pointer decremented to reserve space in output buffer
     } else if (!unprotected) {
         /* figure out sig length - and write there. TODO TODO TODO: doing that two times is highly inefficient, but how to figure out the length otherwise? */
-        MBEDTLS_ASN1_CHK_ADD( prot_len, cmpcl_CMPwrite_PKIMessage_protection_der( p, start, ctx, (const unsigned char*) "", 0) );
+        MBEDTLS_ASN1_CHK_ADD(prot_len,
+                             cmpcl_CMPwrite_PKIMessage_protection_der(p, start, ctx,
+                                                                      (const unsigned char *) "",
+                                                                      0));
     }
 
     /*
@@ -759,39 +823,45 @@ int cmpcl_CMPwrite_PKIMessage_der( cmp_ctx *ctx, unsigned char *start,
      * }
      */
     switch (ctx->body_type) {
-      case MBEDTLS_CMP_PKIBODY_IR:
-      case MBEDTLS_CMP_PKIBODY_CR:
-      case MBEDTLS_CMP_PKIBODY_KUR:
-          /* Adding one *single* CertReqest here */
-          MBEDTLS_ASN1_CHK_ADD( cr_len, cmpcl_CRMFwrite_CertReqMsg_der( p, start, ctx ) );
-          body_len += cr_len;
-          /* CertReqMessages ::= SEQUENCE SIZE (1..MAX) OF CertReqMsg */
-          MBEDTLS_ASN1_CHK_ADD( body_len, mbedtls_asn1_write_len( p, start, cr_len ) );
-          MBEDTLS_ASN1_CHK_ADD( body_len, mbedtls_asn1_write_tag( p, start, MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE ) );
-          break;
-      case MBEDTLS_CMP_PKIBODY_PKICONF: /* the client does not need to send that - but easiest for first testing ;-) */
-        MBEDTLS_ASN1_CHK_ADD( body_len, mbedtls_asn1_write_null( p, start ) );
-        break;
+        case MBEDTLS_CMP_PKIBODY_IR:
+        case MBEDTLS_CMP_PKIBODY_CR:
+        case MBEDTLS_CMP_PKIBODY_KUR:
+            /* Adding one *single* CertReqest here */
+            MBEDTLS_ASN1_CHK_ADD(cr_len, cmpcl_CRMFwrite_CertReqMsg_der(p, start, ctx));
+            body_len += cr_len;
+            /* CertReqMessages ::= SEQUENCE SIZE (1..MAX) OF CertReqMsg */
+            MBEDTLS_ASN1_CHK_ADD(body_len, mbedtls_asn1_write_len(p, start, cr_len));
+            MBEDTLS_ASN1_CHK_ADD(body_len,
+                                 mbedtls_asn1_write_tag(p, start,
+                                                        MBEDTLS_ASN1_CONSTRUCTED |
+                                                        MBEDTLS_ASN1_SEQUENCE));
+            break;
+        case MBEDTLS_CMP_PKIBODY_PKICONF: /* the client does not need to send that - but easiest for first testing ;-) */
+            MBEDTLS_ASN1_CHK_ADD(body_len, mbedtls_asn1_write_null(p, start));
+            break;
         /* TODO: add additional body types */
-      case MBEDTLS_CMP_PKIBODY_CERTCONF:
-          MBEDTLS_ASN1_CHK_ADD( body_len, cmpcl_CMPwrite_CertConfCont_der( p, start, ctx ) );
-          break;
-      default:
-        CMPERRV("NOT SUPPORTED PKIBody_type %d\n", ctx->body_type);
-        return CMPCL_ERR_UNSUPPORTED_BODYTYPE;
+        case MBEDTLS_CMP_PKIBODY_CERTCONF:
+            MBEDTLS_ASN1_CHK_ADD(body_len, cmpcl_CMPwrite_CertConfCont_der(p, start, ctx));
+            break;
+        default:
+            CMPERRV("NOT SUPPORTED PKIBody_type %d\n", ctx->body_type);
+            return CMPCL_ERR_UNSUPPORTED_BODYTYPE;
     }
     protPart_len += body_len; // both header and body are protected
 
     /* [x] */
-    MBEDTLS_ASN1_CHK_ADD( protPart_len, mbedtls_asn1_write_len( p, start, body_len ) );
-    MBEDTLS_ASN1_CHK_ADD( protPart_len, mbedtls_asn1_write_tag( p, start, MBEDTLS_ASN1_CONTEXT_SPECIFIC | MBEDTLS_ASN1_CONSTRUCTED | ctx->body_type ) );
+    MBEDTLS_ASN1_CHK_ADD(protPart_len, mbedtls_asn1_write_len(p, start, body_len));
+    MBEDTLS_ASN1_CHK_ADD(protPart_len,
+                         mbedtls_asn1_write_tag(p, start,
+                                                MBEDTLS_ASN1_CONTEXT_SPECIFIC |
+                                                MBEDTLS_ASN1_CONSTRUCTED | ctx->body_type));
 
 
     /*
      *   header           PKIHeader
      */
     g_wr_len_header = protPart_len;
-    MBEDTLS_ASN1_CHK_ADD( protPart_len, cmpcl_CMPwrite_PKIHeader_der( p, start, ctx, unprotected ) );
+    MBEDTLS_ASN1_CHK_ADD(protPart_len, cmpcl_CMPwrite_PKIHeader_der(p, start, ctx, unprotected));
     g_wr_len_header = protPart_len - g_wr_len_header;
 
     /* temporary sequence TL for calculating the protection
@@ -806,38 +876,55 @@ int cmpcl_CMPwrite_PKIMessage_der( cmp_ctx *ctx, unsigned char *start,
      */
     protPart_p = *p;
     size_t content_len = protPart_len;
-    MBEDTLS_ASN1_CHK_ADD( protPart_len, mbedtls_asn1_write_len( &protPart_p, start, protPart_len ) );
-    MBEDTLS_ASN1_CHK_ADD( protPart_len, mbedtls_asn1_write_tag( &protPart_p, start, MBEDTLS_ASN1_CONSTRUCTED |
-                                                    MBEDTLS_ASN1_SEQUENCE ) );
+    MBEDTLS_ASN1_CHK_ADD(protPart_len, mbedtls_asn1_write_len(&protPart_p, start, protPart_len));
+    MBEDTLS_ASN1_CHK_ADD(protPart_len,
+                         mbedtls_asn1_write_tag(&protPart_p, start, MBEDTLS_ASN1_CONSTRUCTED |
+                                                MBEDTLS_ASN1_SEQUENCE));
 
     if (!unprotected) {     /* start setting protection */
         /* ECDSA has variable signature length */
-        if( ctx->cl_key && (mbedtls_pk_get_type( ctx->cl_key) == MBEDTLS_PK_ECKEY) ) {
+        if (ctx->cl_key && (mbedtls_pk_get_type(ctx->cl_key) == MBEDTLS_PK_ECKEY)) {
             size_t real_prot_len = 0;
             /* TODO TODO TODO: done twice, highly inefficient */
             unsigned char *real_prot_end_p = prot_end_p;
-            real_prot_len = cmpcl_CMPwrite_PKIMessage_protection_der( &real_prot_end_p, start, ctx, protPart_p, protPart_len);
-            if (real_prot_len < 0)
+            real_prot_len = cmpcl_CMPwrite_PKIMessage_protection_der(&real_prot_end_p,
+                                                                     start,
+                                                                     ctx,
+                                                                     protPart_p,
+                                                                     protPart_len);
+            if (real_prot_len < 0) {
                 return real_prot_len;
+            }
             real_prot_end_p = prot_end_p - (prot_len - real_prot_len);
-            ret = cmpcl_CMPwrite_PKIMessage_protection_der( &real_prot_end_p, start, ctx, protPart_p, protPart_len);
-            if (ret < 0)
+            ret = cmpcl_CMPwrite_PKIMessage_protection_der(&real_prot_end_p,
+                                                           start,
+                                                           ctx,
+                                                           protPart_p,
+                                                           protPart_len);
+            if (ret < 0) {
                 return ret;
+            }
 
             /*
              * as length of protection was unknown before extraCerts need to be rewritten to obtain coherent buffer
              */
 
             /* rewrite ExtraCerts at right position */
-            unsigned char *real_extra_end_p = prot_end_p - (prot_len - real_prot_len) + extraCerts_len;
-            cmpcl_CMPwrite_ExtraCerts_der( &real_extra_end_p, start, ctx);
+            unsigned char *real_extra_end_p = prot_end_p - (prot_len - real_prot_len) +
+                                              extraCerts_len;
+            cmpcl_CMPwrite_ExtraCerts_der(&real_extra_end_p, start, ctx);
             prot_len = real_prot_len;
         } else {
             /* write the real protection over the mock one, calling the function a second time
              * because now the header and body contents are known */
-            ret = cmpcl_CMPwrite_PKIMessage_protection_der( &prot_end_p, start, ctx, protPart_p, protPart_len);
-            if (ret < 0)
+            ret = cmpcl_CMPwrite_PKIMessage_protection_der(&prot_end_p,
+                                                           start,
+                                                           ctx,
+                                                           protPart_p,
+                                                           protPart_len);
+            if (ret < 0) {
                 return ret;
+            }
         }
     }
     g_wr_prot_len = prot_len;
@@ -847,9 +934,9 @@ int cmpcl_CMPwrite_PKIMessage_der( cmp_ctx *ctx, unsigned char *start,
     /* write over the temporary sequence TL
      * PKIMessage ::= SEQUENCE
      */
-    MBEDTLS_ASN1_CHK_ADD( len, mbedtls_asn1_write_len( p, start, len ) );
-    MBEDTLS_ASN1_CHK_ADD( len, mbedtls_asn1_write_tag( p, start, MBEDTLS_ASN1_CONSTRUCTED |
-                                                    MBEDTLS_ASN1_SEQUENCE ) );
+    MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(p, start, len));
+    MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_tag(p, start, MBEDTLS_ASN1_CONSTRUCTED |
+                                                     MBEDTLS_ASN1_SEQUENCE));
     *myp = *p; // this is used by calling function to determine start of output buffer
 
 #ifdef DEVELOPMENT /* for debugging */
@@ -859,38 +946,44 @@ int cmpcl_CMPwrite_PKIMessage_der( cmp_ctx *ctx, unsigned char *start,
 #ifdef DEBUG_ASN1
     int i;
     CMPINFOV("\r\n **Request** \r\n");
-    for(i = 0; i < len; i++)
-    	PRINTF("0x%02X ", *(*p+i));
+    for (i = 0; i < len; i++) {
+        PRINTF("0x%02X ", *(*p+i));
+    }
 #endif
 
 
     CMPINFOV("produced PKIMessage header length: %d", g_wr_len_header);
-    if( g_wr_len_certTemplate > 0 )
+    if (g_wr_len_certTemplate > 0) {
         CMPINFOV("produced CertTemplate length: %d", g_wr_len_certTemplate);
-    if( g_wr_len_popo > 0 ) {
-        CMPINFOV("produced ProofOfPossession length: %d", g_wr_len_popo);
-        CMPINFOV("%s""requesting implicit confirmation",  ctx->implicitConfirm ? "" : "not ");
     }
-    if (ctx->secret && ctx->pbmp && !unprotected)
+    if (g_wr_len_popo > 0) {
+        CMPINFOV("produced ProofOfPossession length: %d", g_wr_len_popo);
+        CMPINFOV("%s" "requesting implicit confirmation",  ctx->implicitConfirm ? "" : "not ");
+    }
+    if (ctx->secret && ctx->pbmp && !unprotected) {
         CMPINFOV("PBM-based protection");
-    else if (ctx->cl_key && ctx->sig_prot_md_alg && !unprotected)
-        CMPINFOV("signature-based protection with %d extraCerts with total length: %d", g_wr_n_extraCerts, g_wr_len_extraCerts);
-    else
+    } else if (ctx->cl_key && ctx->sig_prot_md_alg && !unprotected) {
+        CMPINFOV("signature-based protection with %d extraCerts with total length: %d",
+                 g_wr_n_extraCerts,
+                 g_wr_len_extraCerts);
+    } else {
         CMPINFOV("no protection");
+    }
     CMPINFOV("request PKIMessage protection length: %d", g_wr_prot_len);
-    CMPINFOV("request PKIMessage overhead (excl. template, POPO, and certs): %d", len - g_wr_len_certTemplate - g_wr_len_extraCerts - g_wr_len_popo);
+    CMPINFOV("request PKIMessage overhead (excl. template, POPO, and certs): %d",
+             len - g_wr_len_certTemplate - g_wr_len_extraCerts - g_wr_len_popo);
     CMPINFOV("request PKIMessage total length: %d", len);
     CMPINFOV("----"); // begin of transmission
 
-    return( (int) len );
+    return (int) len;
 }
 
 #if 0
 /* FIND THE KEY IDENTIFIER EXTENSION NEEDED FOR senderKID */
 /* TODO doesn't work as I don't find the key identifier from extensions :-/ */
-static int getExtension( mbedtls_x509_buf *v3_ext)
+static int getExtension(mbedtls_x509_buf *v3_ext)
 {
-CMPDBG
+    CMPDBG
     int ret;
     size_t len;
     unsigned char *end_ext_data, *end_ext_octet;
@@ -902,96 +995,103 @@ CMPDBG
     end = *p + v3_ext->len;
 
     /* the outermost sequence needs to be taken away ... */
-    if( ( ret = mbedtls_asn1_get_tag( p, end, &len, MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE ) ) != 0 )
-        CMPERRS("ERROR with extension\n");;
+    if ((ret =
+             mbedtls_asn1_get_tag(p, end, &len,
+                                  MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE)) != 0) {
+        CMPERRS("ERROR with extension\n");
+    }
+    ;
 
-    while( *p < end )
-    {
+    while (*p < end) {
         /*
          * Extension  ::=  SEQUENCE  {
          *      extnID      OBJECT IDENTIFIER,
          *      critical    BOOLEAN DEFAULT FALSE,
          *      extnValue   OCTET STRING  }
          */
-        mbedtls_x509_buf extn_oid = {0, 0, NULL};
+        mbedtls_x509_buf extn_oid = { 0, 0, NULL };
         int is_critical = 0; /* DEFAULT FALSE */
         int ext_type = 0;
 
-        if( ( ret = mbedtls_asn1_get_tag( p, end, &len,
-                MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE ) ) != 0 )
-            return( MBEDTLS_ERR_X509_INVALID_EXTENSIONS + ret );
+        if ((ret = mbedtls_asn1_get_tag(p, end, &len,
+                                        MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE)) != 0) {
+            return MBEDTLS_ERR_X509_INVALID_EXTENSIONS + ret;
+        }
 
         end_ext_data = *p + len;
 
         /* Get extension ID */
         extn_oid.tag = **p;
 
-        if( ( ret = mbedtls_asn1_get_tag( p, end, &extn_oid.len, MBEDTLS_ASN1_OID ) ) != 0 )
-        {
-            return( MBEDTLS_ERR_X509_INVALID_EXTENSIONS + ret );
-            }
+        if ((ret = mbedtls_asn1_get_tag(p, end, &extn_oid.len, MBEDTLS_ASN1_OID)) != 0) {
+            return MBEDTLS_ERR_X509_INVALID_EXTENSIONS + ret;
+        }
 
         extn_oid.p = *p;
         *p += extn_oid.len;
 
-        if( ( end - *p ) < 1 )
-            return( MBEDTLS_ERR_X509_INVALID_EXTENSIONS +
-                    MBEDTLS_ERR_ASN1_OUT_OF_DATA );
+        if ((end - *p) < 1) {
+            return MBEDTLS_ERR_X509_INVALID_EXTENSIONS +
+                   MBEDTLS_ERR_ASN1_OUT_OF_DATA;
+        }
 
         /* Get optional critical */
-        if( ( ret = mbedtls_asn1_get_bool( p, end_ext_data, &is_critical ) ) != 0 &&
-            ( ret != MBEDTLS_ERR_ASN1_UNEXPECTED_TAG ) )
-            return( MBEDTLS_ERR_X509_INVALID_EXTENSIONS + ret );
+        if ((ret = mbedtls_asn1_get_bool(p, end_ext_data, &is_critical)) != 0 &&
+            (ret != MBEDTLS_ERR_ASN1_UNEXPECTED_TAG)) {
+            return MBEDTLS_ERR_X509_INVALID_EXTENSIONS + ret;
+        }
 
         /* Data should be octet string type */
-        if( ( ret = mbedtls_asn1_get_tag( p, end_ext_data, &len,
-                MBEDTLS_ASN1_OCTET_STRING ) ) != 0 )
-            return( MBEDTLS_ERR_X509_INVALID_EXTENSIONS + ret );
+        if ((ret = mbedtls_asn1_get_tag(p, end_ext_data, &len,
+                                        MBEDTLS_ASN1_OCTET_STRING)) != 0) {
+            return MBEDTLS_ERR_X509_INVALID_EXTENSIONS + ret;
+        }
 
         end_ext_octet = *p + len;
 
-        if( end_ext_octet != end_ext_data )
-            return( MBEDTLS_ERR_X509_INVALID_EXTENSIONS +
-                    MBEDTLS_ERR_ASN1_LENGTH_MISMATCH );
+        if (end_ext_octet != end_ext_data) {
+            return MBEDTLS_ERR_X509_INVALID_EXTENSIONS +
+                   MBEDTLS_ERR_ASN1_LENGTH_MISMATCH;
+        }
 
         /*
          * Detect supported extensions
          */
-        ret = mbedtls_oid_get_x509_ext_type( &extn_oid, &ext_type ); /* TODO This does NOT give the ID if the extension is not supported :-/ */
+        ret = mbedtls_oid_get_x509_ext_type(&extn_oid, &ext_type);   /* TODO This does NOT give the ID if the extension is not supported :-/ */
 
-CMPDBGV("Ext type %d, ret %d\n", ext_type, ret);
+        CMPDBGV("Ext type %d, ret %d\n", ext_type, ret);
 
-        switch( ext_type )
-        {
-        case MBEDTLS_X509_EXT_SUBJECT_KEY_IDENTIFIER:
-            break;
+        switch (ext_type) {
+            case MBEDTLS_X509_EXT_SUBJECT_KEY_IDENTIFIER:
+                break;
 
-        default:
-            *p = end_ext_octet;
+            default:
+                *p = end_ext_octet;
         }
     }
 
-    if( *p != end )
-        return( MBEDTLS_ERR_X509_INVALID_EXTENSIONS +
-                MBEDTLS_ERR_ASN1_LENGTH_MISMATCH );
+    if (*p != end) {
+        return MBEDTLS_ERR_X509_INVALID_EXTENSIONS +
+               MBEDTLS_ERR_ASN1_LENGTH_MISMATCH;
+    }
 
-CMPDBG
-    return( 0 );
+    CMPDBG
+    return 0;
 }
 #endif /* 0 */
 
 /* **************************************************************** */
-static int cmpcl_CMPwrite_PBMParameter_der( unsigned char **p, unsigned char *start,
-                                       cmp_PBMParameter *pbmp)
+static int cmpcl_CMPwrite_PBMParameter_der(unsigned char **p, unsigned char *start,
+                                           cmp_PBMParameter *pbmp)
 {
     /*
-      PBMParameter ::= SEQUENCE {
+       PBMParameter ::= SEQUENCE {
          salt                OCTET STRING,
          owf                 AlgorithmIdentifier,
          iterationCount      INTEGER,
          mac                 AlgorithmIdentifier
          )
-         */
+     */
 
     int ret;
     size_t len = 0;
@@ -1015,30 +1115,37 @@ static int cmpcl_CMPwrite_PBMParameter_der( unsigned char **p, unsigned char *st
        id-hmacWithSHA512 OBJECT IDENTIFIER ::= {digestAlgorithm 11}
      */
 #define HMAC_SHA256_OID "\x2A\x86\x48\x86\xF7\x0D\x02\x09"
-    MBEDTLS_ASN1_CHK_ADD( len, mbedtls_asn1_write_algorithm_identifier( p, start, HMAC_SHA1_OID, strlen( HMAC_SHA1_OID), 0 ) );
+    MBEDTLS_ASN1_CHK_ADD(len,
+                         mbedtls_asn1_write_algorithm_identifier(p, start, HMAC_SHA1_OID,
+                                                                 strlen(HMAC_SHA1_OID), 0));
     //MBEDTLS_ASN1_CHK_ADD( len, mbedtls_asn1_write_algorithm_identifier( p, start, HMAC_SHA256_OID, strlen( HMAC_SHA256_OID), 0 ) );
 
     /* iterationCount      INTEGER, */
     /* TODO: PROBLEM: mbedtls_asn1_write_int does only support up to 128... */
-    MBEDTLS_ASN1_CHK_ADD( len, mbedtls_asn1_write_int( p, start, pbmp->iterationCount ) );
+    MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_int(p, start, pbmp->iterationCount));
 
     /* owf                 AlgorithmIdentifier, */
-    if( ( ret = mbedtls_oid_get_oid_by_md( pbmp->owf, &sig_oid, &sig_oid_len ) ) != 0 )
-        return( ret );
+    if ((ret = mbedtls_oid_get_oid_by_md(pbmp->owf, &sig_oid, &sig_oid_len)) != 0) {
+        return ret;
+    }
 
-    MBEDTLS_ASN1_CHK_ADD( len, mbedtls_asn1_write_algorithm_identifier( p, start, sig_oid, strlen( sig_oid ), 0 ) );
+    MBEDTLS_ASN1_CHK_ADD(len,
+                         mbedtls_asn1_write_algorithm_identifier(p, start, sig_oid, strlen(sig_oid),
+                                                                 0));
 
     /* salt                OCTET STRING, */
     sub_len = 0;
-    MBEDTLS_ASN1_CHK_ADD( sub_len, mbedtls_asn1_write_raw_buffer( p, start, pbmp->salt, pbmp->salt_len ) );
+    MBEDTLS_ASN1_CHK_ADD(sub_len,
+                         mbedtls_asn1_write_raw_buffer(p, start, pbmp->salt, pbmp->salt_len));
     len += sub_len;
-    MBEDTLS_ASN1_CHK_ADD( len, mbedtls_asn1_write_len( p, start, sub_len ) );
-    MBEDTLS_ASN1_CHK_ADD( len, mbedtls_asn1_write_tag( p, start, MBEDTLS_ASN1_OCTET_STRING ) );
+    MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(p, start, sub_len));
+    MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_tag(p, start, MBEDTLS_ASN1_OCTET_STRING));
 
     /* PBMParameter ::= SEQUENCE { */
-    MBEDTLS_ASN1_CHK_ADD( len, mbedtls_asn1_write_len( p, start, len ) );
-    MBEDTLS_ASN1_CHK_ADD( len, mbedtls_asn1_write_tag( p, start,
-                MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE ) );
+    MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(p, start, len));
+    MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_tag(p, start,
+                                                     MBEDTLS_ASN1_CONSTRUCTED |
+                                                     MBEDTLS_ASN1_SEQUENCE));
 
     return len;
 }
@@ -1046,8 +1153,8 @@ static int cmpcl_CMPwrite_PBMParameter_der( unsigned char **p, unsigned char *st
 
 /* **************************************************************** */
 
-int cmpcl_CMPwrite_PKIHeader_der( unsigned char **p, unsigned char *start,
-                                  cmp_ctx *ctx, int unprotected)
+int cmpcl_CMPwrite_PKIHeader_der(unsigned char **p, unsigned char *start,
+                                 cmp_ctx *ctx, int unprotected)
 {
     int ret;
     const char *sig_oid;
@@ -1081,21 +1188,22 @@ int cmpcl_CMPwrite_PKIHeader_der( unsigned char **p, unsigned char *start,
           ImplicitConfirmValue ::= NULL
      */
 
-    if (ctx->implicitConfirm )
-    {
+    if (ctx->implicitConfirm) {
         sub_len = 0;
         size_t par_len = 0;
-        MBEDTLS_ASN1_CHK_ADD( par_len, mbedtls_asn1_write_null( p, start ) );
-        MBEDTLS_ASN1_CHK_ADD( sub_len, mbedtls_asn1_write_algorithm_identifier(
-                    p, start, IMPLICITCONFIRM_OID,
-                    strlen( IMPLICITCONFIRM_OID ), par_len ) );
-        MBEDTLS_ASN1_CHK_ADD( sub_len, mbedtls_asn1_write_len( p, start, sub_len ) );
-        MBEDTLS_ASN1_CHK_ADD( sub_len, mbedtls_asn1_write_tag( p, start,
-                    MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE ) );
+        MBEDTLS_ASN1_CHK_ADD(par_len, mbedtls_asn1_write_null(p, start));
+        MBEDTLS_ASN1_CHK_ADD(sub_len, mbedtls_asn1_write_algorithm_identifier(
+                                 p, start, IMPLICITCONFIRM_OID,
+                                 strlen(IMPLICITCONFIRM_OID), par_len));
+        MBEDTLS_ASN1_CHK_ADD(sub_len, mbedtls_asn1_write_len(p, start, sub_len));
+        MBEDTLS_ASN1_CHK_ADD(sub_len, mbedtls_asn1_write_tag(p, start,
+                                                             MBEDTLS_ASN1_CONSTRUCTED |
+                                                             MBEDTLS_ASN1_SEQUENCE));
 
-        MBEDTLS_ASN1_CHK_ADD( sub_len, mbedtls_asn1_write_len( p, start, sub_len ) );
-        MBEDTLS_ASN1_CHK_ADD( sub_len, mbedtls_asn1_write_tag( p, start,
-                    MBEDTLS_ASN1_CONTEXT_SPECIFIC | MBEDTLS_ASN1_CONSTRUCTED | 8 ) );
+        MBEDTLS_ASN1_CHK_ADD(sub_len, mbedtls_asn1_write_len(p, start, sub_len));
+        MBEDTLS_ASN1_CHK_ADD(sub_len, mbedtls_asn1_write_tag(p, start,
+                                                             MBEDTLS_ASN1_CONTEXT_SPECIFIC |
+                                                             MBEDTLS_ASN1_CONSTRUCTED | 8));
         len += sub_len;
     }
     /*
@@ -1106,42 +1214,54 @@ int cmpcl_CMPwrite_PKIHeader_der( unsigned char **p, unsigned char *start,
     /*
          recipNonce      [6] OCTET STRING            OPTIONAL,
      */
-    if (ctx->recipNonce )
-    {
-      sub_len = 0;
-      MBEDTLS_ASN1_CHK_ADD( sub_len, mbedtls_asn1_write_raw_buffer( p, start, ctx->recipNonce, ctx->recipNonce_len ) );
-      MBEDTLS_ASN1_CHK_ADD( sub_len, mbedtls_asn1_write_len( p, start, sub_len ) );
-      MBEDTLS_ASN1_CHK_ADD( sub_len, mbedtls_asn1_write_tag( p, start, MBEDTLS_ASN1_OCTET_STRING ) );
-      len += sub_len;
-      MBEDTLS_ASN1_CHK_ADD( len, mbedtls_asn1_write_len( p, start, sub_len ) );
-      MBEDTLS_ASN1_CHK_ADD( len, mbedtls_asn1_write_tag( p, start, MBEDTLS_ASN1_CONTEXT_SPECIFIC | MBEDTLS_ASN1_CONSTRUCTED | 6 ) );
+    if (ctx->recipNonce) {
+        sub_len = 0;
+        MBEDTLS_ASN1_CHK_ADD(sub_len,
+                             mbedtls_asn1_write_raw_buffer(p, start, ctx->recipNonce,
+                                                           ctx->recipNonce_len));
+        MBEDTLS_ASN1_CHK_ADD(sub_len, mbedtls_asn1_write_len(p, start, sub_len));
+        MBEDTLS_ASN1_CHK_ADD(sub_len, mbedtls_asn1_write_tag(p, start, MBEDTLS_ASN1_OCTET_STRING));
+        len += sub_len;
+        MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(p, start, sub_len));
+        MBEDTLS_ASN1_CHK_ADD(len,
+                             mbedtls_asn1_write_tag(p, start,
+                                                    MBEDTLS_ASN1_CONTEXT_SPECIFIC |
+                                                    MBEDTLS_ASN1_CONSTRUCTED | 6));
     }
     /*
          senderNonce     [5] OCTET STRING            OPTIONAL,
      */
-    if (ctx->senderNonce )
-    {
-      sub_len = 0;
-      MBEDTLS_ASN1_CHK_ADD( sub_len, mbedtls_asn1_write_raw_buffer( p, start, ctx->senderNonce, ctx->senderNonce_len ) );
-      MBEDTLS_ASN1_CHK_ADD( sub_len, mbedtls_asn1_write_len( p, start, sub_len ) );
-      MBEDTLS_ASN1_CHK_ADD( sub_len, mbedtls_asn1_write_tag( p, start, MBEDTLS_ASN1_OCTET_STRING ) );
-      len += sub_len;
-      MBEDTLS_ASN1_CHK_ADD( len, mbedtls_asn1_write_len( p, start, sub_len ) );
-      MBEDTLS_ASN1_CHK_ADD( len, mbedtls_asn1_write_tag( p, start, MBEDTLS_ASN1_CONTEXT_SPECIFIC | MBEDTLS_ASN1_CONSTRUCTED | 5 ) );
+    if (ctx->senderNonce) {
+        sub_len = 0;
+        MBEDTLS_ASN1_CHK_ADD(sub_len,
+                             mbedtls_asn1_write_raw_buffer(p, start, ctx->senderNonce,
+                                                           ctx->senderNonce_len));
+        MBEDTLS_ASN1_CHK_ADD(sub_len, mbedtls_asn1_write_len(p, start, sub_len));
+        MBEDTLS_ASN1_CHK_ADD(sub_len, mbedtls_asn1_write_tag(p, start, MBEDTLS_ASN1_OCTET_STRING));
+        len += sub_len;
+        MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(p, start, sub_len));
+        MBEDTLS_ASN1_CHK_ADD(len,
+                             mbedtls_asn1_write_tag(p, start,
+                                                    MBEDTLS_ASN1_CONTEXT_SPECIFIC |
+                                                    MBEDTLS_ASN1_CONSTRUCTED | 5));
     }
 
     /*
          transactionID   [4] OCTET STRING            OPTIONAL,
      */
-    if (ctx->transactionID )
-    {
-      sub_len = 0;
-      MBEDTLS_ASN1_CHK_ADD( sub_len, mbedtls_asn1_write_raw_buffer( p, start, ctx->transactionID, ctx->transactionID_len ) );
-      MBEDTLS_ASN1_CHK_ADD( sub_len, mbedtls_asn1_write_len( p, start, sub_len ) );
-      MBEDTLS_ASN1_CHK_ADD( sub_len, mbedtls_asn1_write_tag( p, start, MBEDTLS_ASN1_OCTET_STRING ) );
-      len += sub_len;
-      MBEDTLS_ASN1_CHK_ADD( len, mbedtls_asn1_write_len( p, start, sub_len ) );
-      MBEDTLS_ASN1_CHK_ADD( len, mbedtls_asn1_write_tag( p, start, MBEDTLS_ASN1_CONTEXT_SPECIFIC | MBEDTLS_ASN1_CONSTRUCTED | 4 ) );
+    if (ctx->transactionID) {
+        sub_len = 0;
+        MBEDTLS_ASN1_CHK_ADD(sub_len,
+                             mbedtls_asn1_write_raw_buffer(p, start, ctx->transactionID,
+                                                           ctx->transactionID_len));
+        MBEDTLS_ASN1_CHK_ADD(sub_len, mbedtls_asn1_write_len(p, start, sub_len));
+        MBEDTLS_ASN1_CHK_ADD(sub_len, mbedtls_asn1_write_tag(p, start, MBEDTLS_ASN1_OCTET_STRING));
+        len += sub_len;
+        MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(p, start, sub_len));
+        MBEDTLS_ASN1_CHK_ADD(len,
+                             mbedtls_asn1_write_tag(p, start,
+                                                    MBEDTLS_ASN1_CONTEXT_SPECIFIC |
+                                                    MBEDTLS_ASN1_CONSTRUCTED | 4));
     }
     /*
          recipKID        [3] KeyIdentifier           OPTIONAL,
@@ -1152,109 +1272,143 @@ int cmpcl_CMPwrite_PKIHeader_der( unsigned char **p, unsigned char *start,
      */
 /* doesn't work as I don't find the key identifier from extensions :-/ */
 #if 0
-    if (ctx->cl_cert)
-    {
-      sub_len = 0;
-     // MBEDTLS_X509_EXT_SUBJECT_KEY_IDENTIFIER
-      getExtension( &ctx->cl_cert->v3_ext);
-      len += sub_len;
-      MBEDTLS_ASN1_CHK_ADD( len, mbedtls_asn1_write_len( p, start, sub_len ) );
-      MBEDTLS_ASN1_CHK_ADD( len, mbedtls_asn1_write_tag( p, start, MBEDTLS_ASN1_CONTEXT_SPECIFIC | MBEDTLS_ASN1_CONSTRUCTED | 2 ) );
+    if (ctx->cl_cert) {
+        sub_len = 0;
+        // MBEDTLS_X509_EXT_SUBJECT_KEY_IDENTIFIER
+        getExtension(&ctx->cl_cert->v3_ext);
+        len += sub_len;
+        MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(p, start, sub_len));
+        MBEDTLS_ASN1_CHK_ADD(len,
+                             mbedtls_asn1_write_tag(p, start,
+                                                    MBEDTLS_ASN1_CONTEXT_SPECIFIC |
+                                                    MBEDTLS_ASN1_CONSTRUCTED | 2));
     }
 #endif
-    if (ctx->reference)
-    {
-      sub_len = 0;
-      MBEDTLS_ASN1_CHK_ADD( sub_len, mbedtls_asn1_write_raw_buffer( p, start, ctx->reference, ctx->reference_len ) );
-      MBEDTLS_ASN1_CHK_ADD( sub_len, mbedtls_asn1_write_len( p, start, sub_len ) );
-      MBEDTLS_ASN1_CHK_ADD( sub_len, mbedtls_asn1_write_tag( p, start, MBEDTLS_ASN1_OCTET_STRING ) );
-      len += sub_len;
-      MBEDTLS_ASN1_CHK_ADD( len, mbedtls_asn1_write_len( p, start, sub_len ) );
-      MBEDTLS_ASN1_CHK_ADD( len, mbedtls_asn1_write_tag( p, start, MBEDTLS_ASN1_CONTEXT_SPECIFIC | MBEDTLS_ASN1_CONSTRUCTED | 2 ) );
+    if (ctx->reference) {
+        sub_len = 0;
+        MBEDTLS_ASN1_CHK_ADD(sub_len,
+                             mbedtls_asn1_write_raw_buffer(p, start, ctx->reference,
+                                                           ctx->reference_len));
+        MBEDTLS_ASN1_CHK_ADD(sub_len, mbedtls_asn1_write_len(p, start, sub_len));
+        MBEDTLS_ASN1_CHK_ADD(sub_len, mbedtls_asn1_write_tag(p, start, MBEDTLS_ASN1_OCTET_STRING));
+        len += sub_len;
+        MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(p, start, sub_len));
+        MBEDTLS_ASN1_CHK_ADD(len,
+                             mbedtls_asn1_write_tag(p, start,
+                                                    MBEDTLS_ASN1_CONTEXT_SPECIFIC |
+                                                    MBEDTLS_ASN1_CONSTRUCTED | 2));
     }
 
     /*
          protectionAlg   [1] AlgorithmIdentifier     OPTIONAL,
      */
-    if(unprotected) {
+    if (unprotected) {
         /* no protection */
-    } else if (ctx->cl_key/* && ctx->sig_prot_md_alg */) {
-      mbedtls_pk_type_t pk_alg;
-      pk_alg = mbedtls_pk_get_type( ctx->cl_key);
-      if( pk_alg == MBEDTLS_PK_ECKEY )
-          pk_alg = MBEDTLS_PK_ECDSA;
+    } else if (ctx->cl_key /* && ctx->sig_prot_md_alg */) {
+        mbedtls_pk_type_t pk_alg;
+        pk_alg = mbedtls_pk_get_type(ctx->cl_key);
+        if (pk_alg == MBEDTLS_PK_ECKEY) {
+            pk_alg = MBEDTLS_PK_ECDSA;
+        }
 
-      if( ( ret = mbedtls_oid_get_oid_by_sig_alg( pk_alg, ctx->sig_prot_md_alg, &sig_oid, &sig_oid_len ) ) != 0 )
-          return( ret );
+        if ((ret =
+                 mbedtls_oid_get_oid_by_sig_alg(pk_alg, ctx->sig_prot_md_alg, &sig_oid,
+                                                &sig_oid_len)) != 0) {
+            return ret;
+        }
 
-      sub_len = 0;
-      MBEDTLS_ASN1_CHK_ADD( sub_len, mbedtls_asn1_write_algorithm_identifier( p, start, sig_oid, strlen( sig_oid ), 0 ) );
-      len += sub_len;
-      MBEDTLS_ASN1_CHK_ADD( len, mbedtls_asn1_write_len( p, start, sub_len ) );
-      MBEDTLS_ASN1_CHK_ADD( len, mbedtls_asn1_write_tag( p, start, MBEDTLS_ASN1_CONTEXT_SPECIFIC | MBEDTLS_ASN1_CONSTRUCTED | 1 ) );
+        sub_len = 0;
+        MBEDTLS_ASN1_CHK_ADD(sub_len,
+                             mbedtls_asn1_write_algorithm_identifier(p, start, sig_oid,
+                                                                     strlen(sig_oid), 0));
+        len += sub_len;
+        MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(p, start, sub_len));
+        MBEDTLS_ASN1_CHK_ADD(len,
+                             mbedtls_asn1_write_tag(p, start,
+                                                    MBEDTLS_ASN1_CONTEXT_SPECIFIC |
+                                                    MBEDTLS_ASN1_CONSTRUCTED | 1));
     } else if (ctx->secret && ctx->pbmp) { /* PBM */
         /*
-      id-PasswordBasedMAC OBJECT IDENTIFIER ::= { 1 2 840 113533 7 66 13} */
+           id-PasswordBasedMAC OBJECT IDENTIFIER ::= { 1 2 840 113533 7 66 13} */
         size_t par_len = 0;
-        MBEDTLS_ASN1_CHK_ADD( par_len, cmpcl_CMPwrite_PBMParameter_der( p, start, ctx->pbmp) );
+        MBEDTLS_ASN1_CHK_ADD(par_len, cmpcl_CMPwrite_PBMParameter_der(p, start, ctx->pbmp));
 
         sub_len = 0;
 
 /* PBM OID defined in cmpcl_int.h
  * HARDCODED as it is not defined in mbedtls */
-        MBEDTLS_ASN1_CHK_ADD( sub_len, mbedtls_asn1_write_algorithm_identifier( p, start, PBM_OID, strlen( PBM_OID ), par_len ) );
+        MBEDTLS_ASN1_CHK_ADD(sub_len,
+                             mbedtls_asn1_write_algorithm_identifier(p, start, PBM_OID,
+                                                                     strlen(PBM_OID), par_len));
         len += sub_len;
-        MBEDTLS_ASN1_CHK_ADD( len, mbedtls_asn1_write_len( p, start, sub_len ) );
-        MBEDTLS_ASN1_CHK_ADD( len, mbedtls_asn1_write_tag( p, start, MBEDTLS_ASN1_CONTEXT_SPECIFIC | MBEDTLS_ASN1_CONSTRUCTED | 1 ) );
+        MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(p, start, sub_len));
+        MBEDTLS_ASN1_CHK_ADD(len,
+                             mbedtls_asn1_write_tag(p, start,
+                                                    MBEDTLS_ASN1_CONTEXT_SPECIFIC |
+                                                    MBEDTLS_ASN1_CONSTRUCTED | 1));
     } else {
-        CMPERRS( "No protection credentials configured!");
+        CMPERRS("No protection credentials configured!");
     }
 
     /*
          messageTime     [0] GeneralizedTime         OPTIONAL,
      */
     if (ctx->messageTime) {
-      sub_len = 0;
-      MBEDTLS_ASN1_CHK_ADD( sub_len, mbedtls_asn1_write_raw_buffer( p, start, (const unsigned char *) ctx->messageTime, MBEDTLS_X509_RFC5280_UTC_TIME_LEN ) );
-      MBEDTLS_ASN1_CHK_ADD( sub_len, mbedtls_asn1_write_len( p, start, sub_len ) );
-      MBEDTLS_ASN1_CHK_ADD( sub_len, mbedtls_asn1_write_tag( p, start, MBEDTLS_ASN1_GENERALIZED_TIME ) );
-      len += sub_len;
-      /* [0] */
-      MBEDTLS_ASN1_CHK_ADD( len, mbedtls_asn1_write_len( p, start, sub_len ) );
-      MBEDTLS_ASN1_CHK_ADD( len, mbedtls_asn1_write_tag( p, start, MBEDTLS_ASN1_CONTEXT_SPECIFIC | MBEDTLS_ASN1_CONSTRUCTED | 0 ) );
+        sub_len = 0;
+        MBEDTLS_ASN1_CHK_ADD(sub_len,
+                             mbedtls_asn1_write_raw_buffer(p, start,
+                                                           (const unsigned char *) ctx->messageTime,
+                                                           MBEDTLS_X509_RFC5280_UTC_TIME_LEN));
+        MBEDTLS_ASN1_CHK_ADD(sub_len, mbedtls_asn1_write_len(p, start, sub_len));
+        MBEDTLS_ASN1_CHK_ADD(sub_len,
+                             mbedtls_asn1_write_tag(p, start, MBEDTLS_ASN1_GENERALIZED_TIME));
+        len += sub_len;
+        /* [0] */
+        MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(p, start, sub_len));
+        MBEDTLS_ASN1_CHK_ADD(len,
+                             mbedtls_asn1_write_tag(p, start,
+                                                    MBEDTLS_ASN1_CONTEXT_SPECIFIC |
+                                                    MBEDTLS_ASN1_CONSTRUCTED | 0));
     }
 
     /*
          recipient           GeneralName,
      */
     sub_len = 0;
-    MBEDTLS_ASN1_CHK_ADD( sub_len, mbedtls_x509_write_names( p, start, ctx->recipient ) );
+    MBEDTLS_ASN1_CHK_ADD(sub_len, mbedtls_x509_write_names(p, start, ctx->recipient));
     len += sub_len;
     /* Explicit */
-    MBEDTLS_ASN1_CHK_ADD( len, mbedtls_asn1_write_len( p, start, sub_len ) );
-    MBEDTLS_ASN1_CHK_ADD( len, mbedtls_asn1_write_tag( p, start, MBEDTLS_ASN1_CONTEXT_SPECIFIC | MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_OCTET_STRING ) );
+    MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(p, start, sub_len));
+    MBEDTLS_ASN1_CHK_ADD(len,
+                         mbedtls_asn1_write_tag(p, start,
+                                                MBEDTLS_ASN1_CONTEXT_SPECIFIC |
+                                                MBEDTLS_ASN1_CONSTRUCTED |
+                                                MBEDTLS_ASN1_OCTET_STRING));
 
     /*
          sender              GeneralName,
      */
     sub_len = 0;
-    MBEDTLS_ASN1_CHK_ADD( sub_len, mbedtls_x509_write_names( p, start, ctx->sender ) );
+    MBEDTLS_ASN1_CHK_ADD(sub_len, mbedtls_x509_write_names(p, start, ctx->sender));
     len += sub_len;
     /* Explicit */
-    MBEDTLS_ASN1_CHK_ADD( len, mbedtls_asn1_write_len( p, start, sub_len ) );
-    MBEDTLS_ASN1_CHK_ADD( len, mbedtls_asn1_write_tag( p, start, MBEDTLS_ASN1_CONTEXT_SPECIFIC | MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_OCTET_STRING ) );
+    MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(p, start, sub_len));
+    MBEDTLS_ASN1_CHK_ADD(len,
+                         mbedtls_asn1_write_tag(p, start,
+                                                MBEDTLS_ASN1_CONTEXT_SPECIFIC |
+                                                MBEDTLS_ASN1_CONSTRUCTED |
+                                                MBEDTLS_ASN1_OCTET_STRING));
 
     /*
      *   pvno                INTEGER     { cmp1999(1), cmp2000(2) },
      */
-    MBEDTLS_ASN1_CHK_ADD( len, mbedtls_asn1_write_int( p, start, MBEDTLS_CMP_VERSION_2 ) );
+    MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_int(p, start, MBEDTLS_CMP_VERSION_2));
 
     /*
      * PKIHeader ::= SEQUENCE
      */
-    MBEDTLS_ASN1_CHK_ADD( len, mbedtls_asn1_write_len( p, start, len ) );
-    MBEDTLS_ASN1_CHK_ADD( len, mbedtls_asn1_write_tag( p, start, MBEDTLS_ASN1_CONSTRUCTED |
-                                                    MBEDTLS_ASN1_SEQUENCE ) );
-    return( (int) len );
+    MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(p, start, len));
+    MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_tag(p, start, MBEDTLS_ASN1_CONSTRUCTED |
+                                                     MBEDTLS_ASN1_SEQUENCE));
+    return (int) len;
 }
-

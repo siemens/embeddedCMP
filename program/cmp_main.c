@@ -44,7 +44,8 @@ static const char usage_str_pr[] = "Enter protocol     (http|coap), default is h
 /* ************************************************************************** */
 
 #if !CMP_CLIENT_HTTPD
-static void uart_cli_blocking( void ) {
+static void uart_cli_blocking(void)
+{
 
     cmp_send_receive_cb send_receive_function = http_send_receive;
     invoke_transaction transaction = invoke_kur_transaction;
@@ -57,11 +58,11 @@ static void uart_cli_blocking( void ) {
     PUTCHAR(ch);
     PRINTF("\r\n");
 
-    if (!strncasecmp("ir", (char*) &ch, 1)) {
+    if (!strncasecmp("ir", (char *) &ch, 1)) {
         transaction = invoke_ir_transaction;
-    } else if (!strncasecmp("cr", (char*) &ch, 1)) {
+    } else if (!strncasecmp("cr", (char *) &ch, 1)) {
         transaction = invoke_cr_transaction;
-    } else if (!strncasecmp("kur", (char*) &ch, 1)) {
+    } else if (!strncasecmp("kur", (char *) &ch, 1)) {
         transaction = invoke_kur_transaction;
     } else {
         PRINTF("Unrecognized type, using default (kur)\r\n");
@@ -72,9 +73,9 @@ static void uart_cli_blocking( void ) {
     PUTCHAR(ch);
     PRINTF("\r\n");
 
-    if (!strncasecmp("http", (char*) &ch, 1)) {
+    if (!strncasecmp("http", (char *) &ch, 1)) {
         send_receive_function = http_send_receive;
-    } else if (!strncasecmp("coap", (char*) &ch, 1)) {
+    } else if (!strncasecmp("coap", (char *) &ch, 1)) {
         send_receive_function = coap_send_receive;
     } else {
         PRINTF("Unrecognized protocol, using default (http)\r\n");
@@ -86,8 +87,9 @@ static void uart_cli_blocking( void ) {
 }
 #endif
 
-void httpd_cgi_handler(const char* uri, int iNumParams, char **pcParam,
-        char **pcValue) {
+void httpd_cgi_handler(const char *uri, int iNumParams, char **pcParam,
+                       char **pcValue)
+{
     cmp_send_receive_cb send_receive_function = NULL;
     invoke_transaction transaction = NULL;
     for (int i = 0; i < iNumParams; i++) {
@@ -113,12 +115,13 @@ void httpd_cgi_handler(const char* uri, int iNumParams, char **pcParam,
     }
 }
 
-int main(void) {
+int main(void)
+{
     int ret;
 
     /* init mbedTLS */
     CRYPTO_InitHardware();
-    if( (ret = mbedtls_init_entropy() ) != 0 ) {
+    if ((ret = mbedtls_init_entropy()) != 0) {
         PRINTF(" failed\r\n  ! mbedtls_ctr_drbg_seed returned %d\r\n", ret);
         return -1;
     }

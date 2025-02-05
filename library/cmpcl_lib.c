@@ -24,12 +24,12 @@
 #include "mbedtls/build_info.h"
 
 /*
-#if !defined(MBEDTLS_CONFIG_FILE)
-#include "mbedtls/config.h"
-#else
-#include MBEDTLS_CONFIG_FILE
-#endif
-*/
+ #if !defined(MBEDTLS_CONFIG_FILE)
+ #include "mbedtls/config.h"
+ #else
+ #include MBEDTLS_CONFIG_FILE
+ #endif
+ */
 #include "cmpcl_int.h"
 
 #include <string.h>
@@ -50,7 +50,8 @@
 /* HELPERS */
 /* **************************************************************** */
 
-void cmp_asn1_sequence_free( mbedtls_asn1_sequence *asn1_sequence ) {
+void cmp_asn1_sequence_free(mbedtls_asn1_sequence *asn1_sequence)
+{
 
     mbedtls_asn1_sequence *seq_cur, *seq_prv;
 
@@ -63,21 +64,24 @@ void cmp_asn1_sequence_free( mbedtls_asn1_sequence *asn1_sequence ) {
     }
 }
 
-void cmp_asn1_bitstring_free( mbedtls_asn1_bitstring *asn1_bitstring) {
+void cmp_asn1_bitstring_free(mbedtls_asn1_bitstring *asn1_bitstring)
+{
 
 //    mbedtls_free(asn1_bitstring->p);
-    mbedtls_platform_zeroize(asn1_bitstring, sizeof( asn1_bitstring ));
+    mbedtls_platform_zeroize(asn1_bitstring, sizeof(asn1_bitstring));
 }
 
-char *strdup(const char *src) {
+char *strdup(const char *src)
+{
     char *result = NULL;
-    int rc = setStr((unsigned char **)&result, (unsigned char *)src, strlen(src) + 1);
-    return rc == 0 ? (char *)result : NULL;
+    int rc = setStr((unsigned char **) &result, (unsigned char *) src, strlen(src) + 1);
+    return rc == 0 ? (char *) result : NULL;
 }
 
-char *strndup(const char *s, size_t n) {
+char *strndup(const char *s, size_t n)
+{
     char *result = NULL;
-    int rc = setStr((unsigned char **)&result, (unsigned char *)s, n + 1);
+    int rc = setStr((unsigned char **) &result, (unsigned char *) s, n + 1);
     if (rc == 0) {
         result[n] = '\0';
         return result;
@@ -86,33 +90,36 @@ char *strndup(const char *s, size_t n) {
     }
 }
 
-int setStr( unsigned char **dst, const unsigned char *src, const size_t len)
+int setStr(unsigned char **dst, const unsigned char *src, const size_t len)
 {
-    if( !src) return 0;
-    if( *dst)
-        mbedtls_free( *dst);
-    if( (*dst = (unsigned char*) mbedtls_calloc(1, len)) == NULL) {
+    if (!src) {
+        return 0;
+    }
+    if (*dst) {
+        mbedtls_free(*dst);
+    }
+    if ((*dst = (unsigned char *) mbedtls_calloc(1, len)) == NULL) {
         CMPERRS("Error allocating space\n");
         return CMPCL_ERR_MEMORY_ALLOCATION;
     }
-    memcpy( *dst, src, len); /* TODO: catch error */
+    memcpy(*dst, src, len);  /* TODO: catch error */
     return 0;
 }
 
 #ifdef DEVELOPMENT
-int write_to_file( char *output_file, const unsigned char *data, size_t len) {
-    FILE* f;
+int write_to_file(char *output_file, const unsigned char *data, size_t len)
+{
+    FILE *f;
 
-    if ((f = fopen(output_file, "wb")) == NULL)
-    {
-    	//CMPDBGV("fopen failed for %s", output_file);
-        return (CMPCL_ERR_FILE_OPEN);
+    if ((f = fopen(output_file, "wb")) == NULL) {
+        //CMPDBGV("fopen failed for %s", output_file);
+        return CMPCL_ERR_FILE_OPEN;
     }
 
     if (fwrite(data, 1, len, f) != len) {
-    	//CMPDBGV("fwrite failed for %s", output_file);
+        //CMPDBGV("fwrite failed for %s", output_file);
         fclose(f);
-        return (CMPCL_ERR_FILE_WRITE);
+        return CMPCL_ERR_FILE_WRITE;
     }
 
     //CMPDBGV("Binary data written to %s", output_file);
@@ -127,19 +134,20 @@ int write_to_file( char *output_file, const unsigned char *data, size_t len) {
  * extracts CN from mbedtls_x509_name and stores it in a string
  * free memory from caller!
  */
-char* cmp_x509_cn_gets( mbedtls_x509_name *dn) {
+char *cmp_x509_cn_gets(mbedtls_x509_name *dn)
+{
 
     mbedtls_x509_name *cn_start = NULL;
     char *result = NULL;
 
-    cn_start = mbedtls_asn1_find_named_data(dn, MBEDTLS_OID_AT_CN, sizeof(MBEDTLS_OID_AT_CN) - 1 );
+    cn_start = mbedtls_asn1_find_named_data(dn, MBEDTLS_OID_AT_CN, sizeof(MBEDTLS_OID_AT_CN) - 1);
 
-    if( cn_start == NULL) {
+    if (cn_start == NULL) {
         //CMPDBGS("Failed to find CN in given DN");
         return NULL;
     }
 
-    result = strndup( (char*)cn_start->val.p, cn_start->val.len);
+    result = strndup((char *) cn_start->val.p, cn_start->val.len);
 
     return result;
 }
@@ -155,17 +163,18 @@ char* cmp_x509_cn_gets( mbedtls_x509_name *dn) {
  *    as that isn't done as part of chain building/verification currently
  *  - builds and verifies the chain
  */
-int cmp_x509_crt_verify( mbedtls_x509_crt *crt,
-                     mbedtls_x509_crt *trust_ca,
-                     mbedtls_x509_crl *ca_crl,
-                     mbedtls_x509_name *exp_name,
-                     const char *description) {
+int cmp_x509_crt_verify(mbedtls_x509_crt *crt,
+                        mbedtls_x509_crt *trust_ca,
+                        mbedtls_x509_crl *ca_crl,
+                        mbedtls_x509_name *exp_name,
+                        const char *description)
+{
 
     int ret;
     unsigned int failure_bits = 0;
     char *expected_cn = NULL;
 
-    if( trust_ca == NULL ) {
+    if (trust_ca == NULL) {
         //CMPDBGS("Empty trusted certs chain. Abort verification.");
         return CMPCL_ERR_EMPTY_TRUST_CA;
     }
@@ -174,12 +183,12 @@ int cmp_x509_crt_verify( mbedtls_x509_crt *crt,
 
         expected_cn = cmp_x509_cn_gets(exp_name);
 
-            if (expected_cn == NULL) {  /*CN extraction failed */
-                //CMPERRS("Failed to extract CN name");
-                ret = CMPCL_ERR_EXTRACT_CN;
-                goto err;
-            }
+        if (expected_cn == NULL) {      /*CN extraction failed */
+            //CMPERRS("Failed to extract CN name");
+            ret = CMPCL_ERR_EXTRACT_CN;
+            goto err;
         }
+    }
 
     /* for compatibility with insta CA enable SHA1*/
     mbedtls_x509_crt_profile ver_prof = mbedtls_x509_crt_profile_default;
@@ -187,11 +196,11 @@ int cmp_x509_crt_verify( mbedtls_x509_crt *crt,
 
 
     ret = mbedtls_x509_crt_verify_with_profile(crt, /* treat ret appropriately in caller */
-            trust_ca, ca_crl, &ver_prof,
-            expected_cn,
-            &failure_bits,
-            NULL,
-            NULL );
+                                               trust_ca, ca_crl, &ver_prof,
+                                               expected_cn,
+                                               &failure_bits,
+                                               NULL,
+                                               NULL);
 /*
     if( ret == 0) {
         CMPDBGV("%s chain verified successfully", description);
@@ -200,9 +209,9 @@ int cmp_x509_crt_verify( mbedtls_x509_crt *crt,
         CMPERRV("mbedtls_x509_crt_verify() returned: 0x%04x", -ret);
         CMPERRV("verification failure bits: 0x%04x", failure_bits);
     }
-*/
+ */
 
-    err:
+err:
     mbedtls_free(expected_cn);
     return ret;
 }
@@ -211,44 +220,46 @@ int cmp_x509_crt_verify( mbedtls_x509_crt *crt,
 
 
 /* **************************************************************** */
-int cmp_ctx_set_rndm_str( unsigned char **str,
-                          size_t *str_len,
-                          mbedtls_ctr_drbg_context *ctr_drbg,
-                          size_t len )
+int cmp_ctx_set_rndm_str(unsigned char **str,
+                         size_t *str_len,
+                         mbedtls_ctr_drbg_context *ctr_drbg,
+                         size_t len)
 {
     int ret;
 
-    if( *str )
-        mbedtls_free( *str);
-    *str = (unsigned char*) mbedtls_calloc(1, len);
-    if ( *str == NULL ) {
+    if (*str) {
+        mbedtls_free(*str);
+    }
+    *str = (unsigned char *) mbedtls_calloc(1, len);
+    if (*str == NULL) {
         //CMPERRS("Error allocating memory!");
         return -1;
     }
     *str_len = len;
-    if( (ret = mbedtls_ctr_drbg_random( ctr_drbg, *str, len )) != 0 )
+    if ((ret = mbedtls_ctr_drbg_random(ctr_drbg, *str, len)) != 0) {
         //CMPERRV("Error generating random string: %d\n", ret);
 
-    return ret;
+        return ret;
+    }
 }
 
 /* **************************************************************** */
 /* PBM */
 /* **************************************************************** */
 
-int cmp_PBMParameter_init( cmp_PBMParameter *pbmp,
-                                mbedtls_ctr_drbg_context *ctr_drbg,
-                                size_t salt_len,
-                                mbedtls_md_type_t owf,
-                                int iterationCount,
-                                mbedtls_md_type_t mac )
+int cmp_PBMParameter_init(cmp_PBMParameter *pbmp,
+                          mbedtls_ctr_drbg_context *ctr_drbg,
+                          size_t salt_len,
+                          mbedtls_md_type_t owf,
+                          int iterationCount,
+                          mbedtls_md_type_t mac)
 {
-    memset( pbmp, 0, sizeof(cmp_PBMParameter) );
+    memset(pbmp, 0, sizeof(cmp_PBMParameter));
 
     if (cmp_ctx_set_rndm_str(&pbmp->salt,
-                        &pbmp->salt_len,
-                        ctr_drbg,
-                        salt_len) != 0) {
+                             &pbmp->salt_len,
+                             ctr_drbg,
+                             salt_len) != 0) {
         //CMPERRS("Error setting PBM parameters!");
         return -1;
     }
@@ -260,16 +271,17 @@ int cmp_PBMParameter_init( cmp_PBMParameter *pbmp,
     return 0;
 }
 
-void cmp_PBMParameter_free( cmp_PBMParameter *pbmp )
+void cmp_PBMParameter_free(cmp_PBMParameter *pbmp)
 {
-    if( pbmp->salt)
-        mbedtls_free( pbmp->salt);
+    if (pbmp->salt) {
+        mbedtls_free(pbmp->salt);
+    }
 }
 
-int cmp_PBM_new( const cmp_PBMParameter *pbmp,
-                     const unsigned char *secret, size_t secret_len,
-                     const unsigned char *msg, size_t msg_len,
-                     unsigned char *mac, size_t *mac_len)
+int cmp_PBM_new(const cmp_PBMParameter *pbmp,
+                const unsigned char *secret, size_t secret_len,
+                const unsigned char *msg, size_t msg_len,
+                unsigned char *mac, size_t *mac_len)
 {
     unsigned char *basekey;
     unsigned int bk_len;
@@ -278,22 +290,26 @@ int cmp_PBM_new( const cmp_PBMParameter *pbmp,
     mbedtls_md_context_t md_ctx;
     const mbedtls_md_info_t *md_info;
 
-    mbedtls_md_init( &md_ctx );
+    mbedtls_md_init(&md_ctx);
 
-    basekey = (unsigned char*) mbedtls_calloc(1, MBEDTLS_MD_MAX_SIZE);
+    basekey = (unsigned char *) mbedtls_calloc(1, MBEDTLS_MD_MAX_SIZE);
 
     if (!basekey) {
         //CMPERRS("Error allocating memory!");
         goto err;
     }
-    if (!mac)
+    if (!mac) {
         goto err;
-    if (!pbmp)
+    }
+    if (!pbmp) {
         goto err;
-    if (!msg)
+    }
+    if (!msg) {
         goto err;
-    if (!secret)
+    }
+    if (!secret) {
         goto err;
+    }
 
     /*
      * owf identifies the hash algorithm and associated parameters used to
@@ -301,43 +317,52 @@ int cmp_PBM_new( const cmp_PBMParameter *pbmp,
      * support SHA-1.
      */
 
-    if (!(md_info = mbedtls_md_info_from_type( pbmp->owf )))
+    if (!(md_info = mbedtls_md_info_from_type(pbmp->owf))) {
         goto err;
+    }
 
-    bk_len = mbedtls_md_get_size (md_info);
+    bk_len = mbedtls_md_get_size(md_info);
 
-    ret = mbedtls_md_setup( &md_ctx, md_info, 0);
-    if ( ret != 0)
+    ret = mbedtls_md_setup(&md_ctx, md_info, 0);
+    if (ret != 0) {
         goto err;
+    }
 
     ret = mbedtls_md_starts(&md_ctx);
-    if (ret != 0)
+    if (ret != 0) {
         goto err;
+    }
 
-    ret = mbedtls_md_update( &md_ctx, secret, secret_len);
-    if ( ret != 0)
+    ret = mbedtls_md_update(&md_ctx, secret, secret_len);
+    if (ret != 0) {
         goto err;
+    }
 
-    ret = mbedtls_md_update( &md_ctx, pbmp->salt, pbmp->salt_len);
-    if ( ret != 0)
+    ret = mbedtls_md_update(&md_ctx, pbmp->salt, pbmp->salt_len);
+    if (ret != 0) {
         goto err;
+    }
 
-    ret = mbedtls_md_finish( &md_ctx, basekey);
-    if ( ret!= 0)
+    ret = mbedtls_md_finish(&md_ctx, basekey);
+    if (ret != 0) {
         goto err;
+    }
 
     iter = pbmp->iterationCount-1; /* first iteration already done above */
     while (iter-- > 0) {
         /* maybe this could be done with mbedtls_md - but *input=*ouput... */
         ret = mbedtls_md_starts(&md_ctx);
-        if (ret != 0)
+        if (ret != 0) {
             goto err;
-        ret = mbedtls_md_update( &md_ctx, basekey, bk_len);
-        if ( ret != 0)
+        }
+        ret = mbedtls_md_update(&md_ctx, basekey, bk_len);
+        if (ret != 0) {
             goto err;
-        ret = mbedtls_md_finish( &md_ctx, basekey);
-        if ( ret != 0)
+        }
+        ret = mbedtls_md_finish(&md_ctx, basekey);
+        if (ret != 0) {
             goto err;
+        }
     }
     mbedtls_md_free(&md_ctx);
 
@@ -347,28 +372,33 @@ int cmp_PBM_new( const cmp_PBMParameter *pbmp,
      * [HMAC].      All implementations SHOULD support DES-MAC and Triple-
      * DES-MAC [PKCS11].
      */
-    mbedtls_md_init( &md_ctx );
+    mbedtls_md_init(&md_ctx);
 
-    if (!(md_info = mbedtls_md_info_from_type( pbmp->mac )))
+    if (!(md_info = mbedtls_md_info_from_type(pbmp->mac))) {
         goto err;
+    }
 
-    *mac_len = mbedtls_md_get_size (md_info);
+    *mac_len = mbedtls_md_get_size(md_info);
 
-    ret = mbedtls_md_setup( &md_ctx, md_info, 1);
-    if ( ret != 0)
+    ret = mbedtls_md_setup(&md_ctx, md_info, 1);
+    if (ret != 0) {
         goto err;
+    }
 
-    ret = mbedtls_md_hmac_starts( &md_ctx, basekey, bk_len );
-    if ( ret != 0)
+    ret = mbedtls_md_hmac_starts(&md_ctx, basekey, bk_len);
+    if (ret != 0) {
         goto err;
+    }
 
-    ret = mbedtls_md_hmac_update( &md_ctx, msg, msg_len );
-    if ( ret != 0)
+    ret = mbedtls_md_hmac_update(&md_ctx, msg, msg_len);
+    if (ret != 0) {
         goto err;
+    }
 
-    ret = mbedtls_md_hmac_finish( &md_ctx, mac );
-    if ( ret != 0)
+    ret = mbedtls_md_hmac_finish(&md_ctx, mac);
+    if (ret != 0) {
         goto err;
+    }
 
     /* cleanup */
 err:
@@ -376,4 +406,3 @@ err:
     mbedtls_free(basekey);
     return ret;
 }
-
