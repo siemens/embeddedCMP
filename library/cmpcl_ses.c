@@ -32,20 +32,6 @@
 
 #include "cmpcl_int.h"
 
-#if defined(MBEDTLS_PLATFORM_C)
-#include "mbedtls/platform.h"
-#else
-#include <stdlib.h>
-#include <stdio.h>
-#define mbedtls_free       free
-#define mbedtls_calloc     calloc
-#define mbedtls_snprintf   snprintf
-#endif
-
-/* TODO: check needs to be done for entropy... */
-//#include <mbedtls/entropy.h>
-#include <mbedtls/ctr_drbg.h> /* Random generator */
-
 static unsigned char output_buf[OUTPUT_BUF_SIZE];
 
 /* body_type may be ir, cr, or kur */

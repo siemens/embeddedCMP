@@ -21,27 +21,7 @@
  *  SPDX-License-Identifier: Apache-2.0
  */
 
-#include "mbedtls/build_info.h"
-
-/*#if !defined(MBEDTLS_CONFIG_FILE)
- #include "mbedtls/config.h"
- #else
- #include MBEDTLS_CONFIG_FILE
- #endif
- */
-
 #include "cmpcl_int.h"
-//#include <http_helper.h>
-//#include <coap_helper.h>
-
-#include "mbedtls/x509.h"
-#include "mbedtls/x509_crt.h"
-#include "mbedtls/oid.h"
-#include "mbedtls/asn1write.h"
-#include "mbedtls/sha1.h"
-
-#include <string.h>
-
 
 /* Implementation that should never be optimized out by the compiler */
 static void zeroize(void *v, size_t n)

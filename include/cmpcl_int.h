@@ -33,33 +33,23 @@
 extern "C" {
 #endif
 
-#if defined(MBEDTLS_PLATFORM_C)
+#include <string.h>
+
+#include "mbedtls/build_info.h"
 #include "mbedtls/platform.h"
 #include "mbedtls/platform_util.h"
-#else
-#include <stdlib.h>
-#include <stdio.h>
-#define mbedtls_free       free
-#define mbedtls_calloc     calloc
-#define mbedtls_snprintf   snprintf
-#endif
-
-
-/* for debugging of heap memory usage */
-#if 0
-# define HEAP_USAGE_DEBUG_MSG
-# undef mbedtls_calloc
-# define mbedtls_calloc(count, size) debug_calloc(count, size, __FILE__, __LINE__, __func__)
-# undef mbedtls_free
-# define mbedtls_free(ptr)	debug_free(ptr, __FILE__, __LINE__, __func__)
-#endif
-
-#include "cmpcl.h"
 #include "mbedtls/oid.h"
 #include "mbedtls/asn1.h"
 #include "mbedtls/x509.h"
 #include "mbedtls/x509_crt.h"
 #include "mbedtls/ctr_drbg.h"
+#include "mbedtls/asn1write.h"
+#include "mbedtls/sha1.h"
+#include "mbedtls/ecdsa.h" /* for MBEDTLS_ECDSA_MAX_LEN */
+#include "mbedtls/error.h"
+
+#include "debug_macros.h"
+#include "cmpcl.h"
 
 /* TODO: check this buffer size */
 #define OUTPUT_BUF_SIZE 8000

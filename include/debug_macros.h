@@ -29,17 +29,20 @@ extern "C" {
 #define CMPDBGS(str) CMPDBGV(str)
 #define CMPDBG       CMPDBGS("")
 
+// TODO redirect to mbedtls_debug_print_msg or similar
+#define PRINTF printf
+
 #define CMPWARNS(str) \
     do { \
-        PRINTF("WARNING: %s:%d %s " str NEWLINE,__FILE__,__LINE__, __func__); \
+        PRINTF("WARNING: %s:%d %s " str NEWLINE,__FILE__,(int)__LINE__, __func__); \
     } while(0)
 #define CMPERRS(str)                            \
   do { \
-	  PRINTF("ERROR: %s:%d %s " str NEWLINE,__FILE__,__LINE__, __func__); \
+	  PRINTF("ERROR: %s:%d %s " str NEWLINE,__FILE__,(int)__LINE__, __func__); \
   } while(0)
 #define CMPERRV(fmt, ...) \
   do { \
-	  PRINTF("ERROR: %s:%d %s " fmt NEWLINE,__FILE__,__LINE__, __func__, \
+	  PRINTF("ERROR: %s:%d %s " fmt NEWLINE,__FILE__,(int)__LINE__, __func__, \
            ##__VA_ARGS__); \
   } while(0)
 #define CMPHEX(p) \

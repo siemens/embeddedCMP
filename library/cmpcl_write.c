@@ -21,35 +21,20 @@
  *  SPDX-License-Identifier: Apache-2.0
  */
 
-#include "mbedtls/build_info.h"
-
-/*#if !defined(MBEDTLS_CONFIG_FILE)
- #include "mbedtls/config.h"
- #else
- #include MBEDTLS_CONFIG_FILE
- #endif
- */
 
 #include "cmpcl_int.h"
 
-#include "mbedtls/x509.h"
-#include "mbedtls/x509_crt.h"
-#include "mbedtls/oid.h"
-#include "mbedtls/asn1write.h"
-#include "mbedtls/sha1.h"
-#include "mbedtls/ecdsa.h" /* for MBEDTLS_ECDSA_MAX_LEN */
+/*
+ * TODO defined in x509_internal.h, but not exported
+ */
 
-#include <string.h>
+int mbedtls_x509_write_sig(unsigned char **p, unsigned char *start,
+                           const char *oid, size_t oid_len,
+                           unsigned char *sig, size_t size,
+                           mbedtls_pk_type_t pk_alg);
 
-#if defined(MBEDTLS_PLATFORM_C)
-#include "mbedtls/platform.h"
-#else
-#include <stdlib.h>
-#include <stdio.h>
-#define mbedtls_free       free
-#define mbedtls_calloc     calloc
-#define mbedtls_snprintf   snprintf
-#endif
+int mbedtls_x509_write_names(unsigned char **p, unsigned char *start,
+                             mbedtls_asn1_named_data *first);
 
 
 static size_t g_wr_len_header = 0;
@@ -238,36 +223,21 @@ int cmpcl_CRMFwrite_CertReqMsg_der(unsigned char **p, unsigned char *start,
     int ret;
     size_t len = 0;
 
-    unsigned char *popo_input_buf;
+#define POPO_INPUT_BUF_SIZE 1024 /* TODO: that is not overly effective, but what to do? */
+    unsigned char popo_input_buf[POPO_INPUT_BUF_SIZE];
     unsigned char *popo_input_p;
     int popo_input_len = 0;
-    unsigned char *hash;
+    unsigned char hash[MBEDTLS_MD_MAX_SIZE];
 
     const char *sig_oid;
     size_t sig_oid_len = 0;
-    unsigned char *sig;
+    unsigned char sig[MBEDTLS_MPI_MAX_SIZE];
     size_t sig_and_oid_len = 0, sig_len;
     mbedtls_pk_type_t pk_alg;
 
-#define POPO_INPUT_BUF_SIZE 1024 /* TODO: that is not overly effective, but what to do? */
-    popo_input_buf = mbedtls_calloc(1, POPO_INPUT_BUF_SIZE);
-    if (!popo_input_buf) {
-        len = CMPCL_ERR_MEMORY_ALLOCATION;
-        goto err;
-    }
-
-    sig = mbedtls_calloc(1, MBEDTLS_MPI_MAX_SIZE);
-    if (!sig) {
-        len = CMPCL_ERR_MEMORY_ALLOCATION;
-        goto err;
-    }
-
-    hash = mbedtls_calloc(1, MBEDTLS_MD_MAX_SIZE);
-    if (!hash) {
-        len = CMPCL_ERR_MEMORY_ALLOCATION;
-        goto err;
-    }
-
+    memset(popo_input_buf, 0, sizeof(popo_input_buf));
+    memset(sig, 0, sizeof(sig));
+    memset(hash, 0, sizeof(hash));
 
     /* regInfo   SEQUENCE SIZE(1..MAX) OF AttributeTypeAndValue OPTIONAL */
 
@@ -329,7 +299,7 @@ int cmpcl_CRMFwrite_CertReqMsg_der(unsigned char **p, unsigned char *start,
             }
 
             CMPCL_ASN1_CHK_ADD(sig_and_oid_len,
-                               mbedtls_x509_write_sig(p, start, sig_oid, sig_oid_len, sig, sig_len),
+                               mbedtls_x509_write_sig(p, start, sig_oid, sig_oid_len, sig, sig_len, pk_alg),
                                len);
             len += sig_and_oid_len;
             g_wr_len_popo = sig_and_oid_len;
@@ -361,10 +331,6 @@ int cmpcl_CRMFwrite_CertReqMsg_der(unsigned char **p, unsigned char *start,
                                                    MBEDTLS_ASN1_SEQUENCE), len);
 
 err:
-    /* cleanup */
-    mbedtls_free(popo_input_buf);
-    mbedtls_free(sig);
-    mbedtls_free(hash);
     return (int) len;
 }
 
@@ -952,27 +918,27 @@ int cmpcl_CMPwrite_PKIMessage_der(cmp_ctx *ctx, unsigned char *start,
 #endif
 
 
-    CMPINFOV("produced PKIMessage header length: %d", g_wr_len_header);
+    CMPINFOV("produced PKIMessage header length: %ld", g_wr_len_header);
     if (g_wr_len_certTemplate > 0) {
-        CMPINFOV("produced CertTemplate length: %d", g_wr_len_certTemplate);
+        CMPINFOV("produced CertTemplate length: %ld", g_wr_len_certTemplate);
     }
     if (g_wr_len_popo > 0) {
-        CMPINFOV("produced ProofOfPossession length: %d", g_wr_len_popo);
+        CMPINFOV("produced ProofOfPossession length: %ld", g_wr_len_popo);
         CMPINFOV("%s" "requesting implicit confirmation",  ctx->implicitConfirm ? "" : "not ");
     }
     if (ctx->secret && ctx->pbmp && !unprotected) {
         CMPINFOV("PBM-based protection");
     } else if (ctx->cl_key && ctx->sig_prot_md_alg && !unprotected) {
-        CMPINFOV("signature-based protection with %d extraCerts with total length: %d",
+        CMPINFOV("signature-based protection with %ld extraCerts with total length: %ld",
                  g_wr_n_extraCerts,
                  g_wr_len_extraCerts);
     } else {
         CMPINFOV("no protection");
     }
-    CMPINFOV("request PKIMessage protection length: %d", g_wr_prot_len);
-    CMPINFOV("request PKIMessage overhead (excl. template, POPO, and certs): %d",
+    CMPINFOV("request PKIMessage protection length: %ld", g_wr_prot_len);
+    CMPINFOV("request PKIMessage overhead (excl. template, POPO, and certs): %ld",
              len - g_wr_len_certTemplate - g_wr_len_extraCerts - g_wr_len_popo);
-    CMPINFOV("request PKIMessage total length: %d", len);
+    CMPINFOV("request PKIMessage total length: %ld", len);
     CMPINFOV("----"); // begin of transmission
 
     return (int) len;

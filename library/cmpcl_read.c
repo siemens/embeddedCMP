@@ -21,36 +21,14 @@
  *  SPDX-License-Identifier: Apache-2.0
  */
 
-#include "mbedtls/build_info.h"
+#include "cmpcl_int.h"
 
-/*#if !defined(MBEDTLS_CONFIG_FILE)
- #include "mbedtls/config.h"
- #else
- #include MBEDTLS_CONFIG_FILE
- #endif
+/*
+ * TODO defined in x509_internal.h, but not exported
  */
 
-/* #if defined(MBEDTLS_CMP_PARSE_C) */
-
-#include "cmpcl_int.h"
-#include "mbedtls/oid.h"
-#include "mbedtls/asn1write.h"
-#include "mbedtls/md.h"
-#include "mbedtls/pk.h"
-#include "mbedtls/error.h"
-
-
-#include <string.h>
-
-#if defined(MBEDTLS_PLATFORM_C)
-#include "mbedtls/platform.h"
-#else
-#include <stdlib.h>
-#include <stdio.h>
-#define mbedtls_free       free
-#define mbedtls_calloc    calloc
-#define mbedtls_snprintf   snprintf
-#endif
+int mbedtls_x509_get_name(unsigned char **p, const unsigned char *end,
+                          mbedtls_x509_name *cur);
 
 /* Implementation that should never be optimized out by the compiler */
 static void zeroize(void *v, size_t n)
@@ -229,7 +207,7 @@ static int cmp_prot_check(cmp_ctx *ctx, cmp_pkimessage *cmp)
     } else { /* check sig prot */
 
         /* parsing of extraCerts already done; use pk_ctx directly from there */
-        if (&ctx->extraCerts == NULL) {
+        if (ctx->extraCerts == NULL) {
             //CMPERRS("No extraCerts found! Abort signature protection verification!");
             ret = -1;
             goto err;
@@ -1198,9 +1176,7 @@ err:
      *    protection   [0] PKIProtection OPTIONAL,
      */
 
-    size_t protection_len = 0;
     if (!PARSE_ASN1_CONSTRUCTED_TAG(MBEDTLS_ASN1_CONTEXT_SPECIFIC | 0)) {
-        protection_len = len;
         cmp->protection = mbedtls_calloc(1, sizeof(mbedtls_asn1_bitstring));
         /* TODO: can unused bits occur? */
         if ((ret = mbedtls_asn1_get_bitstring(&p, p + len, cmp->protection)) != 0) {

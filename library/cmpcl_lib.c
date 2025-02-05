@@ -21,30 +21,7 @@
  *  SPDX-License-Identifier: Apache-2.0
  */
 
-#include "mbedtls/build_info.h"
-
-/*
- #if !defined(MBEDTLS_CONFIG_FILE)
- #include "mbedtls/config.h"
- #else
- #include MBEDTLS_CONFIG_FILE
- #endif
- */
 #include "cmpcl_int.h"
-
-#include <string.h>
-
-#if defined(MBEDTLS_PLATFORM_C)
-#include "mbedtls/platform.h"
-#include "mbedtls/platform_util.h"
-#else
-#include <stdlib.h>
-#include <stdio.h>
-#define mbedtls_free       free
-#define mbedtls_calloc     calloc
-#define mbedtls_snprintf   snprintf
-#endif
-
 
 /* **************************************************************** */
 /* HELPERS */
@@ -137,7 +114,7 @@ int write_to_file(char *output_file, const unsigned char *data, size_t len)
 char *cmp_x509_cn_gets(mbedtls_x509_name *dn)
 {
 
-    mbedtls_x509_name *cn_start = NULL;
+    const mbedtls_x509_name *cn_start;
     char *result = NULL;
 
     cn_start = mbedtls_asn1_find_named_data(dn, MBEDTLS_OID_AT_CN, sizeof(MBEDTLS_OID_AT_CN) - 1);
@@ -238,9 +215,9 @@ int cmp_ctx_set_rndm_str(unsigned char **str,
     *str_len = len;
     if ((ret = mbedtls_ctr_drbg_random(ctr_drbg, *str, len)) != 0) {
         //CMPERRV("Error generating random string: %d\n", ret);
-
-        return ret;
+        ;
     }
+    return ret;
 }
 
 /* **************************************************************** */
