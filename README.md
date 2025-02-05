@@ -4,13 +4,10 @@ Licensed under the Apache License, Version 2.0
 
 SPDX-License-Identifier: Apache-2.0-->
 
-# frdmk64f_CMP-Client
+# CMP Client
 
 This project provides source code, documentation, and other files for a CMP client
-implemented on the NXP FRDM-K64F platform based on the Kinetis SDK (KSDK).
-It is a fork of [CMPclient-embedded-lib](https://github.com/nokia/CMPclient-embedded-lib) by Martin Peylo at Nokia.
-
-This prototypical code explicitly does not have production quality
+implemented. This prototypical code explicitly does not have production quality
 but constructively proves that CMP can be implemented and used
 even on a device that does not have the capacity to contain OpenSSL
 (or any other TLS implementation) nor a proper operating system.
@@ -45,15 +42,15 @@ and can only serve as an example or starting point for further development.
 
 For instructions how to get the required underlying sources
 and then build and use this software
-please refer to [HOWTO.md](/cmp_doc/HOWTO.md).
+please refer to [HOWTO.md](/docs/HOWTO.md).
 
 ## Software architecture
 
 The following picture gives a rough overview of the software components used by the embedded CMP client.
 The bulk of the underlying software is part of the Kinetis SDK or the Git repository of libcoap.
 
-![SW architecture](/cmp_doc/sw_architecture.jpg)
+![SW architecture](/docs/sw_architecture.jpg)
 
 The generic data flow of the certificates is shown in the following figure.
 
-![Certificate flow](/cmp_doc/certificate_flow.jpg)
+![Certificate flow](/docs/certificate_flow.jpg)
