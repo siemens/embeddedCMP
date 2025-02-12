@@ -23,126 +23,61 @@
 /*******************************************************************************
  * Includes
  ******************************************************************************/
-#include "cmpclient_config.h"
+#include <string.h>
+#include "mbedtls_transport.h"
 #include "cmpclient.h"
-#include "cmpcl.h"
+#include "debug_macros.h"
 
-//#include "ksdk_mbedtls.h"   /* needed for CRYPTO_InitHardware() */
-#include "mbedtls_helper.h"
-#include "lwip_helper.h"
-#include "http_helper.h"
-#include "coap_helper.h"
 
-/*******************************************************************************
- * Variables
- ******************************************************************************/
-#if !CMP_CLIENT_HTTPD
-static const char usage_str_tr[] = "Enter request type (ir|cr|kur), default is kur : ";
-static const char usage_str_pr[] = "Enter protocol     (http|coap), default is http: ";
-#endif
 
-/* ************************************************************************** */
-
-#if !CMP_CLIENT_HTTPD
-static void uart_cli_blocking(void)
+int main(int argc, char *argv[])
 {
-
-    cmp_send_receive_cb send_receive_function = http_send_receive;
-    invoke_transaction transaction = invoke_kur_transaction;
-    uint8_t ch;
-
-    PRINTF("*** CMP client demo CLI. Enter only the first character of chosen option. *** \r\n");
-
-    PRINTF(usage_str_tr);
-    ch = GETCHAR();
-    PUTCHAR(ch);
-    PRINTF("\r\n");
-
-    if (!strncasecmp("ir", (char *) &ch, 1)) {
-        transaction = invoke_ir_transaction;
-    } else if (!strncasecmp("cr", (char *) &ch, 1)) {
-        transaction = invoke_cr_transaction;
-    } else if (!strncasecmp("kur", (char *) &ch, 1)) {
-        transaction = invoke_kur_transaction;
-    } else {
-        PRINTF("Unrecognized type, using default (kur)\r\n");
-    }
-
-    PRINTF(usage_str_pr);
-    ch = GETCHAR();
-    PUTCHAR(ch);
-    PRINTF("\r\n");
-
-    if (!strncasecmp("http", (char *) &ch, 1)) {
-        send_receive_function = http_send_receive;
-    } else if (!strncasecmp("coap", (char *) &ch, 1)) {
-        send_receive_function = coap_send_receive;
-    } else {
-        PRINTF("Unrecognized protocol, using default (http)\r\n");
-    }
-
-    if (send_receive_function != NULL && transaction != NULL) {
-        transaction(send_receive_function);
-    }
-}
-#endif
-
-void httpd_cgi_handler(const char *uri, int iNumParams, char **pcParam,
-                       char **pcValue)
-{
-    cmp_send_receive_cb send_receive_function = NULL;
-    invoke_transaction transaction = NULL;
-    for (int i = 0; i < iNumParams; i++) {
-        if (!strcasecmp("cmd", pcParam[i])) {
-            if (!strcasecmp("ir", pcValue[i])) {
-                transaction = invoke_ir_transaction;
-            } else if (!strcasecmp("cr", pcValue[i])) {
-                transaction = invoke_cr_transaction;
-            } else if (!strcasecmp("kur", pcValue[i])) {
-                transaction = invoke_kur_transaction;
-            }
-        }
-        if (!strcasecmp("prot", pcParam[i])) {
-            if (!strcasecmp("http", pcValue[i])) {
-                send_receive_function = http_send_receive;
-            } else if (!strcasecmp("coap", pcValue[i])) {
-                send_receive_function = coap_send_receive;
-            }
-        }
-    }
-    if (send_receive_function != NULL && transaction != NULL) {
-        transaction(send_receive_function);
-    }
-}
-
-int main(void)
-{
-    int ret;
-
-    /* init mbedTLS */
-    CRYPTO_InitHardware();
-    if ((ret = mbedtls_init_entropy()) != 0) {
-        PRINTF(" failed\r\n  ! mbedtls_ctr_drbg_seed returned %d\r\n", ret);
+    psa_status_t status = psa_crypto_init();
+    if (status != PSA_SUCCESS) {
+        PRINTF("Failed to initialize PSA Crypto implementation: %d\n",
+               (int) status);
         return -1;
     }
-
-    /* init lwip */
-    setup_lwip();
-
-#if CMP_CLIENT_HTTPD
-    if (setup_httpd_tls() < 0) {
-        return -1;
+    /**
+     * init pseudorandom generator
+     */
+    mbedtls_entropy_context entropy;
+    mbedtls_entropy_init(&entropy);
+    mbedtls_ctr_drbg_context ctr_drbg;
+    mbedtls_ctr_drbg_init(&ctr_drbg);
+    int ret = 0;
+    const char *pers = "cmp_client";
+    if ((ret = mbedtls_ctr_drbg_seed(&ctr_drbg, mbedtls_entropy_func, &entropy,
+                                     (const unsigned char *) pers,
+                                     strlen(pers))) != 0) {
+        PRINTF(" failed\n  ! mbedtls_ctr_drbg_seed returned %d\n", ret);
+        goto end;
     }
-#endif
 
-    // LWIP loop
-    PRINTF("Enter main processing loop.\r\n");
-    while (1) {
-        /* Poll the driver, get any outstanding frames */
-        poll_lwip_driver();
-#if !CMP_CLIENT_HTTPD
-        uart_cli_blocking(); /* TODO: this is blocking; might break lwip */
-#endif
+    /*
+     * init mbedtls transport
+     */
+    mbed_tls_transport_ctx ctx;
+    if ((ret = mbed_tls_transport_init(&ctx, &ctr_drbg)) != 0) {
+        PRINTF("failed to initialize transport context");
+        mbed_tls_transport_free(&ctx);
+        goto end;
     }
-    return 0;
+    /*
+     * call invoke_ir_transaction
+     */
+    if ((ret = invoke_ir_transaction(mbed_tls_send_receive, (void *) &ctx, &ctr_drbg)) != 0) {
+        PRINTF("failed to execute transaction");
+        mbed_tls_transport_free(&ctx);
+        goto end;
+    }
+    /*
+     * TODO call invoke_cr_transaction, invoke_kur_transaction
+     */
+end:
+    mbed_tls_transport_free(&ctx);
+    mbedtls_ctr_drbg_free(&ctr_drbg);
+    mbedtls_entropy_free(&entropy);
+    mbedtls_psa_crypto_free();
+    return ret;
 }

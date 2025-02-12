@@ -21,15 +21,6 @@
  *  SPDX-License-Identifier: Apache-2.0
  */
 
-#include "mbedtls/build_info.h"
-
-/*#if !defined(MBEDTLS_CONFIG_FILE)
- #include "mbedtls/config.h"
- #else
- #include MBEDTLS_CONFIG_FILE
- #endif
- */
-
 #include "cmpcl_int.h"
 
 static unsigned char output_buf[OUTPUT_BUF_SIZE];
@@ -59,11 +50,10 @@ int cmpcl_do_transaction(cmp_ctx *ctx, const int body_type)
         goto err;
     }
 
-    ret = ctx->send_receive_cb(ctx->shost, ctx->sport, ctx->spath,
-                               ctx->phost, ctx->pport,
-                               output_start, (size_t) len, &input, &inputlen);
+    ret = ctx->send_receive_func(ctx->cb_context,
+                                 output_start, (size_t) len, &input, &inputlen);
     if (ret < 0) {
-        CMPERRS("HTTP/CoAP transfer failed");
+        CMPERRS("transport failed");
         goto err;
     }
 
@@ -156,9 +146,8 @@ int cmpcl_do_transaction(cmp_ctx *ctx, const int body_type)
          */
         input = NULL;
         inputlen = 0;
-        ret = ctx->send_receive_cb(ctx->shost, ctx->sport, ctx->spath,
-                                   ctx->phost, ctx->pport,
-                                   output_start, (size_t) len, &input, &inputlen);
+        ret = ctx->send_receive_func(ctx->cb_context,
+                                     output_start, (size_t) len, &input, &inputlen);
         if (ret < 0) {
             CMPERRS("HTTP/CoAP transfer failed");
             goto err;

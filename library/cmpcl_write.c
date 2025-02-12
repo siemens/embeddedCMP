@@ -192,10 +192,12 @@ int cmpcl_CMPwrite_CertConfCont_der(unsigned char **p,
      *  -- as is used to create and verify the certificate signature
      */
     /* TODO: how to best access the received cert? */
-    CMPCL_ASN1_CHK_ADD(ret, mbedtls_md(mbedtls_md_info_from_type(ctx->new_cert->MBEDTLS_PRIVATE(sig_md)),
-                                       ctx->new_cert->raw.p, ctx->new_cert->raw.len, hash), ret);
+    CMPCL_ASN1_CHK_ADD(ret,
+                       mbedtls_md(mbedtls_md_info_from_type(ctx->new_cert->MBEDTLS_PRIVATE(sig_md)),
+                                  ctx->new_cert->raw.p, ctx->new_cert->raw.len, hash), ret);
 
-    hash_len = mbedtls_md_get_size(mbedtls_md_info_from_type(ctx->new_cert->MBEDTLS_PRIVATE(sig_md)));
+    hash_len =
+        mbedtls_md_get_size(mbedtls_md_info_from_type(ctx->new_cert->MBEDTLS_PRIVATE(sig_md)));
 
     CMPCL_ASN1_CHK_ADD(len, mbedtls_asn1_write_octet_string(p, start, hash, hash_len), ret);
 
@@ -299,7 +301,8 @@ int cmpcl_CRMFwrite_CertReqMsg_der(unsigned char **p, unsigned char *start,
             }
 
             CMPCL_ASN1_CHK_ADD(sig_and_oid_len,
-                               mbedtls_x509_write_sig(p, start, sig_oid, sig_oid_len, sig, sig_len, pk_alg),
+                               mbedtls_x509_write_sig(p, start, sig_oid, sig_oid_len, sig, sig_len,
+                                                      pk_alg),
                                len);
             len += sig_and_oid_len;
             g_wr_len_popo = sig_and_oid_len;
@@ -1065,25 +1068,11 @@ static int cmpcl_CMPwrite_PBMParameter_der(unsigned char **p, unsigned char *sta
     const char *sig_oid;
     size_t sig_oid_len = 0;
 
-    /* mac                 AlgorithmIdentifier */
-/* TODO: HARDCODED - that's not in mbedtls/include/mbedtls/oid.h - MBEDTLS_OID_HMAC_SHA1 is not correct*/
-/* RFC 4210: HMAC-SHA1 {1 3 6 1 5 5 8 1 2} */
-#define HMAC_SHA1_OID "\x2b\x06\x01\x05\x05\x08\x01\x02"
-    /* RFC 4231:
-       rsadsi OBJECT IDENTIFIER ::=
-       {iso(1) member-body(2) us(840) rsadsi(113549)}
+    /* mac AlgorithmIdentifier */
 
-       digestAlgorithm   OBJECT IDENTIFIER ::= {rsadsi 2}
-
-       id-hmacWithSHA224 OBJECT IDENTIFIER ::= {digestAlgorithm 8}
-       id-hmacWithSHA256 OBJECT IDENTIFIER ::= {digestAlgorithm 9}
-       id-hmacWithSHA384 OBJECT IDENTIFIER ::= {digestAlgorithm 10}
-       id-hmacWithSHA512 OBJECT IDENTIFIER ::= {digestAlgorithm 11}
-     */
-#define HMAC_SHA256_OID "\x2A\x86\x48\x86\xF7\x0D\x02\x09"
     MBEDTLS_ASN1_CHK_ADD(len,
-                         mbedtls_asn1_write_algorithm_identifier(p, start, HMAC_SHA1_OID,
-                                                                 strlen(HMAC_SHA1_OID), 0));
+                         mbedtls_asn1_write_algorithm_identifier(p, start, MBEDTLS_OID_HMAC_SHA1,
+                                                                 strlen(MBEDTLS_OID_HMAC_SHA1), 0));
     //MBEDTLS_ASN1_CHK_ADD( len, mbedtls_asn1_write_algorithm_identifier( p, start, HMAC_SHA256_OID, strlen( HMAC_SHA256_OID), 0 ) );
 
     /* iterationCount      INTEGER, */

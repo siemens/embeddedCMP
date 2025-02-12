@@ -1,6 +1,8 @@
 set(libs
     mbedtls
-	embedded_cmp
+    mbedx509
+    builtin
+    embedded_cmp
 )
 
 add_executable(cmpclient cmpclient.c)

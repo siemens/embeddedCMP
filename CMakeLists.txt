@@ -4,7 +4,7 @@ project(embedded_cmp
         LANGUAGES C
         VERSION 1.0.0)
 
-option(SELFHOSTED "Set to '1' to build self-hosted binary, '0' by default makes a library" 0)
+option(SELFHOSTED "Set to '1' to build self-hosted binary, '0' by default makes a library" 1)
 
 include(cmake/splint.cmake)
 
@@ -36,14 +36,14 @@ include_directories(external/mbedtls/tf-psa-crypto/drivers/builtin/include)
 # Use custom config file for Mbed TLS
 add_definitions(-DMBEDTLS_CONFIG_FILE="${CMAKE_SOURCE_DIR}/external/mbedtls/include/mbedtls/mbedtls_config.h")
 
-option(USE_STATIC_MBEDTLS_LIBRARY "Build mbed TLS static library." off)
-option(USE_SHARED_MBEDTLS_LIBRARY "Build mbed TLS shared library." on)
+# option(USE_STATIC_MBEDTLS_LIBRARY "Build mbed TLS static library." off)
+# option(USE_SHARED_MBEDTLS_LIBRARY "Build mbed TLS shared library." on)
 
 if (CMAKE_SYSTEM MATCHES "OpenBSD")
 	option(LINK_WITH_PTHREAD "Explicitly link mbed TLS library to pthread." on)
 endif()
 
-set(MBEDTLS_LIBRARIES "mbedtls") #  "mbedx509" "mbedcrypto"
+set(MBEDTLS_LIBRARIES "builtin" "mbedtls" "mbedx509")
 
 add_subdirectory(external/mbedtls mbedtls)
 
@@ -61,13 +61,14 @@ if (SELFHOSTED)
 		library/cmpcl_read.c
 		library/cmpcl_ses.c
 		library/cmpcl_write.c
-        program/cmp_main.c
+		program/cmp_main.c
 		program/cmpclient.c
-		program/http_helper.c
-        program/mbedtls_helper.c
+        	program/mbedtls_transport.c
+        	program/credential_storage.c
     )
 #    add_definitions(-DEE_CFG_SELFHOSTED=1)
     add_executable(embedded_cmp ${SOURCE})
+    target_link_libraries(embedded_cmp "builtin" "mbedtls" "mbedx509")
 	set_target_properties(embedded_cmp PROPERTIES INSTALL_RPATH mbedtls)
 else()
     set(SOURCE

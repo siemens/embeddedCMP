@@ -36,8 +36,8 @@ static void zeroize(void *v, size_t n)
 /* CMP CTX-setting functions */
 /* **************************************************************** */
 int cmp_ctx_init(cmp_ctx *ctx, mbedtls_ctr_drbg_context *ctr_drbg,
-                 int popo_method, int prot_md_alg, int popo_md_alg, const char *shost,
-                 const char *spath, int srv_port, cmp_send_receive_cb send_receive_func)
+                 void *cb_context, cmp_send_receive_cb send_receive_func,
+                 int popo_method, int prot_md_alg, int popo_md_alg)
 {
 
     memset(ctx, 0, sizeof(cmp_ctx));
@@ -56,33 +56,9 @@ int cmp_ctx_init(cmp_ctx *ctx, mbedtls_ctr_drbg_context *ctr_drbg,
     cmp_ctx_set_sig_prot_md_alg(ctx, prot_md_alg);
     cmp_ctx_set_popo_md_alg(ctx, popo_md_alg);
 
-    ctx->send_receive_cb = send_receive_func;
+    ctx->cb_context = cb_context;
+    ctx->send_receive_func = send_receive_func;
 
-    if ((ctx->shost = strdup(shost)) == NULL) {
-        return CMPCL_ERR_MEMORY_ALLOCATION;
-    }
-    ctx->sport = srv_port;
-    if ((ctx->spath = strdup(spath)) == NULL) {
-        return CMPCL_ERR_MEMORY_ALLOCATION;
-    }
-
-    /* If there's a timesource ... */
-    // cmp_ctx_set_messageTime( ctx, messageTime);
-    /* That's implicitly anyway set
-     * hardcoded, but we anyway only do one
-       ctx->certReqId   = 0;
-     */
-
-    return 0;
-}
-
-/* **************************************************************** */
-int cmp_ctx_set_proxy(cmp_ctx *ctx, const char *phost, int pport)
-{
-    if ((ctx->phost = strdup(phost)) == NULL) {
-        return CMPCL_ERR_PROXY_IP;
-    }
-    ctx->pport = pport;
     return 0;
 }
 
@@ -302,12 +278,6 @@ void cmp_ctx_set_unprotected_ir(cmp_ctx *ctx, int unprot)
 
 void cmp_ctx_free(cmp_ctx *ctx)
 {
-    mbedtls_free((char *) ctx->shost);
-    mbedtls_free((char *) ctx->spath);
-    if (ctx->phost) {
-        mbedtls_free((char *) ctx->phost);
-    }
-
     mbedtls_asn1_free_named_data_list(&ctx->sender);
     mbedtls_asn1_free_named_data_list(&ctx->recipient);
 

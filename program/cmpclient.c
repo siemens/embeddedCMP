@@ -27,20 +27,19 @@
  * Includes
  ******************************************************************************/
 #include "cmpclient.h"
-#include "coap_helper.h"
-#include "cmp_main.h"
-
+#include "cmpclient_config.h"
+#include "debug_macros.h"
+#include <string.h>
+#include "credential_storage.h"
 
 /*******************************************************************************
  * Variables
  ******************************************************************************/
 
-extern mbedtls_ctr_drbg_context ctr_drbg;
-extern unsigned int __end_of_heap;
 
 /* ************************************************************************** */
 
-static int gen_ec_key(mbedtls_pk_context *key)
+static int gen_ec_key(mbedtls_pk_context *key, mbedtls_ctr_drbg_context *ctr_drbg)
 {
     int ret;
     const mbedtls_ecp_curve_info *curve_info;
@@ -57,7 +56,7 @@ static int gen_ec_key(mbedtls_pk_context *key)
         return -1;
     }
     ret = mbedtls_ecp_gen_key(curve_info->grp_id, mbedtls_pk_ec(*key),
-                              &mbedtls_ctr_drbg_random, &ctr_drbg);
+                              &mbedtls_ctr_drbg_random, ctr_drbg);
 
     if (ret == 0) {
         CMPDBGS("Generated Key");
@@ -98,9 +97,7 @@ int invoke_cert_request(const int body_type,
                         const char *recipient_name,
                         const char *reference,
                         const char *pbm_secret,
-                        const char *server_path,
-                        const char *server_host,
-                        int server_port,
+                        void *cb_context,
                         cmp_send_receive_cb send_receive_func,
                         mbedtls_ctr_drbg_context *ctr_drbg,
                         const char *path_to_existing_cert,
@@ -132,18 +129,12 @@ int invoke_cert_request(const int body_type,
     mbedtls_pk_context new_key;
     mbedtls_pk_init(&new_key);
 
-    int ret = -1;
-    if (send_receive_func == coap_send_receive) {
-        server_port = COAP_PORT;
-    }
-
     /* create new context */
     cmp_ctx ctx;
-#ifndef NO_CMP
 
-    ret = cmp_ctx_init(&ctx, ctr_drbg,
-                       POPO_METHOD, SIG_PROT_MD_ALG,
-                       POPO_MD_ALG, server_host, server_path, server_port, send_receive_func);
+    int ret = cmp_ctx_init(&ctx, ctr_drbg, cb_context, send_receive_func,
+                           POPO_METHOD, SIG_PROT_MD_ALG,
+                           POPO_MD_ALG);
     if (ret != 0) {
         CMPERRS("Error initializing context");
         goto err;
@@ -176,7 +167,7 @@ int invoke_cert_request(const int body_type,
     }
 
     if (path_to_existing_key != NULL) {
-        if ((ret = parse_key_from_pem(&existing_key, path_to_existing_key) == 0)) {
+        if ((ret = parse_key_from_pem(&existing_key, path_to_existing_key, ctr_drbg) == 0)) {
             CMPDBGS("Parsed existing Key");
         } else {
             CMPERRS("Parsing existing Key failed");
@@ -243,13 +234,6 @@ int invoke_cert_request(const int body_type,
     }
 
 
-    /* set proxy settings */
-    if (PROXY_NAME != NULL) {
-        if (cmp_ctx_set_proxy(&ctx, PROXY_NAME, PROXY_PORT) != 0) {
-            CMPERRS("Error setting proxy");
-            goto err;
-        }
-    }
 
     /* set basic header info in ctx */
     if (sender_name == NULL && path_to_existing_cert != NULL) {
@@ -296,7 +280,7 @@ int invoke_cert_request(const int body_type,
     }
 
     /* set request specific fields */
-    if ((ret = gen_ec_key(&new_key)) < 0) {
+    if ((ret = gen_ec_key(&new_key, ctr_drbg)) < 0) {
         goto err;
     }
     cmp_ctx_set_new_key(&ctx, &new_key);
@@ -360,7 +344,7 @@ int invoke_cert_request(const int body_type,
         print_certinfo(ctx.new_cert, "\rrecvd: "); /* TODO: find more elegant way to deal with Eclipse terminal */
 
         if (write_private_key_pem(&new_key, path_to_new_key) != 0) {
-            CMPERRV("Failed to write new key to file %s", new_key);
+            CMPERRV("Failed to write new key to file %s", path_to_new_key);
             ret = -1;
         }
         if (write_cert_pem(ctx.new_cert, path_to_new_cert) != 0) {
@@ -372,11 +356,6 @@ int invoke_cert_request(const int body_type,
             ret = -1;
         }
     }
-
-#else
-    CMPWARNS("This build does not include CMP.");
-    return -1;
-#endif /* NO_CMP */
 
 err:
     /* cleanup */
@@ -393,15 +372,14 @@ err:
     mbedtls_x509_crl_free(&prot_crls);
     mbedtls_x509_crt_free(&enrol_trust_anchor);
     mbedtls_x509_crl_free(&enrol_crls);
-
-    PRINTF("\r\n=============END OF HEAP: %x==============\r\n", __end_of_heap);
-
     return ret;
 
 }
 
 //====================================================================================================
-int invoke_kur_transaction(cmp_send_receive_cb send_receive_func)
+int invoke_kur_transaction(cmp_send_receive_cb send_receive_func,
+                           void *cb_context,
+                           mbedtls_ctr_drbg_context *ctr_drbg)
 {
 
     int ret = -1;
@@ -419,9 +397,9 @@ int invoke_kur_transaction(cmp_send_receive_cb send_receive_func)
                               ,
                               NULL
                               ,
-                              UPDATING_SERVER_PATH,
-                              UPDATING_SERVER_HOST,
-                              UPDATING_SERVER_PORT, send_receive_func, &ctr_drbg,
+                              cb_context,
+                              send_receive_func,
+                              ctr_drbg,
                               PATH_TO_OPERATIONAL_CERT_PEM,
                               PATH_TO_OPERATIONAL_CHAIN_PEM,
                               PATH_TO_PROTECTION_TRUST_ANCHOR_PEM,
@@ -443,7 +421,9 @@ int invoke_kur_transaction(cmp_send_receive_cb send_receive_func)
 
 
 //====================================================================================================
-int invoke_cr_transaction(cmp_send_receive_cb send_receive_func)
+int invoke_cr_transaction(cmp_send_receive_cb send_receive_func,
+                          void *cb_context,
+                          mbedtls_ctr_drbg_context *ctr_drbg)
 {
 
     int ret = -1;
@@ -465,11 +445,9 @@ int invoke_cr_transaction(cmp_send_receive_cb send_receive_func)
                               NULL
 #endif
                               ,
-                              BOOTSTRAPPING_SERVER_PATH,
-                              BOOTSTRAPPING_SERVER_HOST,
-                              BOOTSTRAPPING_SERVER_PORT,
+                              cb_context,
                               send_receive_func,
-                              &ctr_drbg,
+                              ctr_drbg,
                               PATH_TO_VENDOR_CERT_PEM,
                               PATH_TO_VENDOR_CHAIN_PEM,
                               PATH_TO_PROTECTION_TRUST_ANCHOR_PEM,
@@ -487,7 +465,9 @@ int invoke_cr_transaction(cmp_send_receive_cb send_receive_func)
 }
 
 //====================================================================================================
-int invoke_ir_transaction(cmp_send_receive_cb send_receive_func)
+int invoke_ir_transaction(cmp_send_receive_cb send_receive_func,
+                          void *cb_context,
+                          mbedtls_ctr_drbg_context *ctr_drbg)
 {
 
     int ret = -1;
@@ -511,11 +491,9 @@ int invoke_ir_transaction(cmp_send_receive_cb send_receive_func)
         NULL
 #endif
         ,                               // pbm_secret
-        IMPRINTING_SERVER_PATH,         // server_path
-        IMPRINTING_SERVER_HOST,         // server_host
-        IMPRINTING_SERVER_PORT,         // server_port,
+        cb_context,
         send_receive_func,
-        &ctr_drbg,
+        ctr_drbg,
         NULL,                           // path_to_existing_cert
         NULL,                           // path_to_existing_chain
         PATH_TO_PROTECTION_TRUST_ANCHOR_PEM,         // path_to_trusted_ca_certs

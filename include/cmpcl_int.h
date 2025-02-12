@@ -57,32 +57,35 @@ extern "C" {
 /* **************************************************************** */
 /* HELPERS */
 /* **************************************************************** */
-void cmp_asn1_sequence_free( mbedtls_asn1_sequence *asn1_sequence );
-void cmp_asn1_bitstring_free( mbedtls_asn1_bitstring *asn1_bitstring);
-int setStr( unsigned char **dst, const unsigned char *src, const size_t len);
+void cmp_asn1_sequence_free(mbedtls_asn1_sequence *asn1_sequence);
+void cmp_asn1_bitstring_free(mbedtls_asn1_bitstring *asn1_bitstring);
+int setStr(unsigned char **dst, const unsigned char *src, const size_t len);
 char *strndup(const char *s, size_t n);
 char *strdup(const char *src);
-int write_to_file( char *output_file, const unsigned char *data, size_t len);
+int write_to_file(char *output_file, const unsigned char *data, size_t len);
 
 #ifdef HEAP_USAGE_DEBUG_MSG
 static inline void *debug_calloc(size_t nmemb, size_t size, const char *file,
-		int line, const char *func){
+                                 int line, const char *func)
+{
 
-	int* loc;
-	loc = (int*)calloc(nmemb, size);
-	if( !loc ) {
-		CMPERRS("Error allocating memory!");
-	} else {
-		PRINTF("MEM: ####alloc### at addr=0x%x size=%d in %s:%d %s\r\n", loc, size, file, line, func);
-	}
-	return (void *)loc;
+    int *loc;
+    loc = (int *) calloc(nmemb, size);
+    if (!loc) {
+        CMPERRS("Error allocating memory!");
+    } else {
+        PRINTF("MEM: ####alloc### at addr=0x%x size=%d in %s:%d %s\r\n", loc, size, file, line,
+               func);
+    }
+    return (void *) loc;
 }
 
 static inline void debug_free(void *ptr, const char *file,
-		int line, const char *func) {
+                              int line, const char *func)
+{
 
-	PRINTF("MEM: freed at addr=0x%x in %s:%d %s\r\n", ptr, file, line, func);
-	free(ptr);
+    PRINTF("MEM: freed at addr=0x%x in %s:%d %s\r\n", ptr, file, line, func);
+    free(ptr);
 }
 #endif
 
@@ -101,8 +104,8 @@ static inline void debug_free(void *ptr, const char *file,
  * \param mac_len
  */
 int cmp_PBM_new(const cmp_PBMParameter *pbmp, const unsigned char *secret,
-        size_t secret_len, const unsigned char *msg, size_t msg_len,
-        unsigned char *mac, size_t *mac_len);
+                size_t secret_len, const unsigned char *msg, size_t msg_len,
+                unsigned char *mac, size_t *mac_len);
 
 /* **************************************************************** */
 /* CRMF */
@@ -166,19 +169,19 @@ int cmp_PBM_new(const cmp_PBMParameter *pbmp, const unsigned char *secret,
  * \brief           Write a built up CertReqMsg to a DER structure
  */
 int cmpcl_CRMFwrite_CertReqMsg_der(unsigned char **p, unsigned char *start,
-        cmp_ctx *ctx);
+                                   cmp_ctx *ctx);
 
 /**
  * \brief           Write a built up CertRequest to a DER structure
  */
 int cmpcl_CRMFwrite_CertRequest_der(unsigned char **p, unsigned char *start,
-        cmp_ctx *ctx);
+                                    cmp_ctx *ctx);
 
 /**
  * \brief           Write a built up CertConfirmContent to a DER structure
  */
 int cmpcl_CMPwrite_CertConfCont_der(unsigned char **p, unsigned char *start,
-        cmp_ctx *ctx);
+                                    cmp_ctx *ctx);
 
 /* **************************************************************** */
 /* CMP */
@@ -270,8 +273,11 @@ void cmp_CertifiedKeyPair_free(cmp_CertifiedKeyPair *certifiedKeyPair);
 void cmp_CertResponse_free(cmp_CertResponse *response);
 void cmp_CertRepMessage_free(cmp_CertRepMessage *crep);
 
-int cmp_pkimessage_parse_check_der(cmp_ctx *ctx, int expected_type, cmp_pkimessage *cmp, unsigned char *buf,
-        size_t buflen);
+int cmp_pkimessage_parse_check_der(cmp_ctx *ctx,
+                                   int expected_type,
+                                   cmp_pkimessage *cmp,
+                                   unsigned char *buf,
+                                   size_t buflen);
 void cmp_pkimessage_init(cmp_pkimessage *msg);
 void cmp_pkimessage_free(cmp_pkimessage *msg);
 
@@ -290,7 +296,7 @@ void cmp_pkimessage_free(cmp_pkimessage *msg);
  *  PKIMessages ::= SEQUENCE SIZE (1..MAX) OF PKIMessage
  */
 int cmpcl_CMPwrite_PKIMessage_der(cmp_ctx *ctx, unsigned char *buf, size_t size,
-        unsigned char **myp, int unprotected);
+                                  unsigned char **myp, int unprotected);
 /* TODO that random stuff for ECDSA... */
 
 /**
@@ -300,15 +306,17 @@ int cmpcl_CMPwrite_PKIMessage_der(cmp_ctx *ctx, unsigned char *buf, size_t size,
  *                        using the buffer
  */
 int cmpcl_CMPwrite_PKIMessage_protection_der(unsigned char **p,
-        unsigned char *start, cmp_ctx *ctx, const unsigned char* input,
-        const size_t in_len);
+                                             unsigned char *start,
+                                             cmp_ctx *ctx,
+                                             const unsigned char *input,
+                                             const size_t in_len);
 /* TODO that random stuff for ECDSA... */
 
 /**
  * \brief           Write a built up PKIHeader to a DER structure
  */
 int cmpcl_CMPwrite_PKIHeader_der(unsigned char **p, unsigned char *start,
-        cmp_ctx *ctx, int unprotected);
+                                 cmp_ctx *ctx, int unprotected);
 
 #ifdef __cplusplus
 }

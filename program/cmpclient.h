@@ -22,13 +22,17 @@
 /* **************************************************************** */
 /* Include */
 /* **************************************************************** */
-#include "cmpcl.h"
-#include "cmpclient_config.h"
-#include "file_helpers.h"
-#include "ctr_drbg.h"
 
-int invoke_ir_transaction(cmp_send_receive_cb send_receive_func);
-int invoke_cr_transaction(cmp_send_receive_cb send_receive_func);
-int invoke_kur_transaction(cmp_send_receive_cb send_receive_func);
+#include "cmpcl.h"
+
+int invoke_ir_transaction(cmp_send_receive_cb send_receive_func,
+                          void *cb_context,
+                          mbedtls_ctr_drbg_context *ctr_drbg);
+int invoke_cr_transaction(cmp_send_receive_cb send_receive_func,
+                          void *cb_context,
+                          mbedtls_ctr_drbg_context *ctr_drbg);
+int invoke_kur_transaction(cmp_send_receive_cb send_receive_func,
+                           void *cb_context,
+                           mbedtls_ctr_drbg_context *ctr_drbg);
 
 #endif

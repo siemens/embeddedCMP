@@ -34,9 +34,10 @@
 extern "C" {
 #endif
 
-#define CMPCL_ASN1_CHK_ADD(g, f, errcode) do { if( ( ret = f ) < 0 ) \
-        { errcode = ret; CMPERRV("ret=%d\n", (int)ret); goto err; }       \
-        else g += ret; } while( 0 )
+#define CMPCL_ASN1_CHK_ADD(g, f, errcode) do { if ((ret = f) < 0) \
+                                               { errcode = ret; CMPERRV("ret=%d\n", (int) ret); \
+                                                 goto err; }       \
+                                               else g += ret; } while (0)
 
 /* PKIBODY TYPES */
 #define MBEDTLS_CMP_PKIBODY_IR                0
@@ -105,70 +106,70 @@ extern "C" {
 #define CMP_PKISTATUS_KEYUPDATEWARNING          6
 
 /*
-* PKIFailureInfo ::= BIT STRING {
-*      -- since we can fail in more than one way!
-*      -- More codes may be added in the future if/when required.
-*    badAlg              (0),
-*       -- unrecognized or unsupported Algorithm Identifier
-*    badMessageCheck     (1),
-*       -- integrity check failed (e.g., signature did not verify)
-*    badRequest          (2),
-*       -- transaction not permitted or supported
-*    badTime             (3),
-*       -- messageTime was not sufficiently close to the system time,
-*    badCertId           (4),
-*    badDataFormat       (5),
-*       -- the data submitted has the wrong format
-*    wrongAuthority      (6),
-*       -- the authority indicated in the request is different from the
-*       -- one creating the response token
-*    incorrectData       (7),
-*       -- the requester's data is incorrect (for notary services)
-*    missingTimeStamp    (8),
-*       -- when the timestamp is missing but should be there
-*       -- (by policy)
-*    badPOP              (9),
-*       -- the proof-of-possession failed
-*    certRevoked         (10),
-*       -- the certificate has already been revoked
-*    certConfirmed       (11),
-*       -- the certificate has already been confirmed
-*    wrongIntegrity      (12),
-*       -- invalid integrity, password based instead of signature or
-*       -- vice versa
-*    badRecipientNonce   (13),
-*       -- invalid recipient nonce, either missing or wrong value
-*    timeNotAvailable    (14),
-*       -- the TSA's time source is not available
-*    unacceptedPolicy    (15),
-*       -- the requested TSA policy is not supported by the TSA.
-*    unacceptedExtension (16),
-*       -- the requested extension is not supported by the TSA.
-*    addInfoNotAvailable (17),
-*       -- the additional information requested could not be
-*       -- understood or is not available
-*    badSenderNonce      (18),
-*       -- invalid sender nonce, either missing or wrong size
-*    badCertTemplate     (19),
-*       -- invalid cert. template or missing mandatory information
-*    signerNotTrusted    (20),
-*       -- signer of the message unknown or not trusted
-*    transactionIdInUse  (21),
-*       -- the transaction identifier is already in use
-*    unsupportedVersion  (22),
-*       -- the version of the message is not supported
-*    notAuthorized       (23),
-*       -- the sender was not authorized to make the preceding
-*       -- request or perform the preceding action
-*    systemUnavail       (24),
-*    -- the request cannot be handled due to system unavailability
-*    systemFailure       (25),
-*    -- the request cannot be handled due to system failure
-*    duplicateCertReq    (26)
-*    -- certificate cannot be issued because a duplicate
-*    -- certificate already exists
-*    }
-*/
+ * PKIFailureInfo ::= BIT STRING {
+ *      -- since we can fail in more than one way!
+ *      -- More codes may be added in the future if/when required.
+ *    badAlg              (0),
+ *       -- unrecognized or unsupported Algorithm Identifier
+ *    badMessageCheck     (1),
+ *       -- integrity check failed (e.g., signature did not verify)
+ *    badRequest          (2),
+ *       -- transaction not permitted or supported
+ *    badTime             (3),
+ *       -- messageTime was not sufficiently close to the system time,
+ *    badCertId           (4),
+ *    badDataFormat       (5),
+ *       -- the data submitted has the wrong format
+ *    wrongAuthority      (6),
+ *       -- the authority indicated in the request is different from the
+ *       -- one creating the response token
+ *    incorrectData       (7),
+ *       -- the requester's data is incorrect (for notary services)
+ *    missingTimeStamp    (8),
+ *       -- when the timestamp is missing but should be there
+ *       -- (by policy)
+ *    badPOP              (9),
+ *       -- the proof-of-possession failed
+ *    certRevoked         (10),
+ *       -- the certificate has already been revoked
+ *    certConfirmed       (11),
+ *       -- the certificate has already been confirmed
+ *    wrongIntegrity      (12),
+ *       -- invalid integrity, password based instead of signature or
+ *       -- vice versa
+ *    badRecipientNonce   (13),
+ *       -- invalid recipient nonce, either missing or wrong value
+ *    timeNotAvailable    (14),
+ *       -- the TSA's time source is not available
+ *    unacceptedPolicy    (15),
+ *       -- the requested TSA policy is not supported by the TSA.
+ *    unacceptedExtension (16),
+ *       -- the requested extension is not supported by the TSA.
+ *    addInfoNotAvailable (17),
+ *       -- the additional information requested could not be
+ *       -- understood or is not available
+ *    badSenderNonce      (18),
+ *       -- invalid sender nonce, either missing or wrong size
+ *    badCertTemplate     (19),
+ *       -- invalid cert. template or missing mandatory information
+ *    signerNotTrusted    (20),
+ *       -- signer of the message unknown or not trusted
+ *    transactionIdInUse  (21),
+ *       -- the transaction identifier is already in use
+ *    unsupportedVersion  (22),
+ *       -- the version of the message is not supported
+ *    notAuthorized       (23),
+ *       -- the sender was not authorized to make the preceding
+ *       -- request or perform the preceding action
+ *    systemUnavail       (24),
+ *    -- the request cannot be handled due to system unavailability
+ *    systemFailure       (25),
+ *    -- the request cannot be handled due to system failure
+ *    duplicateCertReq    (26)
+ *    -- certificate cannot be issued because a duplicate
+ *    -- certificate already exists
+ *    }
+ */
 #define CMP_PKIFAILINFO_BADALG              0
 #define CMP_PKIFAILINFO_BADMESSAGECHECK     1
 #define CMP_PKIFAILINFO_BADREQUEST          2
@@ -203,12 +204,12 @@ extern "C" {
 /* PasswordBasedMac PBM */
 /* **************************************************************** */
 typedef struct cmp_PBMParameter {
-	unsigned char *salt;
-	size_t salt_len;
-	mbedtls_md_type_t owf;
-	int iterationCount;
-	mbedtls_md_type_t mac; /* TODO TODO TODO this is wrong as HMAC-SHA1 is not
-	 covered by this mbedtls_md_type_t */
+    unsigned char *salt;
+    size_t salt_len;
+    mbedtls_md_type_t owf;
+    int iterationCount;
+    mbedtls_md_type_t mac; /* TODO TODO TODO this is wrong as HMAC-SHA1 is not
+                              covered by this mbedtls_md_type_t */
 } cmp_PBMParameter;
 
 /**
@@ -220,8 +221,8 @@ typedef struct cmp_PBMParameter {
  * \param clKey       client key used to protect the msg matching the cert
  */
 int cmp_PBMParameter_init(cmp_PBMParameter *pbmp,
-		mbedtls_ctr_drbg_context *ctr_drbg, size_t salt_len,
-		mbedtls_md_type_t owf, int iterationCount, mbedtls_md_type_t mac);
+                          mbedtls_ctr_drbg_context *ctr_drbg, size_t salt_len,
+                          mbedtls_md_type_t owf, int iterationCount, mbedtls_md_type_t mac);
 
 /**
  * \brief          Unallocate all PBMParameter data
@@ -234,12 +235,12 @@ void cmp_PBMParameter_free(cmp_PBMParameter *pbmp);
 /* Transfer */
 /* **************************************************************** */
 
-typedef int (*cmp_send_receive_cb)(const char *shost, const int sport, const char *spath,
-		const char *phost, const int pport,
-		const unsigned char *outbuf, const size_t outlen, unsigned char **inbuf,
-		size_t *inlen);
+typedef int (*cmp_send_receive_cb)(void *cb_context,
+                                   const unsigned char *outbuf, const size_t outlen,
+                                   unsigned char **inbuf,
+                                   size_t *inlen);
 
-typedef int (*invoke_transaction)(cmp_send_receive_cb send_receive_function);
+typedef int (*invoke_transaction)(cmp_send_receive_cb send_receive_function, void *cb_context);
 
 /* **************************************************************** */
 /* Context */
@@ -247,94 +248,86 @@ typedef int (*invoke_transaction)(cmp_send_receive_cb send_receive_function);
 
 typedef struct cmp_ctx {
 
-	/* server */
-	const char *shost;
-	int sport;
-	const char *spath;
+    void *cb_context; /* transport provider context */
 
-    /* proxy */
-    const char *phost;
-    int pport;
+    cmp_send_receive_cb send_receive_func; /* transport provider send/receive function */
 
-	/* transfer */
-	cmp_send_receive_cb send_receive_cb;
+    /* header */
 
-	/* header */
+    /* PKIHeader ::= SEQUENCE {
+     * pvno         INTEGER { cmp1999(1), cmp2000(2) },
+     * sender       GeneralName,
+     * recipient    GeneralName,
+     * messageTime    [0] GeneralizedTime     OPTIONAL,
+     * protectionAlg  [1] AlgorithmIdentifier OPTIONAL,
+     * senderKID      [2] KeyIdentifier       OPTIONAL,
+     * recipKID       [3] KeyIdentifier       OPTIONAL,
+     * transactionID  [4] OCTET STRING        OPTIONAL,
+     * senderNonce    [5] OCTET STRING        OPTIONAL,
+     * recipNonce     [6] OCTET STRING        OPTIONAL,
+     * freeText       [7] PKIFreeText         OPTIONAL,
+     * generalInfo    [8] SEQUENCE SIZE (1..MAX) OFInfoTypeAndValue OPTIONAL
+     * }
+     *
+     * PKIFreeText ::= SEQUENCE SIZE (1..MAX) OF UTF8String
+     */
 
-	/* PKIHeader ::= SEQUENCE {
-	 * pvno         INTEGER { cmp1999(1), cmp2000(2) },
-	 * sender       GeneralName,
-	 * recipient    GeneralName,
-	 * messageTime    [0] GeneralizedTime     OPTIONAL,
-	 * protectionAlg  [1] AlgorithmIdentifier OPTIONAL,
-	 * senderKID      [2] KeyIdentifier       OPTIONAL,
-	 * recipKID       [3] KeyIdentifier       OPTIONAL,
-	 * transactionID  [4] OCTET STRING        OPTIONAL,
-	 * senderNonce    [5] OCTET STRING        OPTIONAL,
-	 * recipNonce     [6] OCTET STRING        OPTIONAL,
-	 * freeText       [7] PKIFreeText         OPTIONAL,
-	 * generalInfo    [8] SEQUENCE SIZE (1..MAX) OFInfoTypeAndValue OPTIONAL
-	 * }
-	 *
-	 * PKIFreeText ::= SEQUENCE SIZE (1..MAX) OF UTF8String
-	 */
+    mbedtls_x509_name *sender;
+    mbedtls_x509_name *recipient;
 
-	mbedtls_x509_name *sender;
-	mbedtls_x509_name *recipient;
+    char *messageTime;
 
-	char *messageTime;
+    mbedtls_md_type_t sig_prot_md_alg; /*  hashing algorithm */
 
-	mbedtls_md_type_t sig_prot_md_alg; /*  hashing algorithm */
-
-	mbedtls_x509_crt *prot_trust_anchor;
-	mbedtls_x509_crl *prot_crls;
+    mbedtls_x509_crt *prot_trust_anchor;
+    mbedtls_x509_crl *prot_crls;
 
     mbedtls_x509_crt *enrol_trust_anchor;
     mbedtls_x509_crl *enrol_crls;
 
     int unprotected_ir;  /* allow sending of unprotected ir */
 
-	mbedtls_pk_context *cl_key;
-	mbedtls_x509_crt *cl_cert;
-	mbedtls_x509_crt *cl_chain;
+    mbedtls_pk_context *cl_key;
+    mbedtls_x509_crt *cl_cert;
+    mbedtls_x509_crt *cl_chain;
 
-	cmp_PBMParameter *pbmp;
-	unsigned char *reference; /* shared secret */
-	size_t reference_len;
-	unsigned char *secret; /* shared secret */
-	size_t secret_len;
+    cmp_PBMParameter *pbmp;
+    unsigned char *reference; /* shared secret */
+    size_t reference_len;
+    unsigned char *secret; /* shared secret */
+    size_t secret_len;
 
-	unsigned char *transactionID;
-	size_t transactionID_len;
+    unsigned char *transactionID;
+    size_t transactionID_len;
 
-	unsigned char *senderNonce;
-	size_t senderNonce_len;
+    unsigned char *senderNonce;
+    size_t senderNonce_len;
 
-	unsigned char *recipNonce;
-	size_t recipNonce_len;
+    unsigned char *recipNonce;
+    size_t recipNonce_len;
 
-	int implicitConfirm;
+    int implicitConfirm;
 
-	/* body */
-	int certReqId;
-	int body_type;
-	/* old: int PKIBody_type; */
+    /* body */
+    int certReqId;
+    int body_type;
+    /* old: int PKIBody_type; */
 
-	mbedtls_pk_context *new_key;
-	mbedtls_x509_name *subject;
+    mbedtls_pk_context *new_key;
+    mbedtls_x509_name *subject;
 
-	int popo_method;
-	mbedtls_md_type_t popo_md_alg;
-	/* footer */
-	mbedtls_x509_crt *new_cert;
-	mbedtls_x509_crt *extraCerts;
+    int popo_method;
+    mbedtls_md_type_t popo_md_alg;
+    /* footer */
+    mbedtls_x509_crt *new_cert;
+    mbedtls_x509_crt *extraCerts;
 
-	int unprotected_errors; /* allow negative responses without protection */
+    int unprotected_errors; /* allow negative responses without protection */
 
-	int cache_extracerts;   /* allow to cache extra certs during one transaction */
+    int cache_extracerts;   /* allow to cache extra certs during one transaction */
 
-	/* holds PKIFailureInfo if new cert could not be verified */
-	uint32_t new_cert_fail_info;
+    /* holds PKIFailureInfo if new cert could not be verified */
+    uint32_t new_cert_fail_info;
 
 } cmp_ctx;
 
@@ -345,9 +338,8 @@ typedef struct cmp_ctx {
  * \param ctx       cmpctx context to initialise
  */
 int cmp_ctx_init(cmp_ctx *ctx, mbedtls_ctr_drbg_context *ctr_drbg,
-		int popo_method, int prot_md_alg, int popo_md_alg, const char *shost,
-		const char* spath, int srv_port, cmp_send_receive_cb send_receive_func);
-
+                 void *cb_context, cmp_send_receive_cb send_receive_func,
+                 int popo_method, int prot_md_alg, int popo_md_alg);
 /**
  * \brief           Free the contents of a cmpctx write context
  *
@@ -396,7 +388,10 @@ void cmp_ctx_set_cl_crt_chain(cmp_ctx *ctx, mbedtls_x509_crt *crt);
  * \param sec       secret, gets copied
  * \param len       length in bytes
  */
-int cmp_ctx_set_pbm_secret(cmp_ctx *ctx, mbedtls_ctr_drbg_context *ctr_drbg, const unsigned char *sec, size_t len);
+int cmp_ctx_set_pbm_secret(cmp_ctx *ctx,
+                           mbedtls_ctr_drbg_context *ctr_drbg,
+                           const unsigned char *sec,
+                           size_t len);
 
 /**
  * \brief           Set the reference to use for PBM
@@ -406,7 +401,7 @@ int cmp_ctx_set_pbm_secret(cmp_ctx *ctx, mbedtls_ctr_drbg_context *ctr_drbg, con
  * \param len       length in bytes
  */
 int cmp_ctx_set_reference(cmp_ctx *ctx, const unsigned char *ref,
-		size_t len);
+                          size_t len);
 
 /**
  * \brief           Set the messageTime
@@ -431,17 +426,17 @@ int cmp_ctx_set_messageTime(cmp_ctx *ctx, const char *msgTime);
  * \param len       length in bytes (typically 16 bytes)
  */
 int cmp_ctx_set_transactionID(cmp_ctx *ctx, mbedtls_ctr_drbg_context *ctr_drbg,
-		size_t len);
+                              size_t len);
 
 /**
  * \brief           Set the SenderNonce to be included
- *bodytype
+ * bodytype
  * \param ctx       CMP context
  * \param ctr_drbg  CTR DRBG context
  * \param len       length in bytes (typically 16 bytes)
  */
 int cmp_ctx_set_senderNonce(cmp_ctx *ctx, mbedtls_ctr_drbg_context *ctr_drbg,
-		size_t len);
+                            size_t len);
 
 /**
  * \brief           Set the recipNonce to be included
@@ -507,7 +502,7 @@ void cmp_ctx_set_new_key(cmp_ctx *ctx, mbedtls_pk_context *new_key);
  * \param ctx       CMP context
  * \param allow     flag
  */
-void cmp_ctx_set_unprotected_errors( cmp_ctx *ctx, int allow );
+void cmp_ctx_set_unprotected_errors(cmp_ctx *ctx, int allow);
 
 /**
  * \brief           Set the POPO Method to use
@@ -612,17 +607,6 @@ void cmp_ctx_set_cache_extracerts(cmp_ctx *ctx, int cache);
  */
 void cmp_ctx_set_unprotected_ir(cmp_ctx *ctx, int unprot);
 
-/**
- * \brief           Set the hostname of the CMP server
- *
- * \param ctx       CMP context
- * \param phost     proxy name, pointer does not get consumed
- * \param pport     proxy port
- */
-int cmp_ctx_set_proxy( cmp_ctx *ctx, const char *phost, int pport);
-
-
-
 /* **************************************************************** */
 /* CMP transactions */
 /* **************************************************************** */
@@ -635,13 +619,13 @@ int cmpcl_do_transaction(cmp_ctx *ctx, const int body_type);
 /* CMP helpers */
 /* **************************************************************** */
 int cmp_ctx_set_rndm_str(unsigned char **str, size_t *str_len,
-		mbedtls_ctr_drbg_context *ctr_drbg, size_t len);
+                         mbedtls_ctr_drbg_context *ctr_drbg, size_t len);
 
-int cmp_x509_crt_verify( mbedtls_x509_crt *crt,
-                     mbedtls_x509_crt *trust_ca,
-                     mbedtls_x509_crl *ca_crl,
-                     mbedtls_x509_name *exp_name,
-                     const char *description);
+int cmp_x509_crt_verify(mbedtls_x509_crt *crt,
+                        mbedtls_x509_crt *trust_ca,
+                        mbedtls_x509_crl *ca_crl,
+                        mbedtls_x509_name *exp_name,
+                        const char *description);
 
 
 
