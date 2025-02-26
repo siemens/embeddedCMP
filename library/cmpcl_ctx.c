@@ -23,14 +23,6 @@
 
 #include "cmpcl_int.h"
 
-/* Implementation that should never be optimized out by the compiler */
-static void zeroize(void *v, size_t n)
-{
-    volatile unsigned char *p = v;
-    while (n--) {
-        *p++ = 0;
-    }
-}
 
 /* **************************************************************** */
 /* CMP CTX-setting functions */
@@ -42,11 +34,15 @@ int cmp_ctx_init(cmp_ctx *ctx, mbedtls_ctr_drbg_context *ctr_drbg,
 
     memset(ctx, 0, sizeof(cmp_ctx));
 
-    if (cmp_ctx_set_transactionID(ctx, ctr_drbg, 16) != 0) {
+    ctx->cb_context = cb_context;
+    ctx->send_receive_func = send_receive_func;
+    ctx->ctr_drbg = ctr_drbg;
+
+    if (cmp_ctx_set_transactionID(ctx, 16) != 0) {
         CMPERRS("Failed to set transaction ID!");
         return -1;
     }
-    if (cmp_ctx_set_senderNonce(ctx, ctr_drbg, 16) != 0) {
+    if (cmp_ctx_set_senderNonce(ctx, 16) != 0) {
         CMPERRS("Failed to set sender nonce!");
         return -1;
 
@@ -63,10 +59,10 @@ int cmp_ctx_init(cmp_ctx *ctx, mbedtls_ctr_drbg_context *ctr_drbg,
 }
 
 /* **************************************************************** */
-int cmp_ctx_set_pbm_secret(cmp_ctx *ctx, mbedtls_ctr_drbg_context *ctr_drbg,
-                           const unsigned char *sec, size_t len)
+int cmp_ctx_set_prot_pbm_secret(cmp_ctx *ctx, mbedtls_ctr_drbg_context *ctr_drbg,
+                                const unsigned char *sec, size_t len)
 {
-    setStr(&ctx->secret, sec, len);
+    setStr(&ctx->prot_secret, sec, len);
     ctx->secret_len = len;
 
     cmp_PBMParameter *pbmp;
@@ -86,11 +82,11 @@ int cmp_ctx_set_pbm_secret(cmp_ctx *ctx, mbedtls_ctr_drbg_context *ctr_drbg,
 }
 
 /* **************************************************************** */
-int cmp_ctx_set_reference(cmp_ctx *ctx, const unsigned char *ref,
+int cmp_ctx_set_senderKID(cmp_ctx *ctx, const unsigned char *ref,
                           size_t len)
 {
-    if (setStr(&ctx->reference, ref, len) != 0) {
-        CMPERRS("Failed to set reference!");
+    if (setStr(&ctx->senderKID, ref, len) != 0) {
+        CMPERRS("Failed to set senderKID!");
         return -1;
     }
     ctx->reference_len = len;
@@ -119,10 +115,10 @@ int cmp_ctx_set_messageTime(cmp_ctx *ctx, const char *msgTime)
 }
 
 /* **************************************************************** */
-int cmp_ctx_set_transactionID(cmp_ctx *ctx, mbedtls_ctr_drbg_context *ctr_drbg,
+int cmp_ctx_set_transactionID(cmp_ctx *ctx,
                               size_t len)
 {
-    if (cmp_ctx_set_rndm_str(&ctx->transactionID, &ctx->transactionID_len, ctr_drbg,
+    if (cmp_ctx_set_rndm_str(&ctx->transactionID, &ctx->transactionID_len, ctx->ctr_drbg,
                              len) != 0) {
         CMPERRS("Failed to set transaction ID!");
         return -1;
@@ -131,10 +127,10 @@ int cmp_ctx_set_transactionID(cmp_ctx *ctx, mbedtls_ctr_drbg_context *ctr_drbg,
 }
 
 /* **************************************************************** */
-int cmp_ctx_set_senderNonce(cmp_ctx *ctx, mbedtls_ctr_drbg_context *ctr_drbg,
+int cmp_ctx_set_senderNonce(cmp_ctx *ctx,
                             size_t len)
 {
-    if (cmp_ctx_set_rndm_str(&ctx->senderNonce, &ctx->senderNonce_len, ctr_drbg,
+    if (cmp_ctx_set_rndm_str(&ctx->senderNonce, &ctx->senderNonce_len, ctx->ctr_drbg,
                              len) != 0) {
         CMPERRS("Failed to set sender nonce!");
         return -1;
@@ -155,19 +151,19 @@ int cmp_ctx_set_recipNonce(cmp_ctx *ctx, unsigned char *nonce, size_t len)
 /* **************************************************************** */
 void cmp_ctx_set_prot_key(cmp_ctx *ctx, mbedtls_pk_context *key)
 {
-    ctx->cl_key = key;
+    ctx->prot_key = key;
 }
 
 /* **************************************************************** */
-void cmp_ctx_set_cl_crt(cmp_ctx *ctx, mbedtls_x509_crt *crt)
+void cmp_ctx_set_prot_crt(cmp_ctx *ctx, mbedtls_x509_crt *crt)
 {
-    ctx->cl_cert = crt;
+    ctx->prot_cert = crt;
 }
 
 /* **************************************************************** */
-void cmp_ctx_set_cl_crt_chain(cmp_ctx *ctx, mbedtls_x509_crt *crt)
+void cmp_ctx_set_prot_crt_chain(cmp_ctx *ctx, mbedtls_x509_crt *chain)
 {
-    ctx->cl_chain = crt;
+    ctx->prot_chain = chain;
 }
 
 /* **************************************************************** */
@@ -284,8 +280,8 @@ void cmp_ctx_free(cmp_ctx *ctx)
     if (ctx->messageTime) {
         mbedtls_free(ctx->messageTime);
     }
-    if (ctx->reference) {
-        mbedtls_free(ctx->reference);
+    if (ctx->senderKID) {
+        mbedtls_free(ctx->senderKID);
     }
     if (ctx->transactionID) {
         mbedtls_free(ctx->transactionID);
@@ -295,9 +291,6 @@ void cmp_ctx_free(cmp_ctx *ctx)
     }
     if (ctx->recipNonce) {
         mbedtls_free(ctx->recipNonce);
-    }
-    if (ctx->new_cert) {
-        mbedtls_free(ctx->new_cert);
     }
     if (ctx->extraCerts) {
         mbedtls_x509_crt_free(ctx->extraCerts);
@@ -309,13 +302,12 @@ void cmp_ctx_free(cmp_ctx *ctx)
         cmp_PBMParameter_free(ctx->pbmp);
         mbedtls_free(ctx->pbmp);
     }
-    if (ctx->secret) {
-        mbedtls_free(ctx->secret);
+    if (ctx->prot_secret) {
+        mbedtls_free(ctx->prot_secret);
     }
     if (ctx->new_cert) {
         mbedtls_x509_crt_free(ctx->new_cert);
         mbedtls_free(ctx->new_cert);
     }
-
-    zeroize(ctx, sizeof(mbedtls_x509write_cert));
+    mbedtls_platform_zeroize(ctx, sizeof(mbedtls_x509write_cert));
 }

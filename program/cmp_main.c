@@ -66,13 +66,22 @@ int main(int argc, char *argv[])
     /*
      * call invoke_ir_transaction
      */
-    if ((ret = invoke_ir_transaction(mbed_tls_send_receive, (void *) &ctx, &ctr_drbg)) != 0) {
+//    if ((ret = invoke_ir_transaction(mbed_tls_send_receive, (void *) &ctx, &ctr_drbg)) != 0) {
+//        PRINTF("failed to execute transaction");
+//        mbed_tls_transport_free(&ctx);
+//        goto end;
+//    }
+
+    /*
+     * call invoke_cr_transaction
+     */
+    if ((ret = invoke_cr_transaction(mbed_tls_send_receive, (void *) &ctx, &ctr_drbg)) != 0) {
         PRINTF("failed to execute transaction");
         mbed_tls_transport_free(&ctx);
         goto end;
     }
     /*
-     * TODO call invoke_cr_transaction, invoke_kur_transaction
+     * TODO invoke_kur_transaction
      */
 end:
     mbed_tls_transport_free(&ctx);

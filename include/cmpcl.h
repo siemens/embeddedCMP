@@ -34,10 +34,10 @@
 extern "C" {
 #endif
 
-#define CMPCL_ASN1_CHK_ADD(g, f, errcode) do { if ((ret = f) < 0) \
-                                               { errcode = ret; CMPERRV("ret=%d\n", (int) ret); \
-                                                 goto err; }       \
-                                               else g += ret; } while (0)
+#define CMPCL_ASN1_CHK_ADD(g, f) do { if ((ret = f) < 0) \
+                                      { CMPERRV("ret=%d\n", (int) ret); \
+                                        goto err; }       \
+                                      else g += ret; } while (0)
 
 /* PKIBODY TYPES */
 #define MBEDTLS_CMP_PKIBODY_IR                0
@@ -252,6 +252,8 @@ typedef struct cmp_ctx {
 
     cmp_send_receive_cb send_receive_func; /* transport provider send/receive function */
 
+    mbedtls_ctr_drbg_context *ctr_drbg; /* RNG context*/
+
     /* header */
 
     /* PKIHeader ::= SEQUENCE {
@@ -277,26 +279,6 @@ typedef struct cmp_ctx {
 
     char *messageTime;
 
-    mbedtls_md_type_t sig_prot_md_alg; /*  hashing algorithm */
-
-    mbedtls_x509_crt *prot_trust_anchor;
-    mbedtls_x509_crl *prot_crls;
-
-    mbedtls_x509_crt *enrol_trust_anchor;
-    mbedtls_x509_crl *enrol_crls;
-
-    int unprotected_ir;  /* allow sending of unprotected ir */
-
-    mbedtls_pk_context *cl_key;
-    mbedtls_x509_crt *cl_cert;
-    mbedtls_x509_crt *cl_chain;
-
-    cmp_PBMParameter *pbmp;
-    unsigned char *reference; /* shared secret */
-    size_t reference_len;
-    unsigned char *secret; /* shared secret */
-    size_t secret_len;
-
     unsigned char *transactionID;
     size_t transactionID_len;
 
@@ -311,23 +293,45 @@ typedef struct cmp_ctx {
     /* body */
     int certReqId;
     int body_type;
-    /* old: int PKIBody_type; */
 
-    mbedtls_pk_context *new_key;
     mbedtls_x509_name *subject;
 
     int popo_method;
     mbedtls_md_type_t popo_md_alg;
-    /* footer */
-    mbedtls_x509_crt *new_cert;
-    mbedtls_x509_crt *extraCerts;
 
-    int unprotected_errors; /* allow negative responses without protection */
+    /* footer */
+    mbedtls_x509_crt *extraCerts;
 
     int cache_extracerts;   /* allow to cache extra certs during one transaction */
 
     /* holds PKIFailureInfo if new cert could not be verified */
     uint32_t new_cert_fail_info;
+
+    /* protection */
+    int unprotected_errors; /* allow negative responses without protection */
+    int unprotected_ir;  /* allow sending of unprotected ir */
+    mbedtls_md_type_t sig_prot_md_alg; /*  hashing algorithm */
+
+    /* password based protection */
+    cmp_PBMParameter *pbmp;
+    unsigned char *senderKID; /* shared secret */
+    size_t reference_len;
+    unsigned char *prot_secret; /* shared secret */
+    size_t secret_len;
+
+
+    /* signature based protection */
+    mbedtls_x509_crt *prot_trust_anchor;
+    mbedtls_x509_crl *prot_crls;
+    mbedtls_pk_context *prot_key;
+    mbedtls_x509_crt *prot_cert;
+    mbedtls_x509_crt *prot_chain;
+
+    /* enrollment */
+    mbedtls_x509_crt *enrol_trust_anchor;
+    mbedtls_x509_crl *enrol_crls;
+    mbedtls_pk_context *new_key;
+    mbedtls_x509_crt *new_cert;
 
 } cmp_ctx;
 
@@ -370,7 +374,7 @@ void cmp_ctx_set_prot_key(cmp_ctx *ctx, mbedtls_pk_context *key);
  * \param ctx       CMP context
  * \param crt       certificate to use
  */
-void cmp_ctx_set_cl_crt(cmp_ctx *ctx, mbedtls_x509_crt *crt);
+void cmp_ctx_set_prot_crt(cmp_ctx *ctx, mbedtls_x509_crt *crt);
 
 /**
  * \brief           Set the chain of the certificate used to protect the
@@ -379,7 +383,7 @@ void cmp_ctx_set_cl_crt(cmp_ctx *ctx, mbedtls_x509_crt *crt);
  * \param ctx       CMP context
  * \param crt       certificate (chain) to use
  */
-void cmp_ctx_set_cl_crt_chain(cmp_ctx *ctx, mbedtls_x509_crt *crt);
+void cmp_ctx_set_prot_crt_chain(cmp_ctx *ctx, mbedtls_x509_crt *crt);
 
 /**
  * \brief           Set the secret to use for PBM
@@ -388,10 +392,10 @@ void cmp_ctx_set_cl_crt_chain(cmp_ctx *ctx, mbedtls_x509_crt *crt);
  * \param sec       secret, gets copied
  * \param len       length in bytes
  */
-int cmp_ctx_set_pbm_secret(cmp_ctx *ctx,
-                           mbedtls_ctr_drbg_context *ctr_drbg,
-                           const unsigned char *sec,
-                           size_t len);
+int cmp_ctx_set_prot_pbm_secret(cmp_ctx *ctx,
+                                mbedtls_ctr_drbg_context *ctr_drbg,
+                                const unsigned char *sec,
+                                size_t len);
 
 /**
  * \brief           Set the reference to use for PBM
@@ -400,7 +404,7 @@ int cmp_ctx_set_pbm_secret(cmp_ctx *ctx,
  * \param ref       reference, gets copied
  * \param len       length in bytes
  */
-int cmp_ctx_set_reference(cmp_ctx *ctx, const unsigned char *ref,
+int cmp_ctx_set_senderKID(cmp_ctx *ctx, const unsigned char *ref,
                           size_t len);
 
 /**
@@ -422,20 +426,18 @@ int cmp_ctx_set_messageTime(cmp_ctx *ctx, const char *msgTime);
  * \brief           Set the transactionID to be included
  *
  * \param ctx       CMP context
- * \param ctr_drbg  CTR DRBG context
  * \param len       length in bytes (typically 16 bytes)
  */
-int cmp_ctx_set_transactionID(cmp_ctx *ctx, mbedtls_ctr_drbg_context *ctr_drbg,
+int cmp_ctx_set_transactionID(cmp_ctx *ctx,
                               size_t len);
 
 /**
  * \brief           Set the SenderNonce to be included
  * bodytype
  * \param ctx       CMP context
- * \param ctr_drbg  CTR DRBG context
  * \param len       length in bytes (typically 16 bytes)
  */
-int cmp_ctx_set_senderNonce(cmp_ctx *ctx, mbedtls_ctr_drbg_context *ctr_drbg,
+int cmp_ctx_set_senderNonce(cmp_ctx *ctx,
                             size_t len);
 
 /**

@@ -1,16 +1,16 @@
-<!--Copyright (c) 2019 Siemens AG
+<!-- Copyright (c) 2019 Siemens AG
 
 Licensed under the Apache License, Version 2.0
 
-SPDX-License-Identifier: Apache-2.0-->
+SPDX-License-Identifier: Apache-2.0 -->
 
 # CMP Client
 
 This project provides source code, documentation, and other files for a CMP client
-implemented. This prototypical code explicitly does not have production quality
+implementation. This prototypical code explicitly does not have production quality
 but constructively proves that CMP can be implemented and used
 even on a device that does not have the capacity to contain OpenSSL
-(or any other TLS implementation) nor a proper operating system.
+nor a proper operating system.
 
 It essentially uses just the cryptography support provided by mbedTLS
 and some basic I/O functionality including a bare-bones HTTP or CoAP client.
@@ -19,8 +19,11 @@ footprint are similar to an EST implementation (while it does not need (d)TLS
 but performs self-contained message protection as far as needed).
 
 This also serves as a PoC for current standardization efforts at the IETF
-on profiling the CMP standard [RFC 4210](https://tools.ietf.org/html/rfc4210),
-[RFC 6712](https://tools.ietf.org/html/rfc6712)
+on profiling the CMP standard 
+[RFC 4210](https://tools.ietf.org/html/rfc4210),
+[RFC9480](https://tools.ietf.org/html/rfc9480),
+[RFC9481](https://tools.ietf.org/html/rfc9481) 
+[RFC6712](https://tools.ietf.org/html/rfc6712)
 towards use in embedded systems and the IoT.
 
 ## License
@@ -47,10 +50,93 @@ please refer to [HOWTO.md](/docs/HOWTO.md).
 ## Software architecture
 
 The following picture gives a rough overview of the software components used by the embedded CMP client.
-The bulk of the underlying software is part of the Kinetis SDK or the Git repository of libcoap.
 
-![SW architecture](/docs/sw_architecture.jpg)
+```plantuml
+@startuml
+[CMP main] as main
+note as mainN
+program entry point
+endnote
+mainN .. main
 
-The generic data flow of the certificates is shown in the following figure.
+[CMP client] as client
+note as clientN
+implements toplevel CR, IR 
+and KUR transactions
+endnote
+clientN .. client
 
-![Certificate flow](/docs/certificate_flow.jpg)
+[Credential Storage] as storage
+note as storageN
+implements credential 
+load and store functions
+endnote
+storageN .. storage
+
+[Mbed-TLS transport] as transport
+note as transportN
+implements HTTP and TLS 
+send and receive support
+endnote
+transportN .. transport
+
+[Mbed-TLS builtin ASN.1 support] as asn1
+note as asn1N
+implements low level ASN.1 
+encoding and decoding
+endnote
+asn1N .. asn1
+
+[CMP ctx] as ctx
+note as ctxN
+provides and holds all 
+CMP related states and parameters
+related to one CMP transaction
+endnote
+ctxN .. ctx 
+
+[CMP library] as lib
+note as libN
+implements some 
+helper functions
+endnote
+libN .. lib
+
+[CMP write] as write
+note as writeN
+implements CMP specific 
+message encoder functions
+endnote
+writeN .. write
+
+[CMP read] as read
+note as readN
+implements CMP specific 
+message decoder functions
+endnote
+readN .. read
+
+[CMP session mgmt] as ses
+note as sesN
+implements CMP 
+transaction management
+endnote
+sesN .. ses
+
+
+main .> transport: creates
+main -d--> client: invokes
+
+client .> ctx: creates 
+client -l-> storage: uses
+client -d--> ses: invokes
+
+ses -> write: uses
+ses -> read: uses
+ses -d--> transport: invokes
+
+read --> asn1: uses
+write --> asn1: uses
+
+@enduml
+```

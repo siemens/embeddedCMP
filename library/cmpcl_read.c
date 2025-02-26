@@ -30,15 +30,6 @@
 int mbedtls_x509_get_name(unsigned char **p, const unsigned char *end,
                           mbedtls_x509_name *cur);
 
-/* Implementation that should never be optimized out by the compiler */
-static void zeroize(void *v, size_t n)
-{
-    volatile unsigned char *p = v; while (n--) {
-        *p++ = 0;
-    }
-}
-
-
 #define PARSE_ASN1_CONSTRUCTED_TAG(expected) ((ret = \
                                                    mbedtls_asn1_get_tag(&p, end, &len, \
                                                                         MBEDTLS_ASN1_CONSTRUCTED | \
@@ -182,13 +173,13 @@ static int cmp_prot_check(cmp_ctx *ctx, cmp_pkimessage *cmp)
         }
 
         /* calculate verification MAC */
-        if (ctx->secret == NULL) {
+        if (ctx->prot_secret == NULL) {
             //CMPERRS("No secret provided, therefore no calculation of MAC possible.");
             goto err;
         }
 
         if ((ret = cmp_PBM_new(cmp->pbmp,
-                               ctx->secret, ctx->secret_len,
+                               ctx->prot_secret, ctx->secret_len,
                                *p, prot_part_len,
                                mac, &mac_len))
             != 0) {
@@ -1333,10 +1324,8 @@ void cmp_CertifiedKeyPair_free(cmp_CertifiedKeyPair *certifiedKeyPair)
     if (certifiedKeyPair->cert) {
         mbedtls_x509_crt_free(certifiedKeyPair->cert);
         mbedtls_free(certifiedKeyPair->cert);
-        certifiedKeyPair->cert = NULL;
     }
-
-    zeroize(certifiedKeyPair, sizeof(cmp_CertifiedKeyPair));
+    mbedtls_platform_zeroize(certifiedKeyPair, sizeof(cmp_CertifiedKeyPair));
 }
 
 void cmp_PKIStatusInfo_free(cmp_PKIStatusInfo *sinfo)
@@ -1358,9 +1347,8 @@ void cmp_CertResponse_free(cmp_CertResponse *response)
     if (response->certifiedKeyPair) {
         cmp_CertifiedKeyPair_free(response->certifiedKeyPair);
         mbedtls_free(response->certifiedKeyPair);
-        response->certifiedKeyPair = NULL;
     }
-    zeroize(response, sizeof(cmp_CertResponse));
+    mbedtls_platform_zeroize(response, sizeof(cmp_CertResponse));
 }
 
 
@@ -1372,9 +1360,8 @@ void cmp_CertRepMessage_free(cmp_CertRepMessage *crep)
     if (crep->response) {
         cmp_CertResponse_free(crep->response);
         mbedtls_free(crep->response);
-        crep->response = NULL;
     }
-    zeroize(crep, sizeof(cmp_CertRepMessage));
+    mbedtls_platform_zeroize(crep, sizeof(cmp_CertRepMessage));
 }
 
 
@@ -1385,7 +1372,7 @@ void cmp_ErrorMsgContent_free(cmp_ErrorMsgContent *cerr)
     }
     cmp_PKIStatusInfo_free(&cerr->pKIStatusInfo);
     cmp_asn1_sequence_free(cerr->errorDetails);
-    zeroize(cerr, sizeof(cmp_ErrorMsgContent));
+    mbedtls_platform_zeroize(cerr, sizeof(cmp_ErrorMsgContent));
 }
 
 
@@ -1422,7 +1409,7 @@ void cmp_pkimessage_free(cmp_pkimessage *msg)
     while (name_cur != NULL) {
         name_prv = name_cur;
         name_cur = name_cur->next;
-        zeroize(name_prv, sizeof(mbedtls_x509_name));
+        mbedtls_platform_zeroize(name_prv, sizeof(mbedtls_x509_name));
         mbedtls_free(name_prv);
     }
 
@@ -1430,7 +1417,7 @@ void cmp_pkimessage_free(cmp_pkimessage *msg)
     while (name_cur != NULL) {
         name_prv = name_cur;
         name_cur = name_cur->next;
-        zeroize(name_prv, sizeof(mbedtls_x509_name));
+        mbedtls_platform_zeroize(name_prv, sizeof(mbedtls_x509_name));
         mbedtls_free(name_prv);
     }
     if (msg->pbmp) {
@@ -1438,15 +1425,13 @@ void cmp_pkimessage_free(cmp_pkimessage *msg)
         mbedtls_free(msg->pbmp);
     }
     if (msg->protection) {
+        mbedtls_platform_zeroize(msg->protection, sizeof(mbedtls_asn1_bitstring));
         mbedtls_free(msg->protection);
-        zeroize(msg->protection, sizeof(mbedtls_asn1_bitstring));
     }
 
-    zeroize(msg->raw.p, msg->raw.len);
-    // mbedtls_free( cmp->raw.p);
+    mbedtls_platform_zeroize(msg->raw.p, msg->raw.len);
 
-
-    zeroize(msg, sizeof(cmp_pkimessage));
+    mbedtls_platform_zeroize(msg, sizeof(cmp_pkimessage));
 }
 
 /* #endif */ /* MBEDTLS_CMP_PARSE_C */

@@ -30,13 +30,10 @@
 #define PATH_FS ""
 
 /* select CA to be used */
-#define LOCAL_RA_CA
+#define PLAYGROUND
+//#define LOCAL_RA_CA
 //#define INSTA
 //#define NETGUARD
-
-#if !defined INSTA && !defined NETGUARD && !defined LOCAL_RA_CA
-# include "cmpclient_config-ext.h"
-#endif
 
 /* define details of selected CA and associated certs/keys */
 
@@ -60,6 +57,27 @@
 
 #endif
 
+
+#ifdef PLAYGROUND
+// PPKI Certificate Management Playground
+# define CERTS_ROOT_PATH "./resources/sdcard_root/SDHC/certs/playground/"
+
+# define RECIPIENT_NAME "CN=recip"
+/* if set, use given subject name, else use name from file PATH_TO_VENDOR_CERT_PEM */
+# define IMPRINTING_SUBJECT_NAME "CN=subject"
+# define BOOTSTRAPPING_SUBJECT_NAME \
+    "CN=my_ECC,OU=PPKI Playground/OU=Corporate Technology,OU=For internal test purposes only,O=Siemens,C=DE"
+
+/* CMP server */
+# define SERVER_HOST   "signservice-playground.ct.siemens.com"
+# define SERVER_PORT   443
+# define SERVER_PATH   "/ejbca/publicweb/cmp/PlaygroundECC"
+
+//# define UNPROTECTED_IR   /* IR may be unprotected if authenticated by LRA */
+# define PBM_SECRET "SecretCmp"
+# define REFERENCE "keyIdentification"
+
+#endif
 
 
 #ifdef INSTA
@@ -117,12 +135,28 @@
 #define PATH_TO_OPERATIONAL_KEY_PEM     CERTS_ROOT_PATH  "operat/OP_PRIV.PEM"
 #define PATH_TO_OPERATIONAL_CHAIN_PEM   CERTS_ROOT_PATH  "operat/OP_CHAIN.PEM"
 
+
+// protection credentials
+#define PATH_TO_PROTECTION_CERT CERTS_ROOT_PATH "protection/CMP_EE_Cert.pem"
+#define PATH_TO_PROTECTION_KEY CERTS_ROOT_PATH "protection/CMP_EE_Key.pem"
+#define PATH_TO_PROTECTION_CHAIN CERTS_ROOT_PATH "protection/CMP_EE_Chain.pem"
+
 // trusted protection CA certificates /CRLs
 #define PATH_TO_PROTECTION_TRUST_ANCHOR_PEM    CERTS_ROOT_PATH  "trusted/prot_ca.crt" /* fatfs supports out-of-the-box only 8.3 names! */
 #ifndef PATH_TO_PROTECTION_CRLS
 // # define PATH_TO_PROTECTION_CRLS                CERTS_ROOT_PATH  "trusted/prot_crl.crl"
 # define PATH_TO_PROTECTION_CRLS NULL
 #endif
+
+#ifndef SNI_HOSTNAME
+# define SNI_HOSTNAME SERVER_HOST
+#endif
+
+/* MBED TLS server configuration */
+#define TLS_CREDENTIAL_ROOT CERTS_ROOT_PATH "tlssrv/"
+#define TLS_SERVER_ROOT TLS_CREDENTIAL_ROOT "srvcrt.crt"
+#define TLS_CLIENT_KEY TLS_CREDENTIAL_ROOT "clientkey.key"
+#define TLS_CLIENT_CERT TLS_CREDENTIAL_ROOT "clientcert.crt"
 
 // trusted enrollment CA certificates /CRLs
 #define PATH_TO_ENROLLMENT_TRUST_ANCHOR_PEM    CERTS_ROOT_PATH  "trusted/enr_ca.crt" /* fatfs supports out-of-the-box only 8.3 names! */

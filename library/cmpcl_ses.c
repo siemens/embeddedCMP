@@ -30,7 +30,7 @@ int cmpcl_do_transaction(cmp_ctx *ctx, const int body_type)
 {
 
     memset(output_buf, 0, sizeof(output_buf));
-    unsigned char *output_start = NULL;
+    unsigned char *output_start = output_buf+sizeof(output_buf);
     int len;
     unsigned char *input = NULL;
     size_t inputlen;
@@ -41,8 +41,7 @@ int cmpcl_do_transaction(cmp_ctx *ctx, const int body_type)
     cmp_ctx_set_body_type(ctx, body_type);
     int unprotected = ctx->unprotected_ir && (ctx->body_type == MBEDTLS_CMP_PKIBODY_IR);
 
-    len = cmpcl_CMPwrite_PKIMessage_der(ctx, output_buf,
-                                        OUTPUT_BUF_SIZE, &output_start, unprotected); /* TODO that random stuff for ECDSA... */
+    len = cmpcl_CMPwrite_PKIMessage_der(&output_start, output_buf, ctx, unprotected); /* TODO that random stuff for ECDSA... */
 
     if (len < 0) {
         CMPERRV("cmpcl_CMPwrite_PKIMessage der returned %d", len);
@@ -122,7 +121,7 @@ int cmpcl_do_transaction(cmp_ctx *ctx, const int body_type)
 
         /* reuse output_buf */
         memset(output_buf, 0, sizeof(output_buf));
-        output_start = NULL;
+        output_start = output_buf+sizeof(output_buf);
 
         /* TODO: validate which fields of context must be manipulated / may be reused
          * and be sure to not override existing pointer without free()
@@ -132,8 +131,7 @@ int cmpcl_do_transaction(cmp_ctx *ctx, const int body_type)
 
         /* build certConf message
          * TODO: implement actual certConf body build up */
-        len = cmpcl_CMPwrite_PKIMessage_der(ctx, output_buf,
-                                            OUTPUT_BUF_SIZE, &output_start, unprotected); /* TODO that random stuff for ECDSA... */
+        len = cmpcl_CMPwrite_PKIMessage_der(&output_start, output_buf, ctx, unprotected); /* TODO that random stuff for ECDSA... */
 
         if (len < 0) {
             CMPERRV("cmpcl_CMPwrite_PKIMessage der returned %d", len);

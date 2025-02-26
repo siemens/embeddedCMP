@@ -166,10 +166,10 @@ int cmp_PBM_new(const cmp_PBMParameter *pbmp, const unsigned char *secret,
  */
 
 /**
- * \brief           Write a built up CertReqMsg to a DER structure
+ * \brief           Write a built up CertReqMessages to a DER structure
  */
-int cmpcl_CRMFwrite_CertReqMsg_der(unsigned char **p, unsigned char *start,
-                                   cmp_ctx *ctx);
+int cmpcl_CRMFwrite_CertReqMessages_der(unsigned char **p, unsigned char *start,
+                                        cmp_ctx *ctx);
 
 /**
  * \brief           Write a built up CertRequest to a DER structure
@@ -283,9 +283,7 @@ void cmp_pkimessage_free(cmp_pkimessage *msg);
 
 /*!
  * \brief           Write a built up PKIMessage to a DER structure
- *                  Note: data is written at the end of the buffer! Use the
- *                        return value to determine where you should start
- *                        using the buffer
+ *                  Note: data is written at the end of the buffer!
  *
  * PKIMessage ::= SEQUENCE {
  *  header    PKIHeader,
@@ -295,8 +293,9 @@ void cmp_pkimessage_free(cmp_pkimessage *msg);
  *
  *  PKIMessages ::= SEQUENCE SIZE (1..MAX) OF PKIMessage
  */
-int cmpcl_CMPwrite_PKIMessage_der(cmp_ctx *ctx, unsigned char *buf, size_t size,
-                                  unsigned char **myp, int unprotected);
+int cmpcl_CMPwrite_PKIMessage_der(unsigned char **p, unsigned char *start,
+                                  cmp_ctx *ctx, int unprotected);
+
 /* TODO that random stuff for ECDSA... */
 
 /**

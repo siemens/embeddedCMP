@@ -100,34 +100,36 @@ int invoke_cert_request(const int body_type,
                         void *cb_context,
                         cmp_send_receive_cb send_receive_func,
                         mbedtls_ctr_drbg_context *ctr_drbg,
-                        const char *path_to_existing_cert,
-                        const char *path_to_existing_chain,
+                        const char *path_to_protection_cert,
+                        const char *path_to_protection_key,
+                        const char *path_to_protection_chain,
                         const char *path_to_protection_trust_anchor,
                         const char *path_to_protection_crls,
                         const char *path_to_enrollment_trust_anchor,
                         const char *path_to_enrollment_crls,
-                        const char *path_to_existing_key,
                         const char *path_to_new_cert,
-                        const char *path_to_new_chain,
-                        const char *path_to_new_key)
+                        const char *path_to_new_key,
+                        const char *path_to_new_chain)
 {
 
-    mbedtls_x509_crt existing_cert;
-    mbedtls_x509_crt_init(&existing_cert);
-    mbedtls_x509_crt existing_chain;
-    mbedtls_x509_crt_init(&existing_chain);
+    mbedtls_x509_crt prot_cert;
+    mbedtls_x509_crt_init(&prot_cert);
+    mbedtls_pk_context prot_key;
+    mbedtls_pk_init(&prot_key);
+    mbedtls_x509_crt prot_chain;
+    mbedtls_x509_crt_init(&prot_chain);
     mbedtls_x509_crt prot_trust_anchor;
     mbedtls_x509_crt_init(&prot_trust_anchor);
     mbedtls_x509_crl prot_crls;
     mbedtls_x509_crl_init(&prot_crls);
+
+    mbedtls_pk_context enrol_key;
+    mbedtls_pk_init(&enrol_key);
     mbedtls_x509_crt enrol_trust_anchor;
     mbedtls_x509_crt_init(&enrol_trust_anchor);
     mbedtls_x509_crl enrol_crls;
     mbedtls_x509_crl_init(&enrol_crls);
-    mbedtls_pk_context existing_key;
-    mbedtls_pk_init(&existing_key);
-    mbedtls_pk_context new_key;
-    mbedtls_pk_init(&new_key);
+
 
     /* create new context */
     cmp_ctx ctx;
@@ -141,68 +143,67 @@ int invoke_cert_request(const int body_type,
         /* need to call cmp_ctx_free() since cmp_ctx_init() does not clean up on error */
     }
 
-    /* Existing Cert */
-    if (path_to_existing_cert != NULL) {
-        if ((ret = append_certs_from_pem(&existing_cert, path_to_existing_cert) == 0)) {
-            CMPDBGS("Parsed existing Cert");
+    /* protection Cert */
+    if (path_to_protection_cert != NULL) {
+        if ((ret = append_certs_from_pem(&prot_cert, path_to_protection_cert) == 0)) {
+            CMPDBGS("Parsed protecting Cert");
         } else {
-            CMPERRS("Parsing Existing failed");
+            CMPERRS("Parsing protecting Cert failed");
             goto err;
         }
     } else {
-        CMPDBGS("No existing cert provided");
+        CMPDBGS("No protecting Cert provided");
     }
 
-    /* Vendor Device Chain */
-    if (path_to_existing_chain != NULL) {
-        if ((ret = append_certs_from_pem(&existing_chain, path_to_existing_chain)
+    if (path_to_protection_chain != NULL) {
+        if ((ret = append_certs_from_pem(&prot_chain, path_to_protection_chain)
                    == 0)) {
-            CMPDBGS("Parsed existing Chain");
+            CMPDBGS("Parsed protecting Chain");
         } else {
-            CMPERRS("Parsing existing Chain failed");
+            CMPERRS("Parsing protecting Chain failed");
             goto err;
         }
     } else {
-        CMPDBGS("No existing cert chain provided");
+        CMPDBGS("No protecting cert chain provided");
     }
 
-    if (path_to_existing_key != NULL) {
-        if ((ret = parse_key_from_pem(&existing_key, path_to_existing_key, ctr_drbg) == 0)) {
-            CMPDBGS("Parsed existing Key");
+    if (path_to_protection_key != NULL) {
+        if ((ret = parse_key_from_pem(&prot_key, path_to_protection_key, ctr_drbg) == 0)) {
+            CMPDBGS("Parsed protecting Key");
         } else {
-            CMPERRS("Parsing existing Key failed");
+            CMPERRS("Parsing protecting Key failed");
             goto err;
         }
     } else {
-        CMPDBGS("No existing key provided");
+        CMPDBGS("No protecting key provided");
     }
 
     /* protection trust anchor */
     if (path_to_protection_trust_anchor != NULL) {
         if ((ret = append_certs_from_pem(&prot_trust_anchor, path_to_protection_trust_anchor)
                    == 0)) {
-            CMPDBGS("Parsed trusted certs");
+            CMPDBGS("Parsed protection trust certs");
         } else {
-            CMPERRS("Parsing trusted certs failed");
+            CMPERRS("Parsing protection trust failed");
             goto err;
         }
         cmp_ctx_set_prot_trust_anchor(&ctx, &prot_trust_anchor);
     } else {
-        CMPDBGS("No trusted certs provided");
+        CMPDBGS("No protection trust certs provided");
     }
 
     /* protection trust anchor CRLs*/
     if (path_to_protection_crls != NULL) {
         if ((ret = append_crls_from_pem(&prot_crls, path_to_protection_crls)
                    == 0)) {
-            CMPDBGS("Parsed protection CRL");
+            CMPDBGS("Parsed protection trust CRL");
             cmp_ctx_set_prot_crls(&ctx, &prot_crls);
         } else {
-            CMPERRS("Parsing protection CRL failed");
+            CMPERRS("Parsing protection trust CRL failed");
             goto err;
         }
     } else {
-        CMPDBGS("No protection CRL provided");
+        CMPDBGS("No protection trust CRL provided");
     }
 
     /* enrollment trust anchor */
@@ -236,10 +237,10 @@ int invoke_cert_request(const int body_type,
 
 
     /* set basic header info in ctx */
-    if (sender_name == NULL && path_to_existing_cert != NULL) {
+    if (sender_name == NULL && path_to_protection_cert != NULL) {
         char sender_name_aux[MAX_NAME_LENGTH];
         ret = mbedtls_x509_dn_gets(sender_name_aux, MAX_NAME_LENGTH,
-                                   &existing_cert.subject);
+                                   &prot_cert.subject);
         if (ret < 0) {
             CMPERRV(
                 "Error reading subject name from existing cert. Code: 0x%04x",
@@ -254,10 +255,10 @@ int invoke_cert_request(const int body_type,
         goto err;
     }
 
-    if (recipient_name == NULL && path_to_existing_cert != NULL) {
+    if (recipient_name == NULL && path_to_protection_cert != NULL) {
         char recipient_name_aux[MAX_NAME_LENGTH];
         ret = mbedtls_x509_dn_gets(recipient_name_aux, MAX_NAME_LENGTH,
-                                   &existing_cert.issuer);
+                                   &prot_cert.issuer);
         if (ret < 0) {
             CMPERRV(
                 "Error reading subject name from existing cert. Code: 0x%04x",
@@ -272,7 +273,7 @@ int invoke_cert_request(const int body_type,
     }
 
     if (reference != NULL) {
-        ret = cmp_ctx_set_reference(&ctx, (const unsigned char *) reference,
+        ret = cmp_ctx_set_senderKID(&ctx, (const unsigned char *) reference,
                                     strlen((const char *) reference));
         if (ret != 0) {
             goto err;
@@ -280,16 +281,16 @@ int invoke_cert_request(const int body_type,
     }
 
     /* set request specific fields */
-    if ((ret = gen_ec_key(&new_key, ctr_drbg)) < 0) {
+    if ((ret = gen_ec_key(&enrol_key, ctr_drbg)) < 0) {
         goto err;
     }
-    cmp_ctx_set_new_key(&ctx, &new_key);
+    cmp_ctx_set_new_key(&ctx, &enrol_key);
 
     /* take given subject name or read from existing cert */
-    if (subject_name == NULL && path_to_existing_cert != NULL) {
+    if (subject_name == NULL && path_to_protection_cert != NULL) {
         char subject_name_aux[MAX_NAME_LENGTH];
         if (mbedtls_x509_dn_gets(subject_name_aux, MAX_NAME_LENGTH,
-                                 &existing_cert.subject) < 0) {
+                                 &prot_cert.subject) < 0) {
             CMPERRS("Error reading subject name from existing cert");
             goto err;
         }
@@ -302,19 +303,19 @@ int invoke_cert_request(const int body_type,
     }
 
     if (body_type != MBEDTLS_CMP_PKIBODY_IR) { /* cert-based protection */
-        if (path_to_existing_cert == NULL) {
+        if (path_to_protection_cert == NULL) {
             CMPERRS("No certificate for CR or KUR!");
             goto err;
         }
-        cmp_ctx_set_cl_crt(&ctx, &existing_cert);
+        cmp_ctx_set_prot_crt(&ctx, &prot_cert);
         if (body_type == MBEDTLS_CMP_PKIBODY_CR) {
-            cmp_ctx_set_cl_crt_chain(&ctx, &existing_chain);
+            cmp_ctx_set_prot_crt_chain(&ctx, &prot_chain);
         }
-        cmp_ctx_set_prot_key(&ctx, &existing_key);
+        cmp_ctx_set_prot_key(&ctx, &prot_key);
     } else if (pbm_secret != NULL && body_type != MBEDTLS_CMP_PKIBODY_KUR) { /* this enables use of PBM */
-        ret = cmp_ctx_set_pbm_secret(&ctx, ctr_drbg,
-                                     (const unsigned char *) pbm_secret,
-                                     strlen((const char *) pbm_secret));
+        ret = cmp_ctx_set_prot_pbm_secret(&ctx, ctr_drbg,
+                                          (const unsigned char *) pbm_secret,
+                                          strlen((const char *) pbm_secret));
         if (ret != 0) {
             CMPERRS("Error initializing PBM");
             goto err;
@@ -343,7 +344,7 @@ int invoke_cert_request(const int body_type,
     } else {
         print_certinfo(ctx.new_cert, "\rrecvd: "); /* TODO: find more elegant way to deal with Eclipse terminal */
 
-        if (write_private_key_pem(&new_key, path_to_new_key) != 0) {
+        if (write_private_key_pem(&enrol_key, path_to_new_key) != 0) {
             CMPERRV("Failed to write new key to file %s", path_to_new_key);
             ret = -1;
         }
@@ -360,14 +361,14 @@ int invoke_cert_request(const int body_type,
 err:
     /* cleanup */
     cmp_ctx_free(&ctx);
-    // CMPDBGV("Free address 0x%x", &new_key);
-    mbedtls_pk_free(&new_key);
+    // CMPDBGV("Free address 0x%x", &enrol_key);
+    mbedtls_pk_free(&enrol_key);
     // CMPDBGV("Free address 0x%x", &existing_key)
-    mbedtls_pk_free(&existing_key);
+    mbedtls_pk_free(&prot_key);
     // CMPDBGV("Free address 0x%x", &existing_chain);
-    mbedtls_x509_crt_free(&existing_chain);
+    mbedtls_x509_crt_free(&prot_chain);
     // CMPDBGV("Free address 0x%x", &existing_cert);
-    mbedtls_x509_crt_free(&existing_cert);
+    mbedtls_x509_crt_free(&prot_cert);
     mbedtls_x509_crt_free(&prot_trust_anchor);
     mbedtls_x509_crl_free(&prot_crls);
     mbedtls_x509_crt_free(&enrol_trust_anchor);
@@ -401,15 +402,15 @@ int invoke_kur_transaction(cmp_send_receive_cb send_receive_func,
                               send_receive_func,
                               ctr_drbg,
                               PATH_TO_OPERATIONAL_CERT_PEM,
+                              PATH_TO_OPERATIONAL_KEY_PEM,
                               PATH_TO_OPERATIONAL_CHAIN_PEM,
                               PATH_TO_PROTECTION_TRUST_ANCHOR_PEM,
                               PATH_TO_PROTECTION_CRLS,
                               PATH_TO_ENROLLMENT_TRUST_ANCHOR_PEM,
                               PATH_TO_ENROLLMENT_CRLS,
-                              PATH_TO_OPERATIONAL_KEY_PEM,
                               PATH_TO_OPERATIONAL_CERT_PEM,
-                              PATH_TO_OPERATIONAL_CHAIN_PEM,
-                              PATH_TO_OPERATIONAL_KEY_PEM);
+                              PATH_TO_OPERATIONAL_KEY_PEM,
+                              PATH_TO_OPERATIONAL_CHAIN_PEM);
 
     if (ret != 0) {
         CMPERRV("### KUR transaction returned code %d ###\r\n", ret);
@@ -433,31 +434,24 @@ int invoke_cr_transaction(cmp_send_receive_cb send_receive_func,
                               BOOTSTRAPPING_SUBJECT_NAME,
                               NULL,
                               RECIPIENT_NAME, // recipient_name
-#ifdef REFERENCE
-                              REFERENCE
-#else
-                              NULL
-#endif
-                              ,
-#ifdef      PBM_SECRET
-                              PBM_SECRET
-#else
-                              NULL
-#endif
-                              ,
+                              NULL,
+                              NULL,
                               cb_context,
                               send_receive_func,
                               ctr_drbg,
-                              PATH_TO_VENDOR_CERT_PEM,
-                              PATH_TO_VENDOR_CHAIN_PEM,
+//                              PATH_TO_VENDOR_CERT_PEM,
+//                              PATH_TO_VENDOR_KEY_PEM,
+//                              PATH_TO_VENDOR_CHAIN_PEM,
+                              PATH_TO_PROTECTION_CERT,
+                              PATH_TO_PROTECTION_KEY,
+                              PATH_TO_PROTECTION_CHAIN,
                               PATH_TO_PROTECTION_TRUST_ANCHOR_PEM,
                               PATH_TO_PROTECTION_CRLS,
                               PATH_TO_ENROLLMENT_TRUST_ANCHOR_PEM,
                               PATH_TO_ENROLLMENT_CRLS,
-                              PATH_TO_VENDOR_KEY_PEM,
                               PATH_TO_OPERATIONAL_CERT_PEM,
-                              PATH_TO_OPERATIONAL_CHAIN_PEM,
-                              PATH_TO_OPERATIONAL_KEY_PEM);
+                              PATH_TO_OPERATIONAL_KEY_PEM,
+                              PATH_TO_OPERATIONAL_CHAIN_PEM);
 
     CMPDBGV("### CR transaction returned code %d ###\r\n", ret);
 
@@ -494,16 +488,16 @@ int invoke_ir_transaction(cmp_send_receive_cb send_receive_func,
         cb_context,
         send_receive_func,
         ctr_drbg,
-        NULL,                           // path_to_existing_cert
-        NULL,                           // path_to_existing_chain
-        PATH_TO_PROTECTION_TRUST_ANCHOR_PEM,         // path_to_trusted_ca_certs
-        PATH_TO_PROTECTION_CRLS,         // path_to_trusted_ca_crl
+        NULL,                           // path_to_protecting_cert
+        NULL,                           // path_to_protecting_key
+        NULL,                           // path_to_protecting_chain
+        NULL,                           // protection_trust
+        NULL,                           // protection_trust_crl
         PATH_TO_ENROLLMENT_TRUST_ANCHOR_PEM,
         PATH_TO_ENROLLMENT_CRLS,
-        NULL,                           // path_to_existing_key
         PATH_TO_VENDOR_CERT_PEM,        // path_to_new_cert,
-        PATH_TO_VENDOR_CHAIN_PEM,       // path_to_new_chain
-        PATH_TO_VENDOR_KEY_PEM);        // path_to_new_key
+        PATH_TO_VENDOR_KEY_PEM,         // path_to_new_key
+        PATH_TO_VENDOR_CHAIN_PEM);      // path_to_new_chain
 
     CMPDBGV("### IR transaction returned code %d ###\r\n", ret);
 

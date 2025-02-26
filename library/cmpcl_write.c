@@ -37,22 +37,14 @@ int mbedtls_x509_write_names(unsigned char **p, unsigned char *start,
                              mbedtls_asn1_named_data *first);
 
 
-static size_t g_wr_len_header = 0;
-static size_t g_wr_len_extraCerts = 0;
-static size_t g_wr_n_extraCerts = 0;
-static size_t g_wr_len_certTemplate = 0;
-static size_t g_wr_len_popo = 0;
-static size_t g_wr_prot_len = 0;
-
-
 /* **************************************************************** */
 int cmpcl_CMPwrite_CertConfCont_der(unsigned char **p,
                                     unsigned char *start, cmp_ctx *ctx)
 {
-    int ret;
+    int ret = 0;
     size_t len = 0;
     size_t hash_len;
-    unsigned char *hash;
+    unsigned char hash[MBEDTLS_MD_MAX_SIZE];
 
     /*
      * CertConfirmContent ::= SEQUENCE OF CertStatus
@@ -63,12 +55,6 @@ int cmpcl_CMPwrite_CertConfCont_der(unsigned char **p,
      *       statusInfo  PKIStatusInfo OPTIONAL
      *    }
      */
-
-    hash = mbedtls_calloc(1, MBEDTLS_MD_MAX_SIZE);
-    if (!hash) {
-        len = -1;
-        goto err;
-    }
 
     /* only positive case implemented
      * TODO: check if cert should actually be accepted and
@@ -156,8 +142,7 @@ int cmpcl_CMPwrite_CertConfCont_der(unsigned char **p,
         CMPCL_ASN1_CHK_ADD(len,
                            mbedtls_asn1_write_bitstring(p, start,
                                                         (unsigned char *) &ctx->new_cert_fail_info,
-                                                        26),
-                           ret);
+                                                        26));
     }
 
 
@@ -175,16 +160,16 @@ int cmpcl_CMPwrite_CertConfCont_der(unsigned char **p,
     CMPCL_ASN1_CHK_ADD(len,
                        mbedtls_asn1_write_int(p, start,
                                               ctx->new_cert_fail_info ? CMP_PKISTATUS_REJECTION :
-                                              CMP_PKISTATUS_ACCEPTED), ret);
+                                              CMP_PKISTATUS_ACCEPTED));
 
     /* PKIStatusInfo ::= SEQUENCE */
-    CMPCL_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(p, start, len), ret);
+    CMPCL_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(p, start, len));
     CMPCL_ASN1_CHK_ADD(len, mbedtls_asn1_write_tag(p, start, MBEDTLS_ASN1_CONSTRUCTED |
-                                                   MBEDTLS_ASN1_SEQUENCE), ret);
+                                                   MBEDTLS_ASN1_SEQUENCE));
 
 
     /* certReqId   INTEGER, */
-    CMPCL_ASN1_CHK_ADD(len, mbedtls_asn1_write_int(p, start, ctx->certReqId), ret);
+    CMPCL_ASN1_CHK_ADD(len, mbedtls_asn1_write_int(p, start, ctx->certReqId));
 
     /*
      * certHash    OCTET STRING,
@@ -194,50 +179,47 @@ int cmpcl_CMPwrite_CertConfCont_der(unsigned char **p,
     /* TODO: how to best access the received cert? */
     CMPCL_ASN1_CHK_ADD(ret,
                        mbedtls_md(mbedtls_md_info_from_type(ctx->new_cert->MBEDTLS_PRIVATE(sig_md)),
-                                  ctx->new_cert->raw.p, ctx->new_cert->raw.len, hash), ret);
+                                  ctx->new_cert->raw.p, ctx->new_cert->raw.len, hash));
 
     hash_len =
         mbedtls_md_get_size(mbedtls_md_info_from_type(ctx->new_cert->MBEDTLS_PRIVATE(sig_md)));
 
-    CMPCL_ASN1_CHK_ADD(len, mbedtls_asn1_write_octet_string(p, start, hash, hash_len), ret);
+    CMPCL_ASN1_CHK_ADD(len, mbedtls_asn1_write_octet_string(p, start, hash, hash_len));
 
 
     /* CertStatus ::= SEQUENCE */
-    CMPCL_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(p, start, len), ret);
+    CMPCL_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(p, start, len));
     CMPCL_ASN1_CHK_ADD(len, mbedtls_asn1_write_tag(p, start, MBEDTLS_ASN1_CONSTRUCTED |
-                                                   MBEDTLS_ASN1_SEQUENCE), ret);
+                                                   MBEDTLS_ASN1_SEQUENCE));
 
     /* CertConfirmContent ::= SEQUENCE OF CertStatus */
-    CMPCL_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(p, start, len), ret);
+    CMPCL_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(p, start, len));
     CMPCL_ASN1_CHK_ADD(len, mbedtls_asn1_write_tag(p, start, MBEDTLS_ASN1_CONSTRUCTED |
-                                                   MBEDTLS_ASN1_SEQUENCE), ret);
+                                                   MBEDTLS_ASN1_SEQUENCE));
 
 err:
-    mbedtls_free(hash);
     return (int) len;
 }
 
 
 /* **************************************************************** */
-int cmpcl_CRMFwrite_CertReqMsg_der(unsigned char **p, unsigned char *start,
-                                   cmp_ctx *ctx)
+int cmpcl_CRMFwrite_CertReqMessages_der(unsigned char **p, unsigned char *start,
+                                        cmp_ctx *ctx)
 {
-    int ret;
+    int ret = 0;
     size_t len = 0;
 
-#define POPO_INPUT_BUF_SIZE 1024 /* TODO: that is not overly effective, but what to do? */
-    unsigned char popo_input_buf[POPO_INPUT_BUF_SIZE];
-    unsigned char *popo_input_p;
+    unsigned char *saved_p = NULL;
     int popo_input_len = 0;
     unsigned char hash[MBEDTLS_MD_MAX_SIZE];
 
-    const char *sig_oid;
+    const char *sig_oid = NULL;
     size_t sig_oid_len = 0;
     unsigned char sig[MBEDTLS_MPI_MAX_SIZE];
-    size_t sig_and_oid_len = 0, sig_len;
-    mbedtls_pk_type_t pk_alg;
+    size_t sig_and_oid_len = 0;
+    size_t sig_len = 0;
+    mbedtls_pk_type_t pk_alg = { 0 };
 
-    memset(popo_input_buf, 0, sizeof(popo_input_buf));
     memset(sig, 0, sizeof(sig));
     memset(hash, 0, sizeof(hash));
 
@@ -249,14 +231,14 @@ int cmpcl_CRMFwrite_CertReqMsg_der(unsigned char **p, unsigned char *start,
 
     switch (ctx->popo_method) {
         case CMP_CTX_POPO_RAVERIFIED:
-            CMPCL_ASN1_CHK_ADD(len, mbedtls_asn1_write_null(p, start), len);
+            CMPCL_ASN1_CHK_ADD(len, mbedtls_asn1_write_null(p, start));
             len--; /* -1 is as we're intentionally overwriting the SEQUENCE TAG from the function for IMPLICIT */
             (*p)++;   /* +1 is as we're intentionally overwriting the SEQUENCE TAG from the function for IMPLICIT */
             CMPCL_ASN1_CHK_ADD(len,
                                mbedtls_asn1_write_tag(p, start,
                                                       MBEDTLS_ASN1_CONTEXT_SPECIFIC |
-                                                      MBEDTLS_ASN1_CONSTRUCTED | 0 /* raVerified */),
-                               len);
+                                                      MBEDTLS_ASN1_CONSTRUCTED |
+                                                      0 /* raVerified */));
             break;
         case CMP_CTX_POPO_SIGNATURE:
             /* TODO
@@ -266,27 +248,30 @@ int cmpcl_CRMFwrite_CertReqMsg_der(unsigned char **p, unsigned char *start,
 
                So far this implements RFC4211 section 4.1.3 with omitted poposkInput
              */
-            popo_input_p = popo_input_buf+POPO_INPUT_BUF_SIZE;
+            /*
+             * save old output buffer state, use buffer for POPO calculation
+             */
+            saved_p = *p;
 
             /*
              * cmpcl_CRMFwrite_CertRequest_der() called just to get input for popo
              */
             CMPCL_ASN1_CHK_ADD(popo_input_len,
-                               cmpcl_CRMFwrite_CertRequest_der(&popo_input_p, popo_input_buf, ctx),
-                               len);
+                               cmpcl_CRMFwrite_CertRequest_der(p, start, ctx));
 
             /* create hash of popo_input */
             CMPCL_ASN1_CHK_ADD(ret,
-                               mbedtls_md(mbedtls_md_info_from_type(ctx->popo_md_alg), popo_input_p,
-                                          popo_input_len, hash),
-                               len);
+                               mbedtls_md(mbedtls_md_info_from_type(ctx->popo_md_alg), *p,
+                                          popo_input_len, hash));
 
-            /* TODO the last parameters f_rng and p_rng need to come from outside for EC keys... */
             CMPCL_ASN1_CHK_ADD(ret,
                                mbedtls_pk_sign(ctx->new_key, ctx->popo_md_alg, hash, 0, sig,
                                                MBEDTLS_MPI_MAX_SIZE,
-                                               &sig_len, NULL, NULL), len);
-
+                                               &sig_len, mbedtls_ctr_drbg_random, ctx->ctr_drbg));
+            /*
+             * restore output buffer state
+             */
+            *p = saved_p;
             /*
              * Write data to output buffer
              */
@@ -302,18 +287,15 @@ int cmpcl_CRMFwrite_CertReqMsg_der(unsigned char **p, unsigned char *start,
 
             CMPCL_ASN1_CHK_ADD(sig_and_oid_len,
                                mbedtls_x509_write_sig(p, start, sig_oid, sig_oid_len, sig, sig_len,
-                                                      pk_alg),
-                               len);
+                                                      pk_alg));
             len += sig_and_oid_len;
-            g_wr_len_popo = sig_and_oid_len;
 
-
-            CMPCL_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(p, start, sig_and_oid_len), len);
+            CMPCL_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(p, start, sig_and_oid_len));
             CMPCL_ASN1_CHK_ADD(len,
                                mbedtls_asn1_write_tag(p, start,
                                                       MBEDTLS_ASN1_CONTEXT_SPECIFIC |
-                                                      MBEDTLS_ASN1_CONSTRUCTED | 1 /* signature */),
-                               len);
+                                                      MBEDTLS_ASN1_CONSTRUCTED |
+                                                      1 /* signature */));
 
             break;
         /* TODO: maybe add further POP methods: keyEncipherment, keyAgreement */
@@ -324,14 +306,20 @@ int cmpcl_CRMFwrite_CertReqMsg_der(unsigned char **p, unsigned char *start,
     }
 
     /* Cert Request */
-    CMPCL_ASN1_CHK_ADD(len, cmpcl_CRMFwrite_CertRequest_der(p, start, ctx), len);
+    CMPCL_ASN1_CHK_ADD(len, cmpcl_CRMFwrite_CertRequest_der(p, start, ctx));
 
     /*
      * CertReqMsg ::= SEQUENCE
      */
-    CMPCL_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(p, start, len), len);
+    CMPCL_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(p, start, len));
     CMPCL_ASN1_CHK_ADD(len, mbedtls_asn1_write_tag(p, start, MBEDTLS_ASN1_CONSTRUCTED |
-                                                   MBEDTLS_ASN1_SEQUENCE), len);
+                                                   MBEDTLS_ASN1_SEQUENCE));
+    /* CertReqMessages ::= SEQUENCE SIZE (1..MAX) OF CertReqMsg */
+    MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(p, start, len));
+    MBEDTLS_ASN1_CHK_ADD(len,
+                         mbedtls_asn1_write_tag(p, start,
+                                                MBEDTLS_ASN1_CONSTRUCTED |
+                                                MBEDTLS_ASN1_SEQUENCE));
 
 err:
     return (int) len;
@@ -390,7 +378,7 @@ int cmpcl_CRMFwrite_CertRequest_der(unsigned char **p, unsigned char *start,
      */
 
     if ((ctx->body_type == MBEDTLS_CMP_PKIBODY_KUR)) {
-        if (ctx->cl_cert == NULL) {
+        if (ctx->prot_cert == NULL) {
             CMPERRS("No client cert provided; KUR ONLY with OldCert!");
             return CMPCL_ERR_KUR_OLDCERT;
         }
@@ -399,16 +387,17 @@ int cmpcl_CRMFwrite_CertRequest_der(unsigned char **p, unsigned char *start,
 
         /* serialNumber INTEGER */
         MBEDTLS_ASN1_CHK_ADD(ctrl_len,
-                             mbedtls_asn1_write_raw_buffer(p, start, ctx->cl_cert->serial.p,
-                                                           ctx->cl_cert->serial.len));
-        MBEDTLS_ASN1_CHK_ADD(ctrl_len, mbedtls_asn1_write_len(p, start, ctx->cl_cert->serial.len));
+                             mbedtls_asn1_write_raw_buffer(p, start, ctx->prot_cert->serial.p,
+                                                           ctx->prot_cert->serial.len));
+        MBEDTLS_ASN1_CHK_ADD(ctrl_len,
+                             mbedtls_asn1_write_len(p, start, ctx->prot_cert->serial.len));
         MBEDTLS_ASN1_CHK_ADD(ctrl_len, mbedtls_asn1_write_tag(p, start, MBEDTLS_ASN1_INTEGER));
         int ser_len = ctrl_len;
 
         /*  issuer GeneralName */
         MBEDTLS_ASN1_CHK_ADD(ctrl_len,
-                             mbedtls_asn1_write_raw_buffer(p, start, ctx->cl_cert->issuer_raw.p,
-                                                           ctx->cl_cert->issuer_raw.len));
+                             mbedtls_asn1_write_raw_buffer(p, start, ctx->prot_cert->issuer_raw.p,
+                                                           ctx->prot_cert->issuer_raw.len));
         /* clCert->issuer_raw is already DER encoded with tag and length */
 
         /* TODO: find out why this tag is necessary */
@@ -491,8 +480,6 @@ int cmpcl_CRMFwrite_CertRequest_der(unsigned char **p, unsigned char *start,
     MBEDTLS_ASN1_CHK_ADD(tmpl_len, mbedtls_asn1_write_tag(p, start, MBEDTLS_ASN1_CONSTRUCTED |
                                                           MBEDTLS_ASN1_SEQUENCE));
     len += tmpl_len;
-    g_wr_len_certTemplate = tmpl_len;
-
     /*
        certReqId     INTEGER,          -- ID for matching request and reply
      */
@@ -513,20 +500,28 @@ int cmpcl_CRMFwrite_CertRequest_der(unsigned char **p, unsigned char *start,
 /* DER-writing functions */
 /* **************************************************************** */
 
-static int msg_sig_alg_prot(mbedtls_pk_context *key,
-                            mbedtls_md_type_t md,
+static int msg_sig_alg_prot(cmp_ctx *ctx,
                             const unsigned char *input,
                             size_t in_len,
                             unsigned char *sig,
                             size_t *sig_len)
 {
     unsigned char hash[MBEDTLS_MD_MAX_SIZE];
+    int hash_len = 0;
 
-    mbedtls_md(mbedtls_md_info_from_type(md), input, in_len, hash);
+    hash_len = mbedtls_md(mbedtls_md_info_from_type(ctx->sig_prot_md_alg), input, in_len, hash);
 
     /* TODO the last parameters f_rng and p_rng need to come from outside for EC keys... */
 
-    return mbedtls_pk_sign(key, md, hash, 0, sig, MBEDTLS_MPI_MAX_SIZE, sig_len, NULL, NULL);
+    return mbedtls_pk_sign(ctx->prot_key,
+                           ctx->sig_prot_md_alg,
+                           hash,
+                           hash_len,
+                           sig,
+                           MBEDTLS_MPI_MAX_SIZE,
+                           sig_len,
+                           mbedtls_ctr_drbg_random,
+                           ctx->ctr_drbg);
 }
 
 /* **************************************************************** */
@@ -534,22 +529,19 @@ int cmpcl_CMPwrite_PKIMessage_protection_der(unsigned char **p,
                                              unsigned char *start,
                                              cmp_ctx *ctx,
                                              const unsigned char *input,
-                                             const size_t in_len)  /* TODO that random stuff for ECDSA... */
+                                             const size_t in_len)
 {
     int ret;
     size_t len = -1;
-    unsigned char *prot;
+    unsigned char prot[MBEDTLS_MPI_MAX_SIZE];
     size_t prot_len = 0;
 
-    prot = mbedtls_calloc(1, MBEDTLS_MPI_MAX_SIZE);
-    if (!prot) {
-        goto err;
-    }
 
+    memset(prot, 0, sizeof(prot));
 
-    if (ctx->secret && ctx->pbmp) { /* MSG_MAC_ALG */
+    if (ctx->prot_secret && ctx->pbmp) { /* MSG_MAC_ALG */
         if ((ret = cmp_PBM_new(ctx->pbmp,
-                               ctx->secret,
+                               ctx->prot_secret,
                                ctx->secret_len,
                                input,
                                in_len,
@@ -557,9 +549,8 @@ int cmpcl_CMPwrite_PKIMessage_protection_der(unsigned char **p,
                                &prot_len)) != 0) {
             goto err;
         }
-    } else if (ctx->cl_key && ctx->sig_prot_md_alg) {/* MSG_SIG_ALG */
-        if ((ret = msg_sig_alg_prot(ctx->cl_key,
-                                    ctx->sig_prot_md_alg,
+    } else if (ctx->prot_key && ctx->sig_prot_md_alg) {/* MSG_SIG_ALG */
+        if ((ret = msg_sig_alg_prot(ctx,
                                     input,
                                     in_len,
                                     prot,
@@ -568,7 +559,6 @@ int cmpcl_CMPwrite_PKIMessage_protection_der(unsigned char **p,
         }
     } else {
         CMPWARNS("No credentials for protection. Message unprotected!");
-        mbedtls_free(prot);
         return 0;
     }
 
@@ -597,7 +587,6 @@ int cmpcl_CMPwrite_PKIMessage_protection_der(unsigned char **p,
                                                 MBEDTLS_ASN1_CONSTRUCTED | 0));
 
 err:
-    mbedtls_free(prot);
     return (int) len;
 }
 
@@ -620,6 +609,9 @@ static int mbedtls_asn1_buf_cmp(mbedtls_asn1_buf *buf1, mbedtls_asn1_buf *buf2)
 
 static int same_cert(mbedtls_x509_crt *crt1, mbedtls_x509_crt *crt2)
 {
+    if (crt1 == NULL || crt2 == NULL) {
+        return crt1 == crt2;
+    }
     return mbedtls_asn1_buf_cmp(&crt1->serial, &crt2->serial) == 0 &&
            mbedtls_asn1_buf_cmp(&crt1->issuer_raw, &crt2->issuer_raw) == 0;   // TODO use better DN comparison
 }
@@ -628,9 +620,9 @@ static size_t cmpcl_CMPwrite_ExtraCerts_der(unsigned char **p,
                                             unsigned char *start,
                                             cmp_ctx *ctx)
 {
-    int ret;
-    size_t len = 0;
-    mbedtls_x509_crt *crt = ctx->cl_chain;
+    int ret = 0;
+    int len = 0;
+    mbedtls_x509_crt *crt = ctx->prot_chain;
     /*
      * ir, cr, kur and rr are posible initial ReqMessages for one transaction.
      * In case of no initial ReqMessage and cache_extracerts flag set,
@@ -643,28 +635,20 @@ static size_t cmpcl_CMPwrite_ExtraCerts_der(unsigned char **p,
         ctx->body_type == MBEDTLS_CMP_PKIBODY_RR) {
         while (crt) {
             if (mbedtls_asn1_buf_cmp(&crt->issuer_raw, &crt->subject_raw) != 0 &&       // TODO use better DN comparison
-                !same_cert(crt, ctx->cl_cert)) {
-                size_t sub_len = 0;
-                MBEDTLS_ASN1_CHK_ADD(sub_len,
+                !same_cert(crt, ctx->prot_cert)) {
+                MBEDTLS_ASN1_CHK_ADD(len,
                                      mbedtls_asn1_write_raw_buffer(p, start, crt->raw.p,
                                                                    crt->raw.len));
-                len += sub_len;
-                g_wr_n_extraCerts++;
             }
             crt = crt->next;
         }
-        if (ctx->cl_cert) {
-            size_t sub_len = 0;
-            MBEDTLS_ASN1_CHK_ADD(sub_len,
-                                 mbedtls_asn1_write_raw_buffer(p, start, ctx->cl_cert->raw.p,
-                                                               ctx->cl_cert->raw.len));
-            len += sub_len;
-            g_wr_n_extraCerts++;
+        if (ctx->prot_cert) {
+            MBEDTLS_ASN1_CHK_ADD(len,
+                                 mbedtls_asn1_write_raw_buffer(p, start, ctx->prot_cert->raw.p,
+                                                               ctx->prot_cert->raw.len));
         }
     }
-    if (len) {
-        g_wr_len_extraCerts = len; /* to print out extraCerts total size */
-
+    if (len > 0) {
         MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(p, start, len));
         MBEDTLS_ASN1_CHK_ADD(len,
                              mbedtls_asn1_write_tag(p, start,
@@ -677,39 +661,25 @@ static size_t cmpcl_CMPwrite_ExtraCerts_der(unsigned char **p,
                                                     MBEDTLS_ASN1_CONTEXT_SPECIFIC |
                                                     MBEDTLS_ASN1_CONSTRUCTED | 1));
     }
-
     return len;
 }
 
 
 /* **************************************************************** */
-int cmpcl_CMPwrite_PKIMessage_der(cmp_ctx *ctx, unsigned char *start,
-                                  size_t size, unsigned char **myp, int unprotected) /* TODO that random stuff for ECDSA... */
+int cmpcl_CMPwrite_PKIMessage_der(unsigned char **p, unsigned char *start,
+                                  cmp_ctx *ctx, int unprotected) /* TODO that random stuff for ECDSA... */
 {
     int ret;
-    unsigned char *x;
-    unsigned char **p;
     size_t len = 0;
     size_t extraCerts_len = 0;
-    size_t body_len = 0;
-    size_t cr_len = 0; /* needed for length of CertReqest sequence */
-    unsigned char *prot_end_p;
     size_t prot_len = 0;
+    size_t body_len = 0;
+    size_t header_len = 0;
+    size_t payload_len = 0;
     size_t protPart_len = 0;
-    unsigned char *protPart_p;
-
-    /* needed to print sizes of chosen parts of the message
-     * initialize to zero for each new PKIMessage
-     */
-    g_wr_len_extraCerts = 0;
-    g_wr_n_extraCerts = 0;
-    g_wr_len_certTemplate = 0;
-    g_wr_len_popo = 0;
-
-    /* the end of the buffer */
-    x = start + size;
-    /* helps to keep all the same variable names in the ASN1 writer functions */
-    p = &x;
+    unsigned char *header_start = NULL;
+    unsigned char *extra_certs_start = NULL;
+    unsigned char *protected_part_start = NULL;
 
     /*
      * PKIMessage ::= SEQUENCE {
@@ -727,83 +697,18 @@ int cmpcl_CMPwrite_PKIMessage_der(cmp_ctx *ctx, unsigned char *start,
      * extraCerts    [1] SEQUENCE SIZE (1..MAX) OF CMPCertificate }    OPTIONAL
      */
     MBEDTLS_ASN1_CHK_ADD(extraCerts_len, cmpcl_CMPwrite_ExtraCerts_der(p, start, ctx));
-    g_wr_n_extraCerts = 0; /* to avoid that the static var is being incremented in this "dummy" call */
+    extra_certs_start = *p;
+
+    // temporarily reserve max room for protection
+    (*p) -= (MBEDTLS_MPI_MAX_SIZE+100);
 
 
-    /*
-     * protection    [0]    PKIProtection OPTIONAL
-     * The input to the calculation of PKIProtection is the DER encoding of
-     * the following data structure:
-     *
-     * ProtectedPart ::= SEQUENCE {
-     *  header PKIHeader,
-     *  body PKIBody }
-     *
-     *  --> body and header not yet known, therefore just reserve space for protection
-     *
-     */
-    prot_end_p = *p; /* from this point the real signature will need to be written later */
-    /* MBEDTLS_ECDSA_MAX_LEN is max ECDSA len, ECDSA signatures have variable size */
-
-    if (ctx->cl_key && (mbedtls_pk_get_type(ctx->cl_key) == MBEDTLS_PK_ECKEY)) {
-        prot_len = MBEDTLS_ECDSA_MAX_LEN; /* preliminary (maximal) length */
-        *p -= prot_len; // pointer decremented to reserve space in output buffer
-    } else if (!unprotected) {
-        /* figure out sig length - and write there. TODO TODO TODO: doing that two times is highly inefficient, but how to figure out the length otherwise? */
-        MBEDTLS_ASN1_CHK_ADD(prot_len,
-                             cmpcl_CMPwrite_PKIMessage_protection_der(p, start, ctx,
-                                                                      (const unsigned char *) "",
-                                                                      0));
-    }
-
-    /*
-     * body PKIBody
-     */
-
-    /*
-     * PKIBody ::= CHOICE {
-     * ir        [0] CertReqMessages, --Initialization Req
-     * ip        [1] CertRepMessage, --Initialization Resp
-     * cr        [2] CertReqMessages, --Certification Req
-     * cp        [3] CertRepMessage, --Certification Resp
-     * p10cr     [4] CertificationRequest, --PKCS #10 Cert. Req.
-     * popdecc   [5] POPODecKeyChallContent --pop Challenge
-     * popdecr   [6] POPODecKeyRespContent, --pop Response
-     * kur       [7] CertReqMessages, --Key Update Request
-     * kup       [8] CertRepMessage, --Key Update Response
-     * krr       [9] CertReqMessages, --Key Recovery Req
-     * krp      [10] KeyRecRepContent, --Key Recovery Resp
-     * rr       [11] RevReqContent, --Revocation Request
-     * rp       [12] RevRepContent, --Revocation Response
-     * ccr      [13] CertReqMessages, --Cross-Cert. Request
-     * ccp      [14] CertRepMessage, --Cross-Cert. Resp
-     * ckuann   [15] CAKeyUpdAnnContent, --CA Key Update Ann.
-     * cann     [16] CertAnnContent, --Certificate Ann.
-     * rann     [17] RevAnnContent, --Revocation Ann.
-     * crlann   [18] CRLAnnContent, --CRL Announcement
-     * pkiconf  [19] PKIConfirmContent, --Confirmation
-     * nested   [20] NestedMessageContent, --Nested Message
-     * genm     [21] GenMsgContent, --General Message
-     * genp     [22] GenRepContent, --General Response
-     * error    [23] ErrorMsgContent, --Error Message
-     * certConf [24] CertConfirmContent, --Certificate confirm
-     * pollReq  [25] PollReqContent, --Polling request
-     * pollRep  [26] PollRepContent --Polling response
-     * }
-     */
     switch (ctx->body_type) {
         case MBEDTLS_CMP_PKIBODY_IR:
         case MBEDTLS_CMP_PKIBODY_CR:
         case MBEDTLS_CMP_PKIBODY_KUR:
             /* Adding one *single* CertReqest here */
-            MBEDTLS_ASN1_CHK_ADD(cr_len, cmpcl_CRMFwrite_CertReqMsg_der(p, start, ctx));
-            body_len += cr_len;
-            /* CertReqMessages ::= SEQUENCE SIZE (1..MAX) OF CertReqMsg */
-            MBEDTLS_ASN1_CHK_ADD(body_len, mbedtls_asn1_write_len(p, start, cr_len));
-            MBEDTLS_ASN1_CHK_ADD(body_len,
-                                 mbedtls_asn1_write_tag(p, start,
-                                                        MBEDTLS_ASN1_CONSTRUCTED |
-                                                        MBEDTLS_ASN1_SEQUENCE));
+            MBEDTLS_ASN1_CHK_ADD(body_len, cmpcl_CRMFwrite_CertReqMessages_der(p, start, ctx));
             break;
         case MBEDTLS_CMP_PKIBODY_PKICONF: /* the client does not need to send that - but easiest for first testing ;-) */
             MBEDTLS_ASN1_CHK_ADD(body_len, mbedtls_asn1_write_null(p, start));
@@ -816,11 +721,10 @@ int cmpcl_CMPwrite_PKIMessage_der(cmp_ctx *ctx, unsigned char *start,
             CMPERRV("NOT SUPPORTED PKIBody_type %d\n", ctx->body_type);
             return CMPCL_ERR_UNSUPPORTED_BODYTYPE;
     }
-    protPart_len += body_len; // both header and body are protected
 
     /* [x] */
-    MBEDTLS_ASN1_CHK_ADD(protPart_len, mbedtls_asn1_write_len(p, start, body_len));
-    MBEDTLS_ASN1_CHK_ADD(protPart_len,
+    MBEDTLS_ASN1_CHK_ADD(body_len, mbedtls_asn1_write_len(p, start, body_len));
+    MBEDTLS_ASN1_CHK_ADD(body_len,
                          mbedtls_asn1_write_tag(p, start,
                                                 MBEDTLS_ASN1_CONTEXT_SPECIFIC |
                                                 MBEDTLS_ASN1_CONSTRUCTED | ctx->body_type));
@@ -829,9 +733,7 @@ int cmpcl_CMPwrite_PKIMessage_der(cmp_ctx *ctx, unsigned char *start,
     /*
      *   header           PKIHeader
      */
-    g_wr_len_header = protPart_len;
-    MBEDTLS_ASN1_CHK_ADD(protPart_len, cmpcl_CMPwrite_PKIHeader_der(p, start, ctx, unprotected));
-    g_wr_len_header = protPart_len - g_wr_len_header;
+    MBEDTLS_ASN1_CHK_ADD(header_len, cmpcl_CMPwrite_PKIHeader_der(p, start, ctx, unprotected));
 
     /* temporary sequence TL for calculating the protection
         ProtectedPart ::= SEQUENCE {
@@ -843,107 +745,42 @@ int cmpcl_CMPwrite_PKIMessage_der(cmp_ctx *ctx, unsigned char *start,
     /*
      * header and body are written now --> save current pos & prot_len as input for protection
      */
-    protPart_p = *p;
-    size_t content_len = protPart_len;
-    MBEDTLS_ASN1_CHK_ADD(protPart_len, mbedtls_asn1_write_len(&protPart_p, start, protPart_len));
+    payload_len = header_len + body_len;
+    protPart_len = payload_len;
+    header_start = *p;
+
+    /**
+     * write protected part sequence
+     */
+    MBEDTLS_ASN1_CHK_ADD(protPart_len, mbedtls_asn1_write_len(p, start, payload_len));
     MBEDTLS_ASN1_CHK_ADD(protPart_len,
-                         mbedtls_asn1_write_tag(&protPart_p, start, MBEDTLS_ASN1_CONSTRUCTED |
+                         mbedtls_asn1_write_tag(p, start, MBEDTLS_ASN1_CONSTRUCTED |
                                                 MBEDTLS_ASN1_SEQUENCE));
 
+    protected_part_start = *p;
+
     if (!unprotected) {     /* start setting protection */
-        /* ECDSA has variable signature length */
-        if (ctx->cl_key && (mbedtls_pk_get_type(ctx->cl_key) == MBEDTLS_PK_ECKEY)) {
-            size_t real_prot_len = 0;
-            /* TODO TODO TODO: done twice, highly inefficient */
-            unsigned char *real_prot_end_p = prot_end_p;
-            real_prot_len = cmpcl_CMPwrite_PKIMessage_protection_der(&real_prot_end_p,
-                                                                     start,
-                                                                     ctx,
-                                                                     protPart_p,
-                                                                     protPart_len);
-            if (real_prot_len < 0) {
-                return real_prot_len;
-            }
-            real_prot_end_p = prot_end_p - (prot_len - real_prot_len);
-            ret = cmpcl_CMPwrite_PKIMessage_protection_der(&real_prot_end_p,
-                                                           start,
-                                                           ctx,
-                                                           protPart_p,
-                                                           protPart_len);
-            if (ret < 0) {
-                return ret;
-            }
-
-            /*
-             * as length of protection was unknown before extraCerts need to be rewritten to obtain coherent buffer
-             */
-
-            /* rewrite ExtraCerts at right position */
-            unsigned char *real_extra_end_p = prot_end_p - (prot_len - real_prot_len) +
-                                              extraCerts_len;
-            cmpcl_CMPwrite_ExtraCerts_der(&real_extra_end_p, start, ctx);
-            prot_len = real_prot_len;
-        } else {
-            /* write the real protection over the mock one, calling the function a second time
-             * because now the header and body contents are known */
-            ret = cmpcl_CMPwrite_PKIMessage_protection_der(&prot_end_p,
-                                                           start,
-                                                           ctx,
-                                                           protPart_p,
-                                                           protPart_len);
-            if (ret < 0) {
-                return ret;
-            }
-        }
+        MBEDTLS_ASN1_CHK_ADD(prot_len, cmpcl_CMPwrite_PKIMessage_protection_der(&extra_certs_start,
+                                                                                start,
+                                                                                ctx,
+                                                                                protected_part_start,
+                                                                                protPart_len));
     }
-    g_wr_prot_len = prot_len;
+    *p = extra_certs_start - payload_len;
+    memcpy(*p, header_start, payload_len);
 
     /* total message length */
-    len = content_len + prot_len + extraCerts_len;
+    len = payload_len + prot_len + extraCerts_len;
     /* write over the temporary sequence TL
      * PKIMessage ::= SEQUENCE
      */
     MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(p, start, len));
     MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_tag(p, start, MBEDTLS_ASN1_CONSTRUCTED |
                                                      MBEDTLS_ASN1_SEQUENCE));
-    *myp = *p; // this is used by calling function to determine start of output buffer
 
 #ifdef DEVELOPMENT /* for debugging */
     write_to_file("PKIMessage.der", *p, len);
 #endif
-
-#ifdef DEBUG_ASN1
-    int i;
-    CMPINFOV("\r\n **Request** \r\n");
-    for (i = 0; i < len; i++) {
-        PRINTF("0x%02X ", *(*p+i));
-    }
-#endif
-
-
-    CMPINFOV("produced PKIMessage header length: %ld", g_wr_len_header);
-    if (g_wr_len_certTemplate > 0) {
-        CMPINFOV("produced CertTemplate length: %ld", g_wr_len_certTemplate);
-    }
-    if (g_wr_len_popo > 0) {
-        CMPINFOV("produced ProofOfPossession length: %ld", g_wr_len_popo);
-        CMPINFOV("%s" "requesting implicit confirmation",  ctx->implicitConfirm ? "" : "not ");
-    }
-    if (ctx->secret && ctx->pbmp && !unprotected) {
-        CMPINFOV("PBM-based protection");
-    } else if (ctx->cl_key && ctx->sig_prot_md_alg && !unprotected) {
-        CMPINFOV("signature-based protection with %ld extraCerts with total length: %ld",
-                 g_wr_n_extraCerts,
-                 g_wr_len_extraCerts);
-    } else {
-        CMPINFOV("no protection");
-    }
-    CMPINFOV("request PKIMessage protection length: %ld", g_wr_prot_len);
-    CMPINFOV("request PKIMessage overhead (excl. template, POPO, and certs): %ld",
-             len - g_wr_len_certTemplate - g_wr_len_extraCerts - g_wr_len_popo);
-    CMPINFOV("request PKIMessage total length: %ld", len);
-    CMPINFOV("----"); // begin of transmission
-
     return (int) len;
 }
 
@@ -1227,10 +1064,10 @@ int cmpcl_CMPwrite_PKIHeader_der(unsigned char **p, unsigned char *start,
      */
 /* doesn't work as I don't find the key identifier from extensions :-/ */
 #if 0
-    if (ctx->cl_cert) {
+    if (ctx->prot_cert) {
         sub_len = 0;
         // MBEDTLS_X509_EXT_SUBJECT_KEY_IDENTIFIER
-        getExtension(&ctx->cl_cert->v3_ext);
+        getExtension(&ctx->prot_cert->v3_ext);
         len += sub_len;
         MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(p, start, sub_len));
         MBEDTLS_ASN1_CHK_ADD(len,
@@ -1239,10 +1076,10 @@ int cmpcl_CMPwrite_PKIHeader_der(unsigned char **p, unsigned char *start,
                                                     MBEDTLS_ASN1_CONSTRUCTED | 2));
     }
 #endif
-    if (ctx->reference) {
+    if (ctx->senderKID) {
         sub_len = 0;
         MBEDTLS_ASN1_CHK_ADD(sub_len,
-                             mbedtls_asn1_write_raw_buffer(p, start, ctx->reference,
+                             mbedtls_asn1_write_raw_buffer(p, start, ctx->senderKID,
                                                            ctx->reference_len));
         MBEDTLS_ASN1_CHK_ADD(sub_len, mbedtls_asn1_write_len(p, start, sub_len));
         MBEDTLS_ASN1_CHK_ADD(sub_len, mbedtls_asn1_write_tag(p, start, MBEDTLS_ASN1_OCTET_STRING));
@@ -1259,9 +1096,9 @@ int cmpcl_CMPwrite_PKIHeader_der(unsigned char **p, unsigned char *start,
      */
     if (unprotected) {
         /* no protection */
-    } else if (ctx->cl_key /* && ctx->sig_prot_md_alg */) {
+    } else if (ctx->prot_key /* && ctx->sig_prot_md_alg */) {
         mbedtls_pk_type_t pk_alg;
-        pk_alg = mbedtls_pk_get_type(ctx->cl_key);
+        pk_alg = mbedtls_pk_get_type(ctx->prot_key);
         if (pk_alg == MBEDTLS_PK_ECKEY) {
             pk_alg = MBEDTLS_PK_ECDSA;
         }
@@ -1282,7 +1119,7 @@ int cmpcl_CMPwrite_PKIHeader_der(unsigned char **p, unsigned char *start,
                              mbedtls_asn1_write_tag(p, start,
                                                     MBEDTLS_ASN1_CONTEXT_SPECIFIC |
                                                     MBEDTLS_ASN1_CONSTRUCTED | 1));
-    } else if (ctx->secret && ctx->pbmp) { /* PBM */
+    } else if (ctx->prot_secret && ctx->pbmp) { /* PBM */
         /*
            id-PasswordBasedMAC OBJECT IDENTIFIER ::= { 1 2 840 113533 7 66 13} */
         size_t par_len = 0;

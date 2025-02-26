@@ -71,7 +71,7 @@ static int write_file(unsigned char *content, size_t len, const char *filename,
                       int append)
 {
 
-    FILE *fileObject = fopen(filename, append ? "a" : "r");
+    FILE *fileObject = fopen(filename, append ? "a" : "w");
     if (fileObject == NULL) {
         CMPERRV("====ERROR==== fopen of %s failed: %s\r\n", filename,
                 strerror(errno));
