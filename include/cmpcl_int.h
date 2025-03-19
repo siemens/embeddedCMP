@@ -57,37 +57,50 @@ extern "C" {
 /* **************************************************************** */
 /* HELPERS */
 /* **************************************************************** */
+
+/**
+ * \brief free an mbedtls_asn1_sequence
+ * \param  asn1_sequence sequence to free
+ */
 void cmp_asn1_sequence_free(mbedtls_asn1_sequence *asn1_sequence);
+
+/**
+ * free a mbedtls_asn1_bitstring
+ * \param asn1_bitstring bitstring to free
+ */
 void cmp_asn1_bitstring_free(mbedtls_asn1_bitstring *asn1_bitstring);
+
+/**
+ * \brief duplicate string,
+ * \param dst new allocated duplicated string, previous strin is freed
+ * \param src string to duplicate
+ * \param len length of src string
+ */
 int setStr(unsigned char **dst, const unsigned char *src, const size_t len);
+
+/**
+ * \brief Create a fresh new copy of s, up to n chars long
+ * \param s string to duplicate
+ * \param n max length to duplicate
+ * \return copy of s or NULL
+ */
 char *strndup(const char *s, size_t n);
+/**
+ * \brief Create a fresh new copy of src
+ * \param src string to duplicate
+ *
+ * \return copy of src or NULL
+ */
 char *strdup(const char *src);
+/**
+ * \brief write raw bytes to an output file for debug purposes
+ * \param output_file name of output file
+ * \param data bytes to write
+ * \param len number of bytes to write
+ * \return number of written bytes or negative value in case of error
+ */
 int write_to_file(char *output_file, const unsigned char *data, size_t len);
 
-#ifdef HEAP_USAGE_DEBUG_MSG
-static inline void *debug_calloc(size_t nmemb, size_t size, const char *file,
-                                 int line, const char *func)
-{
-
-    int *loc;
-    loc = (int *) calloc(nmemb, size);
-    if (!loc) {
-        CMPERRS("Error allocating memory!");
-    } else {
-        PRINTF("MEM: ####alloc### at addr=0x%x size=%d in %s:%d %s\r\n", loc, size, file, line,
-               func);
-    }
-    return (void *) loc;
-}
-
-static inline void debug_free(void *ptr, const char *file,
-                              int line, const char *func)
-{
-
-    PRINTF("MEM: freed at addr=0x%x in %s:%d %s\r\n", ptr, file, line, func);
-    free(ptr);
-}
-#endif
 
 /* **************************************************************** */
 /* PasswordBasedMac PBM */
@@ -95,13 +108,14 @@ static inline void debug_free(void *ptr, const char *file,
 /**
  * \brief          calculate PBM
  *
- * \param pbmp      initialized PBMParameter
- * \param msg
- * \param msg_len
- * \param secret
- * \param secret_len
- * \param mac
- * \param mac_len
+ * \param pbmp         initialized PBMParameter
+ * \param msg          message to protect(protected part)
+ * \param msg_len      length of message to protect
+ * \param secret       shared secret
+ * \param secret_len   length of shared secret
+ * \param mac          buffer to write calculated protection
+ * \param mac_len      length of alculated protection
+ * \return negative value in case of error
  */
 int cmp_PBM_new(const cmp_PBMParameter *pbmp, const unsigned char *secret,
                 size_t secret_len, const unsigned char *msg, size_t msg_len,
@@ -167,18 +181,31 @@ int cmp_PBM_new(const cmp_PBMParameter *pbmp, const unsigned char *secret,
 
 /**
  * \brief           Write a built up CertReqMessages to a DER structure
+ * \param p write pointer, will be decremented while writing
+ * \param start lowest address of output buffer
+ * \param ctx context to get the values from
+ * \return number of written bytes or negative value in case of error
+ *
  */
 int cmpcl_CRMFwrite_CertReqMessages_der(unsigned char **p, unsigned char *start,
                                         cmp_ctx *ctx);
 
 /**
  * \brief           Write a built up CertRequest to a DER structure
+ * \param p write pointer, will be decremented while writing
+ * \param start lowest address of output buffer
+ * \param ctx context to get the values from
+ * \return number of written bytes or negative value in case of error
  */
 int cmpcl_CRMFwrite_CertRequest_der(unsigned char **p, unsigned char *start,
                                     cmp_ctx *ctx);
 
 /**
  * \brief           Write a built up CertConfirmContent to a DER structure
+ * \param p write pointer, will be decremented while writing
+ * \param start lowest address of output buffer
+ * \param ctx context to get the values from
+ * \return number of written bytes or negative value in case of error
  */
 int cmpcl_CMPwrite_CertConfCont_der(unsigned char **p, unsigned char *start,
                                     cmp_ctx *ctx);
@@ -268,22 +295,58 @@ typedef struct cmp_pkimessage {
 
 } cmp_pkimessage;
 
-/* TODO describe */
+/**
+ * \brief free a cmp_CertifiedKeyPair structure
+ * \param certifiedKeyPair structure to free
+ */
 void cmp_CertifiedKeyPair_free(cmp_CertifiedKeyPair *certifiedKeyPair);
+
+/**
+ * \brief free a cmp_CertResponse structure
+ * \param response structure to free
+ */
 void cmp_CertResponse_free(cmp_CertResponse *response);
+/**
+ * \brief free a cmp_CertRepMessage structure
+ * \param crep structure to free
+ */
 void cmp_CertRepMessage_free(cmp_CertRepMessage *crep);
 
+/**
+ * \brief Parse and check CMP PKIMessage in DER format
+ * \param ctx context to use
+ * \param expected_type expected CMp message type while parsing
+ * \param cmp parse result
+ * \buf byte buffer holding the raw DER
+ * \buflen length of buf
+ * \return negative value in case of error
+ */
 int cmp_pkimessage_parse_check_der(cmp_ctx *ctx,
                                    int expected_type,
                                    cmp_pkimessage *cmp,
                                    unsigned char *buf,
                                    size_t buflen);
+
+/**
+ * \brief initialize a cmp_pkimessage structure
+ * \param msg message to initialize
+ */
 void cmp_pkimessage_init(cmp_pkimessage *msg);
+
+/**
+ * \brief free a cmp_pkimessage structure
+ * \param msg message to free
+ */
 void cmp_pkimessage_free(cmp_pkimessage *msg);
 
 /*!
  * \brief           Write a built up PKIMessage to a DER structure
  *                  Note: data is written at the end of the buffer!
+ * \param p write pointer, will be decremented while writing
+ * \param start lowest address of output buffer
+ * \param ctx context to get the values from
+ * \param unprotected 1 if no protection should be applied, 0 if protection is needed
+ * \return number of written bytes or negative value in case of error
  *
  * PKIMessage ::= SEQUENCE {
  *  header    PKIHeader,
@@ -296,23 +359,30 @@ void cmp_pkimessage_free(cmp_pkimessage *msg);
 int cmpcl_CMPwrite_PKIMessage_der(unsigned char **p, unsigned char *start,
                                   cmp_ctx *ctx, int unprotected);
 
-/* TODO that random stuff for ECDSA... */
-
 /**
  * \brief           Write a message protection for a given range
  *                  Note: data is written at the end of the buffer! Use the
  *                        return value to determine where you should start
  *                        using the buffer
+ * \param p write pointer, will be decremented while writing
+ * \param start lowest address of output buffer
+ * \param ctx context to get the values from
+ * \param input protected part
+ * \param in_len length of protected part
  */
 int cmpcl_CMPwrite_PKIMessage_protection_der(unsigned char **p,
                                              unsigned char *start,
                                              cmp_ctx *ctx,
                                              const unsigned char *input,
                                              const size_t in_len);
-/* TODO that random stuff for ECDSA... */
 
 /**
  * \brief           Write a built up PKIHeader to a DER structure
+ * \param p write pointer, will be decremented while writing
+ * \param start lowest address of output buffer
+ * \param ctx context to get the values from
+ * \param unprotected 1 if no protection should be applied, 0 if protection is needed
+ * \return number of written bytes or negative value in case of error
  */
 int cmpcl_CMPwrite_PKIHeader_der(unsigned char **p, unsigned char *start,
                                  cmp_ctx *ctx, int unprotected);

@@ -143,8 +143,7 @@ char *cmp_x509_cn_gets(mbedtls_x509_name *dn)
 int cmp_x509_crt_verify(mbedtls_x509_crt *crt,
                         mbedtls_x509_crt *trust_ca,
                         mbedtls_x509_crl *ca_crl,
-                        mbedtls_x509_name *exp_name,
-                        const char *description)
+                        mbedtls_x509_name *exp_name)
 {
 
     int ret;

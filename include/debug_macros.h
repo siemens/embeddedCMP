@@ -45,13 +45,6 @@ extern "C" {
         PRINTF("ERROR: %s:%d %s " fmt NEWLINE, __FILE__, (int) __LINE__, __func__, \
                ##__VA_ARGS__); \
     } while (0)
-#define CMPHEX(p) \
-    do { \
-        PRINTF("DEBUG: first 5 byte are = %#1x %#1x %#1x %#1x %#1x" NEWLINE, \
-               (unsigned) (unsigned char) p[0], (unsigned) (unsigned char) p[1], \
-               (unsigned) (unsigned char) p[2], (unsigned) (unsigned char) p[3], \
-               (unsigned) (unsigned char) p[4]); \
-    } while (0);
 
 #define CMPINFOV(fmt, ...) \
     do { \

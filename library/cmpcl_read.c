@@ -1026,15 +1026,6 @@ int cmp_pkimessage_parse_check_der(cmp_ctx *ctx, int expected_type, cmp_pkimessa
     size_t len;
     unsigned char *p, *end;
 
-/*CMPINFOV("----"); // end of transmission
- #ifdef DEBUG_ASN1
-    CMPINFOV("\r\n **Reply** \r\n");
-    int i;
-    for(i = 0; i < buflen; i++)
-        PRINTF("0x%02X ", *(buf+i));
-    CMPINFOV("\r\n----");
- #endif
- */
 
     /* needed to print sizes of chosen parts of the message
      * initialize to zero for each new PKIMessage
@@ -1287,8 +1278,7 @@ err:
         if ((ret = cmp_x509_crt_verify(ctx->extraCerts,  //mbedtls_x509_crt *crt,
                                        ctx->prot_trust_anchor, //mbedtls_x509_crt *trust_ca,
                                        ctx->prot_crls, //mbedtls_x509_crl *ca_crl,
-                                       &cmp->sender, //mbedtls_x509_name *exp_name,
-                                       "Signer cert" //description
+                                       &cmp->sender //mbedtls_x509_name *exp_name
                                        )) != 0) {
 
             cmp_pkimessage_free(cmp);

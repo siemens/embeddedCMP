@@ -213,12 +213,15 @@ typedef struct cmp_PBMParameter {
 } cmp_PBMParameter;
 
 /**
- * \brief          Initialize PBMParameter
+ * \brief          Initialize PBMParameter for PBM calculation
  *
- * \param ctx      PBMParameter to initialize
- * \param pkibodytype      PKIBody type to set
- * \param clCert      client certificate used to protect the msg
- * \param clKey       client key used to protect the msg matching the cert
+ * \param pbmp           PBMParameter to initialize
+ * \param ctr_drbg       The CTR_DRBG context used for random salt generation
+ * \param salt_len       length of salt to used for PBM
+ * \param owf            OWF to use
+ * \param iterationCount iteration count to use
+ * \param mac            MAC to use
+ * \return               negative value in case of error
  */
 int cmp_PBMParameter_init(cmp_PBMParameter *pbmp,
                           mbedtls_ctr_drbg_context *ctr_drbg, size_t salt_len,
@@ -227,20 +230,27 @@ int cmp_PBMParameter_init(cmp_PBMParameter *pbmp,
 /**
  * \brief          Unallocate all PBMParameter data
  *
- * \param ctx      PBMParameter to free
+ * \param pbmp      PBMParameter to free
  */
 void cmp_PBMParameter_free(cmp_PBMParameter *pbmp);
 
 /* **************************************************************** */
 /* Transfer */
 /* **************************************************************** */
-
+/**
+ * \brief Layer 4 function used to send and receive DER encoded PKIMessages
+ * \param cb_context opaque configuration context for cmp_send_receive_cb
+ * \param outbuf DER encoded PKIMessage to send
+ * \param outlen length of DER encoded PKIMessage to send
+ * \param returned buffer containing a received DER encoded PKIMessage
+ * \param inlen length of received message
+ * \return negative value in case of error
+ */
 typedef int (*cmp_send_receive_cb)(void *cb_context,
                                    const unsigned char *outbuf, const size_t outlen,
                                    unsigned char **inbuf,
                                    size_t *inlen);
 
-typedef int (*invoke_transaction)(cmp_send_receive_cb send_receive_function, void *cb_context);
 
 /* **************************************************************** */
 /* Context */
@@ -248,13 +258,15 @@ typedef int (*invoke_transaction)(cmp_send_receive_cb send_receive_function, voi
 
 typedef struct cmp_ctx {
 
-    void *cb_context; /* transport provider context */
+    void *cb_context; /*!< transport provider context */
 
-    cmp_send_receive_cb send_receive_func; /* transport provider send/receive function */
+    cmp_send_receive_cb send_receive_func; /*!< transport provider send/receive function */
 
-    mbedtls_ctr_drbg_context *ctr_drbg; /* RNG context*/
+    mbedtls_ctr_drbg_context *ctr_drbg; /*!< RNG context*/
 
-    /* header */
+    /**
+     *  header
+     */
 
     /* PKIHeader ::= SEQUENCE {
      * pvno         INTEGER { cmp1999(1), cmp2000(2) },
@@ -340,6 +352,14 @@ typedef struct cmp_ctx {
  *                  Must not be have content
  *
  * \param ctx       cmpctx context to initialise
+ * \param ctr_drbg   CTR_DRBG context structure used for random byte generation
+ * \param cb_context opaque configuration context for send_receive_func
+ * \param send_receive_func Layer 4 send/receive function to use
+ * \param popo_method Proof of Possession method t use,
+ *        CMP_CTX_POPO_RAVERIFIED or CMP_CTX_POPO_SIGNATURE
+ * \param prot_md_alg protection algorithm to use
+ * \param popo_md_alg POPO algorithm to use
+ * \return negative value in case of error
  */
 int cmp_ctx_init(cmp_ctx *ctx, mbedtls_ctr_drbg_context *ctr_drbg,
                  void *cb_context, cmp_send_receive_cb send_receive_func,
@@ -386,11 +406,12 @@ void cmp_ctx_set_prot_crt(cmp_ctx *ctx, mbedtls_x509_crt *crt);
 void cmp_ctx_set_prot_crt_chain(cmp_ctx *ctx, mbedtls_x509_crt *crt);
 
 /**
- * \brief           Set the secret to use for PBM
+ * \brief           Set the shared secret to use for PBM
  *
  * \param ctx       CMP context
+ * \param ctr_drbg  The CTR_DRBG context to use
  * \param sec       secret, gets copied
- * \param len       length in bytes
+ * \param len       length of secret in bytes
  */
 int cmp_ctx_set_prot_pbm_secret(cmp_ctx *ctx,
                                 mbedtls_ctr_drbg_context *ctr_drbg,
@@ -398,7 +419,7 @@ int cmp_ctx_set_prot_pbm_secret(cmp_ctx *ctx,
                                 size_t len);
 
 /**
- * \brief           Set the reference to use for PBM
+ * \brief           Set the reference (sender KID) to use for PBM
  *
  * \param ctx       CMP context
  * \param ref       reference, gets copied
@@ -506,6 +527,11 @@ void cmp_ctx_set_new_key(cmp_ctx *ctx, mbedtls_pk_context *new_key);
  */
 void cmp_ctx_set_unprotected_errors(cmp_ctx *ctx, int allow);
 
+#define CMP_CTX_POPO_RAVERIFIED       0
+#define CMP_CTX_POPO_SIGNATURE        1
+#define CMP_CTX_POPO_KEYENCIPHERMENT  2
+#define CMP_CTX_POPO_KEYAGREEMENT     3
+
 /**
  * \brief           Set the POPO Method to use
  *
@@ -545,12 +571,6 @@ void cmp_ctx_set_enrol_trust_anchor(cmp_ctx *ctx, mbedtls_x509_crt *crt);
  * \param crt       certificate (chain) to use
  */
 void cmp_ctx_set_enrol_crls(cmp_ctx *ctx, mbedtls_x509_crl *crl);
-
-
-#define CMP_CTX_POPO_RAVERIFIED       0
-#define CMP_CTX_POPO_SIGNATURE        1
-#define CMP_CTX_POPO_KEYENCIPHERMENT  2
-#define CMP_CTX_POPO_KEYAGREEMENT     3
 
 /**
  * \brief           Set the hash algorithm for POPO
@@ -613,6 +633,11 @@ void cmp_ctx_set_unprotected_ir(cmp_ctx *ctx, int unprot);
 /* CMP transactions */
 /* **************************************************************** */
 
+/**
+ * \brief initate a CMP transaction
+ * \param ctx parameter context to use
+ * \param body_type IR, CR or KUR
+ */
 int cmpcl_do_transaction(cmp_ctx *ctx, const int body_type);
 
 
@@ -620,14 +645,37 @@ int cmpcl_do_transaction(cmp_ctx *ctx, const int body_type);
 /* **************************************************************** */
 /* CMP helpers */
 /* **************************************************************** */
+/**
+ * \brief allocate bytestring and fill it with random bytes
+ * \param str new allocated string, will be freed before if not NULL
+ * \param str_len length of allocated string
+ * \param ctr_drbg CTR_DRBG context used for random byte generation
+ * \param len required length of random string
+ */
 int cmp_ctx_set_rndm_str(unsigned char **str, size_t *str_len,
                          mbedtls_ctr_drbg_context *ctr_drbg, size_t len);
+/*
+ * \brief Custom wrapper for mbedtls_x509_crt_verify_with_profile()
+ *
+ * Verify the certificate validity, with built-in custom profile
+ *
+ * This function:
+ *  - checks the requested CN (if any)
+ *  - checks the type and size of the EE cert's key,
+ *    as that isn't done as part of chain building/verification currently
+ *  - builds and verifies the chain
+ *
+ *  \param crt certificate to verify
+ *  \param trust_ca truted certificates
+ *  \param ca_crl CRLs to use
+ *  \param exp_name expected subject name or NULL
+ *  \return negative value in case of error
+ */
 
 int cmp_x509_crt_verify(mbedtls_x509_crt *crt,
                         mbedtls_x509_crt *trust_ca,
                         mbedtls_x509_crl *ca_crl,
-                        mbedtls_x509_name *exp_name,
-                        const char *description);
+                        mbedtls_x509_name *exp_name);
 
 
 

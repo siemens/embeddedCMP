@@ -94,8 +94,7 @@ int cmpcl_do_transaction(cmp_ctx *ctx, const int body_type)
         if ((ret = cmp_x509_crt_verify(cmp_response->crep->response->certifiedKeyPair->cert,
                                        ctx->enrol_trust_anchor,
                                        ctx->enrol_crls,
-                                       ctx->subject,
-                                       "Received cert")) != 0) {
+                                       ctx->subject)) != 0) {
 
             ctx->new_cert_fail_info = (1 << CMP_PKIFAILINFO_INCORECTDATA);
         }
