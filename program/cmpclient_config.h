@@ -64,18 +64,20 @@
 
 # define RECIPIENT_NAME "CN=recip"
 /* if set, use given subject name, else use name from file PATH_TO_VENDOR_CERT_PEM */
-# define IMPRINTING_SUBJECT_NAME "CN=subject"
+# define IMPRINTING_SUBJECT_NAME "CN=subject,OU=PPKI Playground,OU=Corporate Technology,OU=For internal test purposes only,O=Siemens,C=DE"
 # define BOOTSTRAPPING_SUBJECT_NAME \
     "CN=my_ECC,OU=PPKI Playground/OU=Corporate Technology,OU=For internal test purposes only,O=Siemens,C=DE"
 
 /* CMP server */
 # define SERVER_HOST   "signservice-playground.ct.siemens.com"
 # define SERVER_PORT   443
-# define SERVER_PATH   "/ejbca/publicweb/cmp/PlaygroundECC"
+# define SERVER_PATH   "/ejbca/publicweb/cmp/PlaygroundECC_PBE"
 
 //# define UNPROTECTED_IR   /* IR may be unprotected if authenticated by LRA */
 # define PBM_SECRET "SecretCmp"
 # define REFERENCE "keyIdentification"
+
+#define UNPROTECTED_ERRORS 1
 
 #endif
 
