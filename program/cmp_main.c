@@ -26,9 +26,11 @@
 #include <string.h>
 #include "mbedtls_transport.h"
 #include "cmpclient.h"
+#include "cmpclient_config.h"
 #include "debug_macros.h"
 
-
+#define STRINGIFY(x) #x
+#define TOSTRING(x) STRINGIFY(x)
 
 int main(int argc, char *argv[])
 {
@@ -55,31 +57,44 @@ int main(int argc, char *argv[])
     }
 
     /*
+     * call invoke_ir_transaction
+     */
+    /*
      * init mbedtls transport
      */
     mbed_tls_transport_ctx ctx;
-    if ((ret = mbed_tls_transport_init(&ctx, &ctr_drbg)) != 0) {
+    if ((ret =
+             mbed_tls_transport_init(&ctx, &ctr_drbg, TLS_CLIENT_CERT, TLS_CLIENT_KEY,
+                                     TLS_SERVER_ROOT,
+                                     SERVER_HOST, TOSTRING(SERVER_PORT), SERVER_PATH_IR)) != 0) {
         PRINTF("failed to initialize transport context");
         mbed_tls_transport_free(&ctx);
         goto end;
     }
-    /*
-     * call invoke_ir_transaction
-     */
+
     if ((ret = invoke_ir_transaction(mbed_tls_send_receive, (void *) &ctx, &ctr_drbg)) != 0) {
         PRINTF("failed to execute transaction");
         mbed_tls_transport_free(&ctx);
         goto end;
     }
+    mbed_tls_transport_free(&ctx);
 
+    if ((ret =
+             mbed_tls_transport_init(&ctx, &ctr_drbg, TLS_CLIENT_CERT, TLS_CLIENT_KEY,
+                                     TLS_SERVER_ROOT,
+                                     SERVER_HOST, TOSTRING(SERVER_PORT), SERVER_PATH_CR)) != 0) {
+        PRINTF("failed to initialize transport context");
+        mbed_tls_transport_free(&ctx);
+        goto end;
+    }
     /*
      * call invoke_cr_transaction
      */
-//    if ((ret = invoke_cr_transaction(mbed_tls_send_receive, (void *) &ctx, &ctr_drbg)) != 0) {
-//        PRINTF("failed to execute transaction");
-//        mbed_tls_transport_free(&ctx);
-//        goto end;
-//    }
+    if ((ret = invoke_cr_transaction(mbed_tls_send_receive, (void *) &ctx, &ctr_drbg)) != 0) {
+        PRINTF("failed to execute transaction");
+        mbed_tls_transport_free(&ctx);
+        goto end;
+    }
     /*
      * TODO invoke_kur_transaction
      */

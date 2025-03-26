@@ -49,7 +49,7 @@
 /* CMP server */
 # define SERVER_HOST   "localhost" // IP address must be used if no proxy is used, corresponds to "pki.certificate.fi"
 # define SERVER_PORT   6000
-# define SERVER_PATH   "onlinelra"
+# define SERVER_PATH_IR   "onlinelra"
 
 //# define UNPROTECTED_IR   /* IR may be unprotected if authenticated by LRA */
 # define PBM_SECRET "myPresharedSecret"
@@ -64,18 +64,22 @@
 
 # define RECIPIENT_NAME "CN=recip"
 /* if set, use given subject name, else use name from file PATH_TO_VENDOR_CERT_PEM */
-# define IMPRINTING_SUBJECT_NAME "CN=subject,OU=PPKI Playground,OU=Corporate Technology,OU=For internal test purposes only,O=Siemens,C=DE"
+# define IMPRINTING_SUBJECT_NAME \
+    "CN=subject,OU=PPKI Playground,OU=Corporate Technology,OU=For internal test purposes only,O=Siemens,C=DE"
 # define BOOTSTRAPPING_SUBJECT_NAME \
-    "CN=my_ECC,OU=PPKI Playground/OU=Corporate Technology,OU=For internal test purposes only,O=Siemens,C=DE"
+    "CN=my_ECC,OU=PPKI Playground,OU=Corporate Technology,OU=For internal test purposes only,O=Siemens,C=DE"
 
 /* CMP server */
 # define SERVER_HOST   "signservice-playground.ct.siemens.com"
 # define SERVER_PORT   443
-# define SERVER_PATH   "/ejbca/publicweb/cmp/PlaygroundECC_PBE"
 
-//# define UNPROTECTED_IR   /* IR may be unprotected if authenticated by LRA */
+# define SERVER_PATH_IR   "/ejbca/publicweb/cmp/PlaygroundECC_PBE"
 # define PBM_SECRET "SecretCmp"
 # define REFERENCE "keyIdentification"
+
+
+# define SERVER_PATH_CR   "/ejbca/publicweb/cmp/PlaygroundECC"
+
 
 #define UNPROTECTED_ERRORS 1
 
@@ -94,7 +98,7 @@
 /* CMP server */
 # define SERVER_HOST   "91.213.161.196" // IP address must be used if no proxy is used, corresponds to "pki.certificate.fi"
 # define SERVER_PORT   8700
-# define SERVER_PATH   "pkix/" // Insta CA requires that SERVER_PATH has trailing '/'
+# define SERVER_PATH_IR   "pkix/" // Insta CA requires that SERVER_PATH has trailing '/'
 
 /* HTTP Proxy example, if needed */
 # define PROXY_NAME    "192.168.0.100"
@@ -114,7 +118,7 @@
 /* CMP server */
 # define SERVER_HOST   "certifier.mynetwork"
 # define SERVER_PORT   8080
-# define SERVER_PATH   "pkix/"
+# define SERVER_PATH_IR   "pkix/"
 /* Proxy */
 # define PROXY_NAME    "194.145.60.1"
 # define PROXY_PORT    9400
@@ -192,13 +196,13 @@
 #endif
 
 #ifndef IMPRINTING_SERVER_PATH
-# define IMPRINTING_SERVER_PATH SERVER_PATH
+# define IMPRINTING_SERVER_PATH SERVER_PATH_IR
 #endif
 #ifndef BOOTSTRAPPING_SERVER_PATH
-# define BOOTSTRAPPING_SERVER_PATH SERVER_PATH
+# define BOOTSTRAPPING_SERVER_PATH SERVER_PATH_IR
 #endif
 #ifndef UPDATING_SERVER_PATH
-# define UPDATING_SERVER_PATH SERVER_PATH
+# define UPDATING_SERVER_PATH SERVER_PATH_IR
 #endif
 
 #ifndef IMPRINTING_SUBJECT_NAME

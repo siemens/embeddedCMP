@@ -56,6 +56,7 @@ The following picture gives a rough overview of the software components used by 
 [CMP main] as main
 note as mainN
 program entry point
+file: program/cmp_main.c
 endnote
 mainN .. main
 
@@ -63,6 +64,7 @@ mainN .. main
 note as clientN
 implements toplevel CR, IR 
 and KUR transactions
+file: program/cmp_client.c
 endnote
 clientN .. client
 
@@ -70,6 +72,7 @@ clientN .. client
 note as storageN
 implements credential 
 load and store functions
+file: program/credential_storage.c
 endnote
 storageN .. storage
 
@@ -77,6 +80,7 @@ storageN .. storage
 note as transportN
 implements HTTP and TLS 
 send and receive support
+file: program/mbedtls_transport.c
 endnote
 transportN .. transport
 
@@ -84,14 +88,16 @@ transportN .. transport
 note as asn1N
 implements low level ASN.1 
 encoding and decoding
+file: mbedtls/...
 endnote
 asn1N .. asn1
 
 [CMP ctx] as ctx
 note as ctxN
 provides and holds all 
-CMP related states and parameters
+CMP states and parameters
 related to one CMP transaction
+file: library/cmpcl_ctx.c
 endnote
 ctxN .. ctx 
 
@@ -99,6 +105,7 @@ ctxN .. ctx
 note as libN
 implements some 
 helper functions
+file: library/cmpcl_lib.c
 endnote
 libN .. lib
 
@@ -106,6 +113,7 @@ libN .. lib
 note as writeN
 implements CMP specific 
 message encoder functions
+file: library/cmpcl_write.c
 endnote
 writeN .. write
 
@@ -113,6 +121,7 @@ writeN .. write
 note as readN
 implements CMP specific 
 message decoder functions
+file: library/cmpcl_read.c
 endnote
 readN .. read
 
@@ -120,6 +129,7 @@ readN .. read
 note as sesN
 implements CMP 
 transaction management
+file: library/cmpcl_ses.c
 endnote
 sesN .. ses
 
@@ -137,6 +147,8 @@ ses -d--> transport: invokes
 
 read --> asn1: uses
 write --> asn1: uses
+
+transport -l-> storage: uses
 
 @enduml
 ```

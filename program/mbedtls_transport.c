@@ -29,7 +29,6 @@
 #include "mbedtls/error.h"
 #include "mbedtls/ssl.h"
 #include "mbedtls/debug.h"
-#include "cmpclient_config.h"
 #include "cmpcl.h"
 #include "credential_storage.h"
 #include "debug_macros.h"
@@ -51,7 +50,14 @@ static void mbed_tls_debug(void *ctx, int level, const char *file, int line,
 }
 
 
-int mbed_tls_transport_init(mbed_tls_transport_ctx *ctx, mbedtls_ctr_drbg_context *ctr_drbg)
+int mbed_tls_transport_init(mbed_tls_transport_ctx *ctx,
+                            mbedtls_ctr_drbg_context *ctr_drbg,
+                            const char *path_to_client_cert,
+                            const char *path_to_client_Key,
+                            const char *path_to_server_root,
+                            const char *server_fqdn,
+                            const char *server_port,
+                            const char *server_path)
 {
     /*
      * Initialize the RNG and the session data
@@ -66,29 +72,33 @@ int mbed_tls_transport_init(mbed_tls_transport_ctx *ctx, mbedtls_ctr_drbg_contex
     mbedtls_x509_crt_init(&ctx->owncert);
 
     /*
-     * Load the certificates and private RSA key
+     * Load the certificates and private key
      */
 
-    ret = append_certs_from_pem(&ctx->trustedserverroots, TLS_SERVER_ROOT);
-    if (ret != 0) {
-        PRINTF("\r\n error parsing TLS server certificate from %s:%d\r\n",
-               TLS_SERVER_ROOT, ret);
-        return -1;
-    }
-
-    ret = append_certs_from_pem(&ctx->owncert, TLS_CLIENT_CERT);
+    ret = append_certs_from_pem(&ctx->owncert, path_to_client_cert);
     if (ret != 0) {
         PRINTF("\r\n error parsing own TLS chain from %s:%d\r\n",
-               TLS_CLIENT_CERT, ret);
+               path_to_client_cert, ret);
         return -1;
     }
 
-    ret = parse_key_from_pem(&ctx->ownpkey, TLS_CLIENT_KEY, ctr_drbg);
+    ret = parse_key_from_pem(&ctx->ownpkey, path_to_client_Key, ctr_drbg);
     if (ret != 0) {
         PRINTF("\r\n error parsing own TLS key from %s:%d\r\n",
-               TLS_CLIENT_KEY, ret);
+               path_to_client_Key, ret);
         return -1;
     }
+
+    ret = append_certs_from_pem(&ctx->trustedserverroots, path_to_server_root);
+    if (ret != 0) {
+        PRINTF("\r\n error parsing TLS server certificate from %s:%d\r\n",
+               path_to_server_root, ret);
+        return -1;
+    }
+
+    ctx->server_fqdn = server_fqdn;
+    ctx->server_port = server_port;
+    ctx->server_path = server_path;
 
     /*
      * Setting up the SSL data.
@@ -118,7 +128,7 @@ int mbed_tls_transport_init(mbed_tls_transport_ctx *ctx, mbedtls_ctr_drbg_contex
         return -1;
     }
 
-    if ((ret = mbedtls_ssl_set_hostname(&ctx->ssl, SNI_HOSTNAME)) != 0) {
+    if ((ret = mbedtls_ssl_set_hostname(&ctx->ssl, server_fqdn)) != 0) {
         PRINTF(" failed\n  ! mbedtls_ssl_set_hostname returned %s\n\n",
                mbedtls_high_level_strerr(ret));
         return -1;
@@ -158,17 +168,15 @@ int mbed_tls_send_receive(void *cb_context, const unsigned char *outbuf,
     *inbuf = NULL;
     *inlen = 0;
     int ret = 1;
-#define STRINGIFY(x) #x
-#define TOSTRING(x) STRINGIFY(x)
+
     if ((ret = mbedtls_net_connect(&ctx->server_fd,
-                                   SERVER_HOST, TOSTRING(SERVER_PORT),
+                                   ctx->server_fqdn, ctx->server_port,
                                    MBEDTLS_NET_PROTO_TCP)) != 0) {
         PRINTF(" failed\n  ! mbedtls_net_connect returned -0x%x\n\n",
                (unsigned int) -ret);
         return -1;
     }
-#undef STRINGIFY
-#undef TOSTRING
+
     mbedtls_ssl_session_reset(&ctx->ssl);
     while ((ret = mbedtls_ssl_handshake(&ctx->ssl)) != 0) {
         if (ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE) {
@@ -198,7 +206,7 @@ int mbed_tls_send_receive(void *cb_context, const unsigned char *outbuf,
             "Connection: close" NEWLINE
             "Content-Length: %ld" NEWLINE NEWLINE,
             //
-            *SERVER_PATH != '/' ? "/" : "", SERVER_PATH, SERVER_HOST, outlen);
+            *ctx->server_path != '/' ? "/" : "", ctx->server_path, ctx->server_fqdn, outlen);
     if (write_all(&ctx->ssl, (unsigned char *) header, strlen(header)) < 0) {
         return -1;
     }
