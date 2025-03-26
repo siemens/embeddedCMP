@@ -390,14 +390,8 @@ int invoke_kur_transaction(cmp_send_receive_cb send_receive_func,
                               NULL,
                               NULL,
                               NULL, // recipient_name
-#ifdef REFERENCE
-                              REFERENCE
-#else
-                              NULL
-#endif
-                              ,
-                              NULL
-                              ,
+                              NULL,
+                              NULL,
                               cb_context,
                               send_receive_func,
                               ctr_drbg,

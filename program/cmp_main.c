@@ -95,9 +95,23 @@ int main(int argc, char *argv[])
         mbed_tls_transport_free(&ctx);
         goto end;
     }
+    mbed_tls_transport_free(&ctx);
     /*
-     * TODO invoke_kur_transaction
+     * invoke_kur_transaction
      */
+    if ((ret =
+             mbed_tls_transport_init(&ctx, &ctr_drbg, TLS_CLIENT_CERT, TLS_CLIENT_KEY,
+                                     TLS_SERVER_ROOT,
+                                     SERVER_HOST, TOSTRING(SERVER_PORT), SERVER_PATH_KUR)) != 0) {
+        PRINTF("failed to initialize transport context");
+        mbed_tls_transport_free(&ctx);
+        goto end;
+    }
+    if ((ret = invoke_kur_transaction(mbed_tls_send_receive, (void *) &ctx, &ctr_drbg)) != 0) {
+        PRINTF("failed to execute transaction");
+        mbed_tls_transport_free(&ctx);
+        goto end;
+    }
 end:
     mbed_tls_transport_free(&ctx);
     mbedtls_ctr_drbg_free(&ctr_drbg);

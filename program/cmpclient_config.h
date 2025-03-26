@@ -80,6 +80,8 @@
 
 # define SERVER_PATH_CR   "/ejbca/publicweb/cmp/PlaygroundECC"
 
+# define SERVER_PATH_KUR   "/ejbca/publicweb/cmp/PlaygroundCMPSigning"
+
 
 #define UNPROTECTED_ERRORS 1
 
