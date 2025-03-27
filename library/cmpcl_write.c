@@ -784,108 +784,6 @@ int cmpcl_CMPwrite_PKIMessage_der(unsigned char **p, unsigned char *start,
     return (int) len;
 }
 
-#if 0
-/* FIND THE KEY IDENTIFIER EXTENSION NEEDED FOR senderKID */
-/* TODO doesn't work as I don't find the key identifier from extensions :-/ */
-static int getExtension(mbedtls_x509_buf *v3_ext)
-{
-    CMPDBG
-    int ret;
-    size_t len;
-    unsigned char *end_ext_data, *end_ext_octet;
-    unsigned char *c, *end;
-    unsigned char **p;
-
-    p = &c;
-    *p = v3_ext->p;
-    end = *p + v3_ext->len;
-
-    /* the outermost sequence needs to be taken away ... */
-    if ((ret =
-             mbedtls_asn1_get_tag(p, end, &len,
-                                  MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE)) != 0) {
-        CMPERRS("ERROR with extension\n");
-    }
-    ;
-
-    while (*p < end) {
-        /*
-         * Extension  ::=  SEQUENCE  {
-         *      extnID      OBJECT IDENTIFIER,
-         *      critical    BOOLEAN DEFAULT FALSE,
-         *      extnValue   OCTET STRING  }
-         */
-        mbedtls_x509_buf extn_oid = { 0, 0, NULL };
-        int is_critical = 0; /* DEFAULT FALSE */
-        int ext_type = 0;
-
-        if ((ret = mbedtls_asn1_get_tag(p, end, &len,
-                                        MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE)) != 0) {
-            return MBEDTLS_ERR_X509_INVALID_EXTENSIONS + ret;
-        }
-
-        end_ext_data = *p + len;
-
-        /* Get extension ID */
-        extn_oid.tag = **p;
-
-        if ((ret = mbedtls_asn1_get_tag(p, end, &extn_oid.len, MBEDTLS_ASN1_OID)) != 0) {
-            return MBEDTLS_ERR_X509_INVALID_EXTENSIONS + ret;
-        }
-
-        extn_oid.p = *p;
-        *p += extn_oid.len;
-
-        if ((end - *p) < 1) {
-            return MBEDTLS_ERR_X509_INVALID_EXTENSIONS +
-                   MBEDTLS_ERR_ASN1_OUT_OF_DATA;
-        }
-
-        /* Get optional critical */
-        if ((ret = mbedtls_asn1_get_bool(p, end_ext_data, &is_critical)) != 0 &&
-            (ret != MBEDTLS_ERR_ASN1_UNEXPECTED_TAG)) {
-            return MBEDTLS_ERR_X509_INVALID_EXTENSIONS + ret;
-        }
-
-        /* Data should be octet string type */
-        if ((ret = mbedtls_asn1_get_tag(p, end_ext_data, &len,
-                                        MBEDTLS_ASN1_OCTET_STRING)) != 0) {
-            return MBEDTLS_ERR_X509_INVALID_EXTENSIONS + ret;
-        }
-
-        end_ext_octet = *p + len;
-
-        if (end_ext_octet != end_ext_data) {
-            return MBEDTLS_ERR_X509_INVALID_EXTENSIONS +
-                   MBEDTLS_ERR_ASN1_LENGTH_MISMATCH;
-        }
-
-        /*
-         * Detect supported extensions
-         */
-        ret = mbedtls_oid_get_x509_ext_type(&extn_oid, &ext_type);   /* TODO This does NOT give the ID if the extension is not supported :-/ */
-
-        CMPDBGV("Ext type %d, ret %d\n", ext_type, ret);
-
-        switch (ext_type) {
-            case MBEDTLS_X509_EXT_SUBJECT_KEY_IDENTIFIER:
-                break;
-
-            default:
-                *p = end_ext_octet;
-        }
-    }
-
-    if (*p != end) {
-        return MBEDTLS_ERR_X509_INVALID_EXTENSIONS +
-               MBEDTLS_ERR_ASN1_LENGTH_MISMATCH;
-    }
-
-    CMPDBG
-    return 0;
-}
-#endif /* 0 */
-
 /* **************************************************************** */
 static int cmpcl_CMPwrite_PBMParameter_der(unsigned char **p, unsigned char *start,
                                            cmp_PBMParameter *pbmp)
@@ -1062,20 +960,14 @@ int cmpcl_CMPwrite_PKIHeader_der(unsigned char **p, unsigned char *start,
     /*
          senderKID       [2] KeyIdentifier           OPTIONAL,
      */
-/* doesn't work as I don't find the key identifier from extensions :-/ */
-#if 0
-    if (ctx->prot_cert) {
-        sub_len = 0;
-        // MBEDTLS_X509_EXT_SUBJECT_KEY_IDENTIFIER
-        getExtension(&ctx->prot_cert->v3_ext);
-        len += sub_len;
-        MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(p, start, sub_len));
-        MBEDTLS_ASN1_CHK_ADD(len,
-                             mbedtls_asn1_write_tag(p, start,
-                                                    MBEDTLS_ASN1_CONTEXT_SPECIFIC |
-                                                    MBEDTLS_ASN1_CONSTRUCTED | 2));
+
+    if (ctx->prot_cert != NULL && ctx->prot_cert->subject_key_id.p != NULL) {
+        if ((ret =
+                 cmp_ctx_set_senderKID(ctx, ctx->prot_cert->subject_key_id.p,
+                                       ctx->prot_cert->subject_key_id.len))) {
+            return ret;
+        }
     }
-#endif
     if (ctx->senderKID) {
         sub_len = 0;
         MBEDTLS_ASN1_CHK_ADD(sub_len,

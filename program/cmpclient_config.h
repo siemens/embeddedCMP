@@ -31,7 +31,7 @@
 
 /* select CA to be used */
 #define PLAYGROUND
-//#define LOCAL_RA_CA
+// #define LOCAL_RA_CA
 //#define INSTA
 //#define NETGUARD
 
@@ -50,6 +50,8 @@
 # define SERVER_HOST   "localhost" // IP address must be used if no proxy is used, corresponds to "pki.certificate.fi"
 # define SERVER_PORT   6000
 # define SERVER_PATH_IR   "onlinelra"
+# define SERVER_PATH_CR   "onlinelra"
+# define SERVER_PATH_KUR   "onlinelra"
 
 //# define UNPROTECTED_IR   /* IR may be unprotected if authenticated by LRA */
 # define PBM_SECRET "myPresharedSecret"
