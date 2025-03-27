@@ -237,7 +237,6 @@ int mbed_tls_send_receive(void *cb_context, const unsigned char *outbuf,
             return -1;
         }
         if (ret == 0) {
-            PRINTF("\n\nEOF\n\n");
             break;
         }
         read_len += ret;

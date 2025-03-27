@@ -32,55 +32,40 @@
 #define STRINGIFY(x) #x
 #define TOSTRING(x) STRINGIFY(x)
 
-int main(int argc, char *argv[])
+static int run_ir(mbedtls_ctr_drbg_context *ctr_drbg)
 {
-    psa_status_t status = psa_crypto_init();
-    if (status != PSA_SUCCESS) {
-        PRINTF("Failed to initialize PSA Crypto implementation: %d\n",
-               (int) status);
-        return -1;
-    }
-    /**
-     * init pseudorandom generator
-     */
-    mbedtls_entropy_context entropy;
-    mbedtls_entropy_init(&entropy);
-    mbedtls_ctr_drbg_context ctr_drbg;
-    mbedtls_ctr_drbg_init(&ctr_drbg);
-    int ret = 0;
-    const char *pers = "cmp_client";
-    if ((ret = mbedtls_ctr_drbg_seed(&ctr_drbg, mbedtls_entropy_func, &entropy,
-                                     (const unsigned char *) pers,
-                                     strlen(pers))) != 0) {
-        PRINTF(" failed\n  ! mbedtls_ctr_drbg_seed returned %d\n", ret);
-        goto end;
-    }
-
     /*
      * call invoke_ir_transaction
      */
     /*
      * init mbedtls transport
      */
+    int ret = -1;
     mbed_tls_transport_ctx ctx;
     if ((ret =
-             mbed_tls_transport_init(&ctx, &ctr_drbg, TLS_CLIENT_CERT, TLS_CLIENT_KEY,
+             mbed_tls_transport_init(&ctx, ctr_drbg, TLS_CLIENT_CERT, TLS_CLIENT_KEY,
                                      TLS_SERVER_ROOT,
                                      SERVER_HOST, TOSTRING(SERVER_PORT), SERVER_PATH_IR)) != 0) {
         PRINTF("failed to initialize transport context");
         mbed_tls_transport_free(&ctx);
-        goto end;
+        return ret;
     }
 
-    if ((ret = invoke_ir_transaction(mbed_tls_send_receive, (void *) &ctx, &ctr_drbg)) != 0) {
+    if ((ret = invoke_ir_transaction(mbed_tls_send_receive, (void *) &ctx, ctr_drbg)) != 0) {
         PRINTF("failed to execute transaction");
         mbed_tls_transport_free(&ctx);
-        goto end;
+        return ret;
     }
-    mbed_tls_transport_free(&ctx);
+    return ret;
+}
 
+
+static int run_cr(mbedtls_ctr_drbg_context *ctr_drbg)
+{
+    mbed_tls_transport_ctx ctx;
+    int ret = -1;
     if ((ret =
-             mbed_tls_transport_init(&ctx, &ctr_drbg, TLS_CLIENT_CERT, TLS_CLIENT_KEY,
+             mbed_tls_transport_init(&ctx, ctr_drbg, TLS_CLIENT_CERT, TLS_CLIENT_KEY,
                                      TLS_SERVER_ROOT,
                                      SERVER_HOST, TOSTRING(SERVER_PORT), SERVER_PATH_CR)) != 0) {
         PRINTF("failed to initialize transport context");
@@ -90,30 +75,75 @@ int main(int argc, char *argv[])
     /*
      * call invoke_cr_transaction
      */
-    if ((ret = invoke_cr_transaction(mbed_tls_send_receive, (void *) &ctx, &ctr_drbg)) != 0) {
-        PRINTF("failed to execute transaction");
-        mbed_tls_transport_free(&ctx);
-        goto end;
-    }
-    mbed_tls_transport_free(&ctx);
-    /*
-     * invoke_kur_transaction
-     */
-    if ((ret =
-             mbed_tls_transport_init(&ctx, &ctr_drbg, TLS_CLIENT_CERT, TLS_CLIENT_KEY,
-                                     TLS_SERVER_ROOT,
-                                     SERVER_HOST, TOSTRING(SERVER_PORT), SERVER_PATH_KUR)) != 0) {
-        PRINTF("failed to initialize transport context");
-        mbed_tls_transport_free(&ctx);
-        goto end;
-    }
-    if ((ret = invoke_kur_transaction(mbed_tls_send_receive, (void *) &ctx, &ctr_drbg)) != 0) {
+    if ((ret = invoke_cr_transaction(mbed_tls_send_receive, (void *) &ctx, ctr_drbg)) != 0) {
         PRINTF("failed to execute transaction");
         mbed_tls_transport_free(&ctx);
         goto end;
     }
 end:
     mbed_tls_transport_free(&ctx);
+    return ret;
+}
+
+static int run_kur(mbedtls_ctr_drbg_context *ctr_drbg)
+{
+    mbed_tls_transport_ctx ctx;
+    int ret = -1;
+    /*
+     * invoke_kur_transaction
+     */
+    if ((ret =
+             mbed_tls_transport_init(&ctx, ctr_drbg, TLS_CLIENT_CERT, TLS_CLIENT_KEY,
+                                     TLS_SERVER_ROOT,
+                                     SERVER_HOST, TOSTRING(SERVER_PORT), SERVER_PATH_KUR)) != 0) {
+        PRINTF("failed to initialize transport context");
+        mbed_tls_transport_free(&ctx);
+        return ret;
+    }
+    if ((ret = invoke_kur_transaction(mbed_tls_send_receive, (void *) &ctx, ctr_drbg)) != 0) {
+        PRINTF("failed to execute transaction");
+        mbed_tls_transport_free(&ctx);
+        return ret;
+    }
+    return ret;
+}
+
+int main(int argc, char *argv[])
+{
+    psa_status_t status = psa_crypto_init();
+    if (status != PSA_SUCCESS) {
+        PRINTF("Failed to initialize PSA Crypto implementation: %d\n",
+               (int) status);
+        return -1;
+    }
+
+    mbedtls_ctr_drbg_context ctr_drbg;
+    mbedtls_ctr_drbg_init(&ctr_drbg);
+    /**
+     * init pseudorandom generator
+     */
+    mbedtls_entropy_context entropy;
+    mbedtls_entropy_init(&entropy);
+
+    int ret = 0;
+    const char *pers = "cmp_client";
+    if ((ret = mbedtls_ctr_drbg_seed(&ctr_drbg, mbedtls_entropy_func, &entropy,
+                                     (const unsigned char *) pers,
+                                     strlen(pers))) != 0) {
+        PRINTF(" failed\n  ! mbedtls_ctr_drbg_seed returned %d\n", ret);
+        goto end;
+    }
+
+    if ((ret = run_ir(&ctr_drbg)) != 0) {
+        goto end;
+    }
+    if ((ret = run_cr(&ctr_drbg)) != 0) {
+        goto end;
+    }
+    if ((ret = run_kur(&ctr_drbg)) != 0) {
+        goto end;
+    }
+end:
     mbedtls_ctr_drbg_free(&ctr_drbg);
     mbedtls_entropy_free(&entropy);
     mbedtls_psa_crypto_free();
