@@ -811,7 +811,6 @@ static int cmpcl_CMPwrite_PBMParameter_der(unsigned char **p, unsigned char *sta
     //MBEDTLS_ASN1_CHK_ADD( len, mbedtls_asn1_write_algorithm_identifier( p, start, HMAC_SHA256_OID, strlen( HMAC_SHA256_OID), 0 ) );
 
     /* iterationCount      INTEGER, */
-    /* TODO: PROBLEM: mbedtls_asn1_write_int does only support up to 128... */
     MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_int(p, start, pbmp->iterationCount));
 
     /* owf                 AlgorithmIdentifier, */
