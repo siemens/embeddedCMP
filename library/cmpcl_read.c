@@ -718,11 +718,13 @@ static int cmp_pkibody_PKIStatusInfo_parse_der(cmp_PKIStatusInfo *sinfo,
      */
     if ((ret = mbedtls_asn1_get_bitstring(&p, end, &sinfo->PKIFailureInfo)) == 0) {
         len = sinfo->PKIFailureInfo.len;
-        CMPERRV("PKIFailureInfo %#1x %#1x %#1x %#1x",
+        unsigned char *errMsg = errMsg = sinfo->statusString->buf.p;
+        CMPERRV("PKIFailureInfo %#1x %#1x %#1x %#1x: %.*s",
                 len > 0 ? (unsigned char) sinfo->PKIFailureInfo.p[0] : 0,
                 len > 1 ? (unsigned char) sinfo->PKIFailureInfo.p[1] : 0,
                 len > 2 ? (unsigned char) sinfo->PKIFailureInfo.p[2] : 0,
-                len > 3 ? (unsigned char) sinfo->PKIFailureInfo.p[3] : 0);
+                len > 3 ? (unsigned char) sinfo->PKIFailureInfo.p[3] : 0,
+                (int) sinfo->statusString->buf.len, errMsg);
         /*if (len > 4)
             CMPWARNS("PKIFailureInfo field has more than four bytes!");*/
     } else {
