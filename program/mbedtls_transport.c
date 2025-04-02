@@ -260,12 +260,63 @@ int mbed_tls_send_receive(void *cb_context, const unsigned char *outbuf,
         break;
     } while (1);
     mbedtls_net_close(&ctx->server_fd);
+    // terminate input buffer
+    input_buf[read_len] = '\0';
     /*
      * Parse the HTTP response
      */
-    unsigned char *header_end = (unsigned char *) strstr((const char *) input_buf, NEWLINE NEWLINE);
+    /**
+     * parse status line
+     */
+    unsigned char *code_and_text = input_buf;
+    while (*code_and_text > ' ') {
+        // skip HTTP version
+        if ((code_and_text-input_buf) >= read_len) {
+            PRINTF("no valid HTTP response, no HTTP version in status line\n");
+            return -1;
+        }
+        code_and_text++;
+    }
+    while (*code_and_text == ' ') {
+        // skip space after HTTP version
+        if ((code_and_text-input_buf) >= read_len) {
+            PRINTF("no valid HTTP response, HTTP version in status line too long\n");
+            return -1;
+        }
+        code_and_text++;
+    }
+    unsigned char *remaining_header = code_and_text;
+    while (*remaining_header >= ' ') {
+        // skip status code and text
+        if ((remaining_header-input_buf) >= read_len) {
+            PRINTF("no valid HTTP response, broken status line\n");
+            return -1;
+        }
+        remaining_header++;
+    }
+    // terminate status line
+    *remaining_header = '\0';
+    // parse status code
+    switch (*code_and_text) {
+        case '2':
+            // success
+            break;
+        case '1':
+        case '3':
+            PRINTF("unable to handle HTTP status %s\n", code_and_text);
+            return -1;
+        case '4':
+        case '5':
+            PRINTF("got HTTP error %s\n", code_and_text);
+            return -1;
+        default:
+            PRINTF("got invalid HTTP status code %s\n", code_and_text);
+            return -1;
+    }
+    unsigned char *header_end = (unsigned char *) strstr((const char *) remaining_header+1,
+                                                         NEWLINE NEWLINE);
     if (header_end == NULL) {
-        PRINTF("no valid HTTP response");
+        PRINTF("no valid HTTP response\n");
         return -1;
     }
     header_end += strlen(NEWLINE NEWLINE);
