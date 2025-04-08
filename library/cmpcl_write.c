@@ -138,10 +138,10 @@ int cmpcl_CMPwrite_CertConfCont_der(unsigned char **p,
      *    -- certificate already exists
      *    }
      */
-    if (ctx->new_cert_fail_info != 0) {
+    if (ctx->cert_conf_fail_info != 0) {
         CMPCL_ASN1_CHK_ADD(len,
                            mbedtls_asn1_write_bitstring(p, start,
-                                                        (unsigned char *) &ctx->new_cert_fail_info,
+                                                        (unsigned char *) &ctx->cert_conf_fail_info,
                                                         26));
     }
 
@@ -159,7 +159,7 @@ int cmpcl_CMPwrite_CertConfCont_der(unsigned char **p,
     /* PKIStatus ::= INTEGER */
     CMPCL_ASN1_CHK_ADD(len,
                        mbedtls_asn1_write_int(p, start,
-                                              ctx->new_cert_fail_info ? CMP_PKISTATUS_REJECTION :
+                                              ctx->cert_conf_fail_info ? CMP_PKISTATUS_REJECTION :
                                               CMP_PKISTATUS_ACCEPTED));
 
     /* PKIStatusInfo ::= SEQUENCE */

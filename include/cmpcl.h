@@ -317,7 +317,7 @@ typedef struct cmp_ctx {
     int cache_extracerts;   /* allow to cache extra certs during one transaction */
 
     /* holds PKIFailureInfo if new cert could not be verified */
-    uint32_t new_cert_fail_info;
+    uint32_t cert_conf_fail_info;
 
     /* protection */
     int unprotected_errors; /* allow negative responses without protection */
@@ -604,6 +604,14 @@ void cmp_ctx_set_body_type(cmp_ctx *ctx, int next_body);
  * \param ic        0=false, 1=true
  */
 void cmp_ctx_set_implicit_confirm(cmp_ctx *ctx, int ic);
+
+/**
+ * \brief           Set failInfo in certConf
+ * \param ctx       CMP context
+ * \param fail_info CMP_PKIFAILINFO_* to add
+ *
+ */
+void cmp_ctx_set_failinfo(cmp_ctx *ctx, int fail_info);
 
 /**
  * \brief           Set whether to allow unprotected negative responses and PKIConf

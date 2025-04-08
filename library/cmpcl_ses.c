@@ -46,28 +46,29 @@ int cmpcl_do_transaction(cmp_ctx *ctx, const int body_type)
     if (len < 0) {
         CMPERRV("cmpcl_CMPwrite_PKIMessage der returned %d", len);
         ret = len; /* if negative, len is an error code*/
-        goto err;
+        goto syserr;
     }
 
     ret = ctx->send_receive_func(ctx->cb_context,
                                  output_start, (size_t) len, &input, &inputlen);
     if (ret < 0) {
         CMPERRS("transport failed");
-        goto err;
+        goto syserr;
     }
 
     cmp_response = mbedtls_calloc(1, sizeof(cmp_pkimessage));
     if (!cmp_response) {
         CMPERRS("alloc cmp");
         ret = CMPCL_ERR_MEMORY_ALLOCATION;
-        goto err;
+        goto syserr;
     }
     cmp_pkimessage_init(cmp_response);
 
     if ((ret = cmp_pkimessage_parse_check_der(ctx, body_type + 1 /* ip, cp, or kup */, cmp_response,
                                               input, inputlen)) < 0) {
         CMPERRV("Parsing of response FAILED with return code %d", ret);
-        goto err;
+        cmp_ctx_set_failinfo(ctx, CMP_PKIFAILINFO_BADDATAFORMAT);
+        goto conferr;
     }
 
 //	CMPDBGV("Received Header Len %d", (int )cmp->header.len);
@@ -86,8 +87,9 @@ int cmpcl_do_transaction(cmp_ctx *ctx, const int body_type)
         /* take enrolled certificate and chain extraCerts to it */
         if (new_cert->next != NULL) {
             CMPERRS("Received multiple certs. This is unexpected behaviour. Abort transaction!");
+            cmp_ctx_set_failinfo(ctx, CMP_PKIFAILINFO_INCORECTDATA);
             ret = -1;
-            goto err;
+            goto conferr;
         }
         new_cert->next = ctx->extraCerts;
 
@@ -96,7 +98,7 @@ int cmpcl_do_transaction(cmp_ctx *ctx, const int body_type)
                                        ctx->enrol_crls,
                                        ctx->subject)) != 0) {
 
-            ctx->new_cert_fail_info = (1 << CMP_PKIFAILINFO_INCORECTDATA);
+            cmp_ctx_set_failinfo(ctx, CMP_PKIFAILINFO_INCORECTDATA);
         }
         new_cert->next = NULL;
 
@@ -106,12 +108,14 @@ int cmpcl_do_transaction(cmp_ctx *ctx, const int body_type)
 
     } else {
         CMPDBGS("No Certificate received\n");
+        cmp_ctx_set_failinfo(ctx, CMP_PKIFAILINFO_INCORECTDATA);
         ret = CMPCL_ERR_CERT_NOT_RECEIVED;
-        goto err;
+        goto conferr;
     }
-
+conferr:
     /* check if implicit confirm was granted */
-    if (cmp_response->implicit_conf_granted  == 0 || ctx->new_cert_fail_info != 0) {     /* proceed with certConf <--> PKIConf */
+/* preserve ret, if certconf succeeds */
+    if (cmp_response->implicit_conf_granted  == 0 || ctx->cert_conf_fail_info != 0) {     /* proceed with certConf <--> PKIConf */
 
         CMPINFOV("## Certificate Confirmation ##");
 
@@ -135,7 +139,7 @@ int cmpcl_do_transaction(cmp_ctx *ctx, const int body_type)
         if (len < 0) {
             CMPERRV("cmpcl_CMPwrite_PKIMessage der returned %d", len);
             ret = len; /* if negative, len is an error code */
-            goto err;
+            goto syserr;
         }
 
         /* reuse send_receive for now
@@ -143,24 +147,26 @@ int cmpcl_do_transaction(cmp_ctx *ctx, const int body_type)
          */
         input = NULL;
         inputlen = 0;
-        ret = ctx->send_receive_func(ctx->cb_context,
+        len = ctx->send_receive_func(ctx->cb_context,
                                      output_start, (size_t) len, &input, &inputlen);
-        if (ret < 0) {
+        if (len < 0) {
             CMPERRS("HTTP/CoAP transfer failed");
-            goto err;
+            ret = len; /* if negative, len is an error code */
+            goto syserr;
         }
 
         /* parse received PKIConf message */
-        if ((ret = cmp_pkimessage_parse_check_der(ctx, MBEDTLS_CMP_PKIBODY_PKICONF,
+        if ((len = cmp_pkimessage_parse_check_der(ctx, MBEDTLS_CMP_PKIBODY_PKICONF,
                                                   pki_conf_msg, input, inputlen)) < 0) {
             CMPERRV("Parsing of PKIConf FAILED with return code %d", ret);
-            goto err;
+            ret = len; /* if negative, len is an error code */
+            goto syserr;
         }
 
     }
 
 
-err:
+syserr:
     cmp_pkimessage_free(pki_conf_msg);
     mbedtls_free(pki_conf_msg);
 

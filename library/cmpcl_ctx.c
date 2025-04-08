@@ -272,6 +272,12 @@ void cmp_ctx_set_unprotected_ir(cmp_ctx *ctx, int unprot)
 }
 /* **************************************************************** */
 
+void cmp_ctx_set_failinfo(cmp_ctx *ctx, int fail_info)
+{
+    ctx->cert_conf_fail_info |= (1 << fail_info);
+}
+/* **************************************************************** */
+
 void cmp_ctx_free(cmp_ctx *ctx)
 {
     mbedtls_asn1_free_named_data_list(&ctx->sender);

@@ -418,6 +418,7 @@ static int cmp_header_parse_check_der(cmp_ctx *ctx, cmp_pkimessage *cmp,
             if ((ret = mbedtls_asn1_get_alg_null(&prot_alg_params_buf.p,
                                                  prot_alg_params_buf.p + prot_alg_params_buf.len,
                                                  &tmp_alg_buf)) != 0) {
+                cmp_ctx_set_failinfo(ctx, CMP_PKIFAILINFO_BADALG);
                 cmp_pkimessage_free(cmp);
                 return MBEDTLS_ERR_X509_INVALID_FORMAT + ret;
             }
@@ -425,6 +426,7 @@ static int cmp_header_parse_check_der(cmp_ctx *ctx, cmp_pkimessage *cmp,
 
             if ((ret = mbedtls_oid_get_md_alg(&tmp_alg_buf, &cmp->pbmp->owf)) != 0) {
                 //CMPERRV("Could not parse PBM owf! ret: 0x%04x", -ret);
+                cmp_ctx_set_failinfo(ctx, CMP_PKIFAILINFO_BADALG);
                 cmp_pkimessage_free(cmp);
                 return ret;
             }
@@ -443,11 +445,13 @@ static int cmp_header_parse_check_der(cmp_ctx *ctx, cmp_pkimessage *cmp,
                                                  prot_alg_params_buf.p + prot_alg_params_buf.len,
                                                  &tmp_alg_buf)) != 0) {
                 //CMPERRV("Could not parse PBM mac! ret: 0x%04x", -ret);
+                cmp_ctx_set_failinfo(ctx, CMP_PKIFAILINFO_BADALG);
                 cmp_pkimessage_free(cmp);
                 return ret;
             }
             if ((ret = mbedtls_oid_get_md_hmac(&tmp_alg_buf, &cmp->pbmp->mac)) != 0) {
                 //CMPERRV("Could not parse PBM mac! ret: 0x%04x", -ret);
+                cmp_ctx_set_failinfo(ctx, CMP_PKIFAILINFO_BADALG);
                 cmp_pkimessage_free(cmp);
                 return ret;
             }
@@ -456,6 +460,7 @@ static int cmp_header_parse_check_der(cmp_ctx *ctx, cmp_pkimessage *cmp,
             if ((ret = mbedtls_oid_get_sig_alg(&prot_alg_buf, &cmp->sig_md,
                                                &cmp->sig_pk)) != 0) {
                 //CMPERRS("Signature based protection algorithm could not be parsed!");
+                cmp_ctx_set_failinfo(ctx, CMP_PKIFAILINFO_BADALG);
                 cmp_pkimessage_free(cmp);
                 return -1;
             }
@@ -489,12 +494,14 @@ static int cmp_header_parse_check_der(cmp_ctx *ctx, cmp_pkimessage *cmp,
         /* check for length */
         if (ctx->transactionID_len != len) {
             cmp_pkimessage_free(cmp);
+            cmp_ctx_set_failinfo(ctx, CMP_PKIFAILINFO_BADMESSAGECHECK);
             //CMPERRS("TransactionID not matching!");
             return -1;
         }
 
         if (memcmp(ctx->transactionID, p, len) != 0) {
             cmp_pkimessage_free(cmp);
+            cmp_ctx_set_failinfo(ctx, CMP_PKIFAILINFO_BADMESSAGECHECK);
             //CMPERRS("TransactionID not matching!");
             return -1;
         }
@@ -545,6 +552,7 @@ static int cmp_header_parse_check_der(cmp_ctx *ctx, cmp_pkimessage *cmp,
 
         if (memcmp(ctx->senderNonce, p, len) != 0) {
             cmp_pkimessage_free(cmp);
+            cmp_ctx_set_failinfo(ctx, CMP_PKIFAILINFO_BADRECIPIENTNONCE);
             //CMPERRS("recipNonce does not match sent senderNonce!");
             return -1;
         }
@@ -623,14 +631,6 @@ static int cmp_pkibody_PKIFreeText_parse_der(unsigned char **p, unsigned char *e
         return CMPCL_ERR_ASN1_PARSING;
 
     }
-/*   mbedtls_asn1_sequence *Strings = *outSeq;
-    for( ;Strings; Strings = Strings->next)
-    {
-        CMPERRV(" %.*s",
-            (int) Strings->buf.len,
-            Strings->buf.p);
-    }
- */
     return 0;
 }
 
@@ -1189,59 +1189,7 @@ err:
         p += cmp->extraCerts.len;
     }
 
-#if 0
 
-    /*
-     *  subjectPKInfo SubjectPublicKeyInfo
-     */
-    if ((ret = mbedtls_pk_parse_subpubkey(&p, end, &csr->pk)) != 0) {
-        mbedtls_x509_csr_free(csr);
-        return ret;
-    }
-
-    /*
-     *  attributes    [0] Attributes
-     *
-     *  The list of possible attributes is open-ended, though RFC 2985
-     *  (PKCS#9) defines a few in section 5.4. We currently don't support any,
-     *  so we just ignore them. This is a safe thing to do as the worst thing
-     *  that could happen is that we issue a certificate that does not match
-     *  the requester's expectations - this cannot cause a violation of our
-     *  signature policies.
-     */
-    if ((ret = mbedtls_asn1_get_tag(&p, end, &len,
-                                    MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_CONTEXT_SPECIFIC)) !=
-        0) {
-        mbedtls_x509_csr_free(csr);
-        return MBEDTLS_ERR_X509_INVALID_FORMAT + ret;
-    }
-
-    p += len;
-
-    end = csr->raw.p + csr->raw.len;
-
-    /*
-     *  signatureAlgorithm   AlgorithmIdentifier,
-     *  signature            BIT STRING
-     */
-    if ((ret = mbedtls_x509_get_alg(&p, end, &csr->sig_oid, &sig_params)) != 0) {
-        mbedtls_x509_csr_free(csr);
-        return ret;
-    }
-
-    if ((ret = mbedtls_x509_get_sig_alg(&csr->sig_oid, &sig_params,
-                                        &csr->sig_md, &csr->sig_pk,
-                                        &csr->sig_opts)) != 0) {
-        mbedtls_x509_csr_free(csr);
-        return MBEDTLS_ERR_X509_UNKNOWN_SIG_ALG;
-    }
-
-    if ((ret = mbedtls_x509_get_sig(&p, end, &csr->sig)) != 0) {
-        mbedtls_x509_csr_free(csr);
-        return ret;
-    }
-
-#endif
     if (p != end) {
         //CMPERRV("Unexpected end of response; length difference = %s", p - end);
         cmp_pkimessage_free(cmp);
@@ -1260,6 +1208,7 @@ err:
             (bodytype != MBEDTLS_CMP_PKIBODY_PKICONF &&
              cmp->crep->response->status.PKIStatus == 0)) {
             cmp_pkimessage_free(cmp);
+            cmp_ctx_set_failinfo(ctx, CMP_PKIFAILINFO_NOTAUTHORIZED);
             return -1;
         }
     }
@@ -1282,6 +1231,7 @@ err:
                                        ctx->prot_crls, //mbedtls_x509_crl *ca_crl,
                                        &cmp->sender //mbedtls_x509_name *exp_name
                                        )) != 0) {
+            cmp_ctx_set_failinfo(ctx, CMP_PKIFAILINFO_NOTAUTHORIZED);
 
             cmp_pkimessage_free(cmp);
             return ret;
