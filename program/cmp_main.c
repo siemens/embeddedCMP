@@ -56,6 +56,7 @@ static int run_ir(mbedtls_ctr_drbg_context *ctr_drbg)
         mbed_tls_transport_free(&ctx);
         return ret;
     }
+    mbed_tls_transport_free(&ctx);
     return ret;
 }
 
@@ -70,7 +71,7 @@ static int run_cr(mbedtls_ctr_drbg_context *ctr_drbg)
                                      SERVER_HOST, TOSTRING(SERVER_PORT), SERVER_PATH_CR)) != 0) {
         PRINTF("failed to initialize transport context");
         mbed_tls_transport_free(&ctx);
-        goto end;
+        return ret;
     }
     /*
      * call invoke_cr_transaction
@@ -78,9 +79,8 @@ static int run_cr(mbedtls_ctr_drbg_context *ctr_drbg)
     if ((ret = invoke_cr_transaction(mbed_tls_send_receive, (void *) &ctx, ctr_drbg)) != 0) {
         PRINTF("failed to execute transaction");
         mbed_tls_transport_free(&ctx);
-        goto end;
+        return ret;
     }
-end:
     mbed_tls_transport_free(&ctx);
     return ret;
 }
@@ -105,6 +105,7 @@ static int run_kur(mbedtls_ctr_drbg_context *ctr_drbg)
         mbed_tls_transport_free(&ctx);
         return ret;
     }
+    mbed_tls_transport_free(&ctx);
     return ret;
 }
 
