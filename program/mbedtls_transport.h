@@ -29,12 +29,14 @@ typedef struct {
     const char *server_fqdn;
     const char *server_port;
     const char *server_path;
+    int use_plain_http; // no HTTPS, no TLS
 } mbed_tls_transport_ctx;
 
 /**
  * \brief           Initialize a TLS context
  *
  * \param ctx       mbed_tls_transport_ctx context to initialise
+ * \param use_plain_http set to \c 1 if TLS layer should be bypassed
  * \param ctr_drbg pseudorandom context to use
  * \param path_to_client_cert path to TLS client certificate
  * \param path_to_client_Key path to TLS client private key
@@ -44,14 +46,16 @@ typedef struct {
  * \param server_path HTTP path to access
  */
 
-int mbed_tls_transport_init(mbed_tls_transport_ctx *ctx,
-                            mbedtls_ctr_drbg_context *ctr_drbg,
-                            const char *path_to_client_cert,
-                            const char *path_to_client_Key,
-                            const char *path_to_server_root,
-                            const char *server_fqdn,
-                            const char *server_port,
-                            const char *server_path);
+int mbed_tls_transport_init(
+    mbed_tls_transport_ctx *ctx,
+    int use_plain_http,
+    mbedtls_ctr_drbg_context *ctr_drbg,
+    const char *path_to_client_cert,
+    const char *path_to_client_Key,
+    const char *path_to_server_root,
+    const char *server_fqdn,
+    const char *server_port,
+    const char *server_path);
 
 /**
  * \brief           Free the contents of a mbed_tls_transport_ctx context

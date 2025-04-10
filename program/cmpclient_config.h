@@ -39,6 +39,9 @@
 
 #ifdef LOCAL_RA_CA
 // local LigthweightCmpRaComponent
+
+#define USE_PLAIN_HTTP 1
+
 # define CERTS_ROOT_PATH "./resources/sdcard_root/SDHC/certs/local_ra_lra/"
 
 # define RECIPIENT_NAME "CN=recip"
@@ -62,6 +65,9 @@
 
 #ifdef PLAYGROUND
 // PPKI Certificate Management Playground
+
+#define USE_PLAIN_HTTP 0
+
 # define CERTS_ROOT_PATH "./resources/sdcard_root/SDHC/certs/playground/"
 
 # define RECIPIENT_NAME "CN=recip"
@@ -156,6 +162,10 @@
 #ifndef PATH_TO_PROTECTION_CRLS
 // # define PATH_TO_PROTECTION_CRLS                CERTS_ROOT_PATH  "trusted/prot_crl.crl"
 # define PATH_TO_PROTECTION_CRLS NULL
+#endif
+
+#ifndef USE_PLAIN_HTTP
+# define USE_PLAIN_HTTP 0
 #endif
 
 #ifndef SNI_HOSTNAME

@@ -51,6 +51,7 @@ static void mbed_tls_debug(void *ctx, int level, const char *file, int line,
 
 
 int mbed_tls_transport_init(mbed_tls_transport_ctx *ctx,
+                            int use_plain_http,
                             mbedtls_ctr_drbg_context *ctr_drbg,
                             const char *path_to_client_cert,
                             const char *path_to_client_Key,
@@ -71,77 +72,85 @@ int mbed_tls_transport_init(mbed_tls_transport_ctx *ctx,
     mbedtls_pk_init(&ctx->ownpkey);
     mbedtls_x509_crt_init(&ctx->owncert);
 
-    /*
-     * Load the certificates and private key
-     */
-
-    ret = append_certs_from_pem(&ctx->owncert, path_to_client_cert);
-    if (ret != 0) {
-        PRINTF("\r\n error parsing own TLS chain from %s:%d\r\n",
-               path_to_client_cert, ret);
-        return -1;
-    }
-
-    ret = parse_key_from_pem(&ctx->ownpkey, path_to_client_Key, ctr_drbg);
-    if (ret != 0) {
-        PRINTF("\r\n error parsing own TLS key from %s:%d\r\n",
-               path_to_client_Key, ret);
-        return -1;
-    }
-
-    ret = append_certs_from_pem(&ctx->trustedserverroots, path_to_server_root);
-    if (ret != 0) {
-        PRINTF("\r\n error parsing TLS server certificate from %s:%d\r\n",
-               path_to_server_root, ret);
-        return -1;
-    }
-
+    ctx->use_plain_http = use_plain_http;
     ctx->server_fqdn = server_fqdn;
     ctx->server_port = server_port;
     ctx->server_path = server_path;
 
     /*
-     * Setting up the SSL data.
+     * Load the certificates and private key
      */
-    if ((ret = mbedtls_ssl_config_defaults(&ctx->conf, MBEDTLS_SSL_IS_CLIENT,
-                                           MBEDTLS_SSL_TRANSPORT_STREAM,
-                                           MBEDTLS_SSL_PRESET_DEFAULT)) != 0) {
-        PRINTF(" failed\r\n  ! mbedtls_ssl_config_defaults returned %d\r\n\r\n",
-               ret);
-        return -1;
-    }
 
-    mbedtls_ssl_conf_rng(&ctx->conf, mbedtls_ctr_drbg_random, ctr_drbg);
-    mbedtls_ssl_conf_dbg(&ctx->conf, mbed_tls_debug, NULL);
-    mbedtls_ssl_conf_renegotiation(&ctx->conf, MBEDTLS_SSL_RENEGOTIATION_ENABLED);
-    // mbedtls_debug_set_threshold(3);
-    mbedtls_ssl_conf_ca_chain(&ctx->conf, &ctx->trustedserverroots, NULL);
-    if ((ret = mbedtls_ssl_conf_own_cert(&ctx->conf, &ctx->owncert, &ctx->ownpkey)) != 0) {
-        PRINTF(" failed\r\n  ! mbedtls_ssl_conf_own_cert returned %s\r\n\r\n",
-               mbedtls_high_level_strerr(ret));
-        return -1;
-    }
+    if (!ctx->use_plain_http) {
+        ret = append_certs_from_pem(&ctx->owncert, path_to_client_cert);
+        if (ret != 0) {
+            PRINTF("\r\n error parsing own TLS chain from %s:%d\r\n",
+                   path_to_client_cert, ret);
+            return -1;
+        }
 
-    if ((ret = mbedtls_ssl_setup(&ctx->ssl, &ctx->conf)) != 0) {
-        PRINTF(" failed\r\n  ! mbedtls_ssl_setup returned %s\r\n\r\n",
-               mbedtls_high_level_strerr(ret));
-        return -1;
-    }
+        ret = parse_key_from_pem(&ctx->ownpkey, path_to_client_Key, ctr_drbg);
+        if (ret != 0) {
+            PRINTF("\r\n error parsing own TLS key from %s:%d\r\n",
+                   path_to_client_Key, ret);
+            return -1;
+        }
 
-    if ((ret = mbedtls_ssl_set_hostname(&ctx->ssl, server_fqdn)) != 0) {
-        PRINTF(" failed\n  ! mbedtls_ssl_set_hostname returned %s\n\n",
-               mbedtls_high_level_strerr(ret));
-        return -1;
+        ret = append_certs_from_pem(&ctx->trustedserverroots, path_to_server_root);
+        if (ret != 0) {
+            PRINTF("\r\n error parsing TLS server certificate from %s:%d\r\n",
+                   path_to_server_root, ret);
+            return -1;
+        }
+
+        /*
+         * Setting up the SSL data.
+         */
+        if ((ret = mbedtls_ssl_config_defaults(&ctx->conf, MBEDTLS_SSL_IS_CLIENT,
+                                               MBEDTLS_SSL_TRANSPORT_STREAM,
+                                               MBEDTLS_SSL_PRESET_DEFAULT)) != 0) {
+            PRINTF(" failed\r\n  ! mbedtls_ssl_config_defaults returned %d\r\n\r\n",
+                   ret);
+            return -1;
+        }
+
+        mbedtls_ssl_conf_rng(&ctx->conf, mbedtls_ctr_drbg_random, ctr_drbg);
+        mbedtls_ssl_conf_dbg(&ctx->conf, mbed_tls_debug, NULL);
+        mbedtls_ssl_conf_renegotiation(&ctx->conf, MBEDTLS_SSL_RENEGOTIATION_ENABLED);
+        // mbedtls_debug_set_threshold(3);
+        mbedtls_ssl_conf_ca_chain(&ctx->conf, &ctx->trustedserverroots, NULL);
+        if ((ret = mbedtls_ssl_conf_own_cert(&ctx->conf, &ctx->owncert, &ctx->ownpkey)) != 0) {
+            PRINTF(" failed\r\n  ! mbedtls_ssl_conf_own_cert returned %s\r\n\r\n",
+                   mbedtls_high_level_strerr(ret));
+            return -1;
+        }
+
+        if ((ret = mbedtls_ssl_setup(&ctx->ssl, &ctx->conf)) != 0) {
+            PRINTF(" failed\r\n  ! mbedtls_ssl_setup returned %s\r\n\r\n",
+                   mbedtls_high_level_strerr(ret));
+            return -1;
+        }
+
+        if ((ret = mbedtls_ssl_set_hostname(&ctx->ssl, server_fqdn)) != 0) {
+            PRINTF(" failed\n  ! mbedtls_ssl_set_hostname returned %s\n\n",
+                   mbedtls_high_level_strerr(ret));
+            return -1;
+        }
+        mbedtls_ssl_set_bio(&ctx->ssl, &ctx->server_fd, mbedtls_net_send, mbedtls_net_recv, NULL);
     }
-    mbedtls_ssl_set_bio(&ctx->ssl, &ctx->server_fd, mbedtls_net_send, mbedtls_net_recv, NULL);
     return 0;
 }
 
-static int write_all(mbedtls_ssl_context *ssl, const unsigned char *buf,
+static int write_all(mbed_tls_transport_ctx *ctx, const unsigned char *buf,
                      size_t len)
 {
     do {
-        int ret = mbedtls_ssl_write(ssl, buf, len);
+        int ret;
+        if (ctx->use_plain_http) {
+            ret = mbedtls_net_send(&ctx->server_fd, buf, len);
+        } else {
+            ret = mbedtls_ssl_write(&ctx->ssl, buf, len);
+        }
         switch (ret) {
             case MBEDTLS_ERR_SSL_WANT_READ:
             case MBEDTLS_ERR_SSL_WANT_WRITE:
@@ -177,23 +186,25 @@ int mbed_tls_send_receive(void *cb_context, const unsigned char *outbuf,
         return -1;
     }
 
-    mbedtls_ssl_session_reset(&ctx->ssl);
-    while ((ret = mbedtls_ssl_handshake(&ctx->ssl)) != 0) {
-        if (ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE) {
-            PRINTF(" failed\n  ! mbedtls_ssl_handshake returned %s\n\n",
-                   mbedtls_high_level_strerr(ret));
+    if (!ctx->use_plain_http) {
+        mbedtls_ssl_session_reset(&ctx->ssl);
+        while ((ret = mbedtls_ssl_handshake(&ctx->ssl)) != 0) {
+            if (ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE) {
+                PRINTF(" failed\n  ! mbedtls_ssl_handshake returned %s\n\n",
+                       mbedtls_high_level_strerr(ret));
+                return -1;
+            }
+        }
+        /*
+         * Verify the server certificate
+         */
+        uint32_t flags;
+        if ((flags = mbedtls_ssl_get_verify_result(&ctx->ssl)) != 0) {
+            char vrfy_buf[512];
+            mbedtls_x509_crt_verify_info(vrfy_buf, sizeof(vrfy_buf), "  ! ", flags);
+            PRINTF("%s\n", vrfy_buf);
             return -1;
         }
-    }
-    /*
-     * Verify the server certificate
-     */
-    uint32_t flags;
-    if ((flags = mbedtls_ssl_get_verify_result(&ctx->ssl)) != 0) {
-        char vrfy_buf[512];
-        mbedtls_x509_crt_verify_info(vrfy_buf, sizeof(vrfy_buf), "  ! ", flags);
-        PRINTF("%s\n", vrfy_buf);
-        return -1;
     }
     /*
      * Write the POST request header
@@ -207,13 +218,13 @@ int mbed_tls_send_receive(void *cb_context, const unsigned char *outbuf,
             "Content-Length: %ld" NEWLINE NEWLINE,
             //
             *ctx->server_path != '/' ? "/" : "", ctx->server_path, ctx->server_fqdn, outlen);
-    if (write_all(&ctx->ssl, (unsigned char *) header, strlen(header)) < 0) {
+    if (write_all(ctx, (unsigned char *) header, strlen(header)) < 0) {
         return -1;
     }
     /*
      * Write the POST request body
      */
-    if (write_all(&ctx->ssl, outbuf, outlen) < 0) {
+    if (write_all(ctx, outbuf, outlen) < 0) {
         return -1;
     }
     /*
@@ -222,7 +233,14 @@ int mbed_tls_send_receive(void *cb_context, const unsigned char *outbuf,
     int read_len = 0;
     do {
         memset(input_buf+read_len, 0, sizeof(input_buf)-read_len);
-        ret = mbedtls_ssl_read(&ctx->ssl, input_buf+read_len, INPUT_BUF_SIZE - (read_len+1));
+        if (ctx->use_plain_http) {
+            ret = mbedtls_net_recv(&ctx->server_fd,
+                                   input_buf+read_len,
+                                   INPUT_BUF_SIZE - (read_len+1));
+
+        } else {
+            ret = mbedtls_ssl_read(&ctx->ssl, input_buf+read_len, INPUT_BUF_SIZE - (read_len+1));
+        }
         switch (ret) {
             case MBEDTLS_ERR_SSL_WANT_READ:
             case MBEDTLS_ERR_SSL_WANT_WRITE:
@@ -241,24 +259,26 @@ int mbed_tls_send_receive(void *cb_context, const unsigned char *outbuf,
         }
         read_len += ret;
     } while (1);
-    do {
-        ret = mbedtls_ssl_close_notify(&ctx->ssl);
-        switch (ret) {
-            case MBEDTLS_ERR_SSL_WANT_READ:
-            case MBEDTLS_ERR_SSL_WANT_WRITE:
-            case MBEDTLS_ERR_SSL_ASYNC_IN_PROGRESS:
-            case MBEDTLS_ERR_SSL_CRYPTO_IN_PROGRESS:
-            case MBEDTLS_ERR_SSL_RECEIVED_NEW_SESSION_TICKET:
-            case MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY:
-                continue;
-        }
-        if (ret < 0) {
-            PRINTF("failed\n  ! mbedtls_ssl_close_notify returned %s\n\n",
-                   mbedtls_high_level_strerr(ret));
-            return -1;
-        }
-        break;
-    } while (1);
+    if (!ctx->use_plain_http) {
+        do {
+            ret = mbedtls_ssl_close_notify(&ctx->ssl);
+            switch (ret) {
+                case MBEDTLS_ERR_SSL_WANT_READ:
+                case MBEDTLS_ERR_SSL_WANT_WRITE:
+                case MBEDTLS_ERR_SSL_ASYNC_IN_PROGRESS:
+                case MBEDTLS_ERR_SSL_CRYPTO_IN_PROGRESS:
+                case MBEDTLS_ERR_SSL_RECEIVED_NEW_SESSION_TICKET:
+                case MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY:
+                    continue;
+            }
+            if (ret < 0) {
+                PRINTF("failed\n  ! mbedtls_ssl_close_notify returned %s\n\n",
+                       mbedtls_high_level_strerr(ret));
+                return -1;
+            }
+            break;
+        } while (1);
+    }
     mbedtls_net_close(&ctx->server_fd);
     // terminate input buffer
     input_buf[read_len] = '\0';
@@ -329,11 +349,13 @@ int mbed_tls_send_receive(void *cb_context, const unsigned char *outbuf,
 int mbed_tls_transport_free(mbed_tls_transport_ctx *ctx)
 {
     mbedtls_net_free(&ctx->server_fd);
-    mbedtls_x509_crt_free(&ctx->trustedserverroots);
-    mbedtls_x509_crt_free(&ctx->owncert);
-    mbedtls_pk_free(&ctx->ownpkey);
-    mbedtls_ssl_free(&ctx->ssl);
-    mbedtls_ssl_config_free(&ctx->conf);
+    if (!ctx->use_plain_http) {
+        mbedtls_x509_crt_free(&ctx->trustedserverroots);
+        mbedtls_x509_crt_free(&ctx->owncert);
+        mbedtls_pk_free(&ctx->ownpkey);
+        mbedtls_ssl_free(&ctx->ssl);
+        mbedtls_ssl_config_free(&ctx->conf);
+    }
 
     return 0;
 }

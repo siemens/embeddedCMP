@@ -43,7 +43,8 @@ static int run_ir(mbedtls_ctr_drbg_context *ctr_drbg)
     int ret = -1;
     mbed_tls_transport_ctx ctx;
     if ((ret =
-             mbed_tls_transport_init(&ctx, ctr_drbg, TLS_CLIENT_CERT, TLS_CLIENT_KEY,
+             mbed_tls_transport_init(&ctx, USE_PLAIN_HTTP,  ctr_drbg, TLS_CLIENT_CERT,
+                                     TLS_CLIENT_KEY,
                                      TLS_SERVER_ROOT,
                                      SERVER_HOST, TOSTRING(SERVER_PORT), SERVER_PATH_IR)) != 0) {
         PRINTF("failed to initialize transport context");
@@ -66,7 +67,8 @@ static int run_cr(mbedtls_ctr_drbg_context *ctr_drbg)
     mbed_tls_transport_ctx ctx;
     int ret = -1;
     if ((ret =
-             mbed_tls_transport_init(&ctx, ctr_drbg, TLS_CLIENT_CERT, TLS_CLIENT_KEY,
+             mbed_tls_transport_init(&ctx, USE_PLAIN_HTTP, ctr_drbg, TLS_CLIENT_CERT,
+                                     TLS_CLIENT_KEY,
                                      TLS_SERVER_ROOT,
                                      SERVER_HOST, TOSTRING(SERVER_PORT), SERVER_PATH_CR)) != 0) {
         PRINTF("failed to initialize transport context");
@@ -93,7 +95,8 @@ static int run_kur(mbedtls_ctr_drbg_context *ctr_drbg)
      * invoke_kur_transaction
      */
     if ((ret =
-             mbed_tls_transport_init(&ctx, ctr_drbg, TLS_CLIENT_CERT, TLS_CLIENT_KEY,
+             mbed_tls_transport_init(&ctx, USE_PLAIN_HTTP, ctr_drbg, TLS_CLIENT_CERT,
+                                     TLS_CLIENT_KEY,
                                      TLS_SERVER_ROOT,
                                      SERVER_HOST, TOSTRING(SERVER_PORT), SERVER_PATH_KUR)) != 0) {
         PRINTF("failed to initialize transport context");
