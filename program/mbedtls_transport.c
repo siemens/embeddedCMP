@@ -324,14 +324,14 @@ int mbed_tls_send_receive(void *cb_context, const unsigned char *outbuf,
         case '1':
         case '3':
             PRINTF("unable to handle HTTP status %s\n", code_and_text);
-            return -1;
+            break;
         case '4':
         case '5':
             PRINTF("got HTTP error %s\n", code_and_text);
-            return -1;
+            break;
         default:
             PRINTF("got invalid HTTP status code %s\n", code_and_text);
-            return -1;
+            break;
     }
     unsigned char *header_end = (unsigned char *) strstr((const char *) remaining_header+1,
                                                          NEWLINE NEWLINE);
