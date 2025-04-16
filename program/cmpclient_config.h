@@ -32,7 +32,7 @@
 /* select CA to be used */
 #define PLAYGROUND
 // #define LOCAL_RA_CA
-//#define INSTA
+// #define INSTA
 //#define NETGUARD
 
 /* define details of selected CA and associated certs/keys */
@@ -98,7 +98,7 @@
 
 #ifdef INSTA
 
-# define CERTS_ROOT_PATH    PATH_FS    "certs/insta/"
+# define CERTS_ROOT_PATH "./resources/sdcard_root/SDHC/certs/insta/"
 
 # define RECIPIENT_NAME "C=FI,O=Insta Demo,CN=Insta Demo CA" /* only needed for PBM */
 /* if set, use given subject name, else use name from file PATH_TO_VENDOR_CERT_PEM */
@@ -106,9 +106,12 @@
 # define BOOTSTRAPPING_SUBJECT_NAME "CN=Operation,O=Nokia,OU=Test"
 
 /* CMP server */
+#define USE_PLAIN_HTTP 1
 # define SERVER_HOST   "91.213.161.196" // IP address must be used if no proxy is used, corresponds to "pki.certificate.fi"
 # define SERVER_PORT   8700
 # define SERVER_PATH_IR   "pkix/" // Insta CA requires that SERVER_PATH has trailing '/'
+# define SERVER_PATH_CR   "pkix/"
+# define SERVER_PATH_KUR   "pkix/"
 
 /* HTTP Proxy example, if needed */
 # define PROXY_NAME    "192.168.0.100"
