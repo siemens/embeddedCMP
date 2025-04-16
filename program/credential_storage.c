@@ -158,9 +158,7 @@ int parse_key_from_pem(mbedtls_pk_context *pk_ctx,
                                    pem_str,
                                    len + 1,
                                    NULL,
-                                   0,
-                                   mbedtls_ctr_drbg_random,
-                                   ctr_drbg);
+                                   0);
     if (ret != 0) {
         CMPERRV("parsing key FAILED - mbedtls_pk_parse_key returned -0x%04x",
                 -ret);

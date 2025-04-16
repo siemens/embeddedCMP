@@ -42,6 +42,8 @@
 #define INPUT_BUF_SIZE 8000
 static unsigned char input_buf[INPUT_BUF_SIZE];
 
+static char errbuf[100];
+
 static void mbed_tls_debug(void *ctx, int level, const char *file, int line,
                            const char *str)
 {
@@ -113,27 +115,28 @@ int mbed_tls_transport_init(mbed_tls_transport_ctx *ctx,
                    ret);
             return -1;
         }
-
-        mbedtls_ssl_conf_rng(&ctx->conf, mbedtls_ctr_drbg_random, ctr_drbg);
         mbedtls_ssl_conf_dbg(&ctx->conf, mbed_tls_debug, NULL);
         mbedtls_ssl_conf_renegotiation(&ctx->conf, MBEDTLS_SSL_RENEGOTIATION_ENABLED);
         // mbedtls_debug_set_threshold(3);
         mbedtls_ssl_conf_ca_chain(&ctx->conf, &ctx->trustedserverroots, NULL);
         if ((ret = mbedtls_ssl_conf_own_cert(&ctx->conf, &ctx->owncert, &ctx->ownpkey)) != 0) {
+            mbedtls_strerror(ret, errbuf, sizeof(errbuf));
             PRINTF(" failed\r\n  ! mbedtls_ssl_conf_own_cert returned %s\r\n\r\n",
-                   mbedtls_high_level_strerr(ret));
+                   errbuf);
             return -1;
         }
 
         if ((ret = mbedtls_ssl_setup(&ctx->ssl, &ctx->conf)) != 0) {
+            mbedtls_strerror(ret, errbuf, sizeof(errbuf));
             PRINTF(" failed\r\n  ! mbedtls_ssl_setup returned %s\r\n\r\n",
-                   mbedtls_high_level_strerr(ret));
+                   errbuf);
             return -1;
         }
 
         if ((ret = mbedtls_ssl_set_hostname(&ctx->ssl, server_fqdn)) != 0) {
+            mbedtls_strerror(ret, errbuf, sizeof(errbuf));
             PRINTF(" failed\n  ! mbedtls_ssl_set_hostname returned %s\n\n",
-                   mbedtls_high_level_strerr(ret));
+                   errbuf);
             return -1;
         }
         mbedtls_ssl_set_bio(&ctx->ssl, &ctx->server_fd, mbedtls_net_send, mbedtls_net_recv, NULL);
@@ -160,7 +163,8 @@ static int write_all(mbed_tls_transport_ctx *ctx, const unsigned char *buf,
                 continue;
         }
         if (ret < 0) {
-            PRINTF("failed\n  ! mbedtls_ssl_write returned %s\n\n", mbedtls_high_level_strerr(ret));
+            mbedtls_strerror(ret, errbuf, sizeof(errbuf));
+            PRINTF("failed\n  ! mbedtls_ssl_write returned %s\n\n", errbuf);
             return -1;
         }
         buf += ret;
@@ -190,8 +194,9 @@ int mbed_tls_send_receive(void *cb_context, const unsigned char *outbuf,
         mbedtls_ssl_session_reset(&ctx->ssl);
         while ((ret = mbedtls_ssl_handshake(&ctx->ssl)) != 0) {
             if (ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE) {
+                mbedtls_strerror(ret, errbuf, sizeof(errbuf));
                 PRINTF(" failed\n  ! mbedtls_ssl_handshake returned %s\n\n",
-                       mbedtls_high_level_strerr(ret));
+                       errbuf);
                 return -1;
             }
         }
@@ -251,7 +256,8 @@ int mbed_tls_send_receive(void *cb_context, const unsigned char *outbuf,
                 continue;
         }
         if (ret < 0) {
-            PRINTF("failed\n  ! mbedtls_ssl_read returned %s\n\n", mbedtls_high_level_strerr(ret));
+            mbedtls_strerror(ret, errbuf, sizeof(errbuf));
+            PRINTF("failed\n  ! mbedtls_ssl_read returned %s\n\n", errbuf);
             return -1;
         }
         if (ret == 0) {
@@ -272,8 +278,9 @@ int mbed_tls_send_receive(void *cb_context, const unsigned char *outbuf,
                     continue;
             }
             if (ret < 0) {
+                mbedtls_strerror(ret, errbuf, sizeof(errbuf));
                 PRINTF("failed\n  ! mbedtls_ssl_close_notify returned %s\n\n",
-                       mbedtls_high_level_strerr(ret));
+                       errbuf);
                 return -1;
             }
             break;
