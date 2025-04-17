@@ -775,10 +775,6 @@ int cmpcl_CMPwrite_PKIMessage_der(unsigned char **p, unsigned char *start,
     MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(p, start, len));
     MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_tag(p, start, MBEDTLS_ASN1_CONSTRUCTED |
                                                      MBEDTLS_ASN1_SEQUENCE));
-
-#ifdef DEVELOPMENT /* for debugging */
-    write_to_file("PKIMessage.der", *p, len);
-#endif
     return (int) len;
 }
 

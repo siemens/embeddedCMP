@@ -48,13 +48,18 @@ int cmpcl_do_transaction(cmp_ctx *ctx, const int body_type)
         ret = len; /* if negative, len is an error code*/
         goto syserr;
     }
-
+    #ifdef DEVELOPMENT /* for debugging */
+    write_to_file("SentPKIMessage.der", output_start, len);
+    #endif
     ret = ctx->send_receive_func(ctx->cb_context,
                                  output_start, (size_t) len, &input, &inputlen);
     if (ret < 0) {
         CMPERRS("transport failed");
         goto syserr;
     }
+#ifdef DEVELOPMENT /* for debugging */
+    write_to_file("ReceivedPKIMessage.der", input, inputlen);
+#endif
 
     cmp_response = mbedtls_calloc(1, sizeof(cmp_pkimessage));
     if (!cmp_response) {
