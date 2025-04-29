@@ -24,6 +24,9 @@
  * Includes
  ******************************************************************************/
 #include <string.h>
+  #include <stdio.h>
+       #include <stdlib.h>
+       #include <unistd.h>
 #include "mbedtls_transport.h"
 #include "cmpclient.h"
 #include "cmpclient_config.h"
@@ -112,8 +115,17 @@ static int run_kur(mbedtls_ctr_drbg_context *ctr_drbg)
     return ret;
 }
 
+void usage(char *argv[])
+{
+    PRINTF("Usage: %s [-i][-c][-k]\n", argv[0]);
+}
+
 int main(int argc, char *argv[])
 {
+    if (argc <= 1) {
+        usage(argv);
+        return -1;
+    }
     psa_status_t status = psa_crypto_init();
     if (status != PSA_SUCCESS) {
         PRINTF("Failed to initialize PSA Crypto implementation: %d\n",
@@ -137,15 +149,28 @@ int main(int argc, char *argv[])
         PRINTF(" failed\n  ! mbedtls_ctr_drbg_seed returned %d\n", ret);
         goto end;
     }
-
-    if ((ret = run_ir(&ctr_drbg)) != 0) {
-        goto end;
-    }
-    if ((ret = run_cr(&ctr_drbg)) != 0) {
-        goto end;
-    }
-    if ((ret = run_kur(&ctr_drbg)) != 0) {
-        goto end;
+    int opt;
+    while ((opt = getopt(argc, argv, "ick")) != -1) {
+        switch (opt) {
+            case 'i':
+                if ((ret = run_ir(&ctr_drbg)) != 0) {
+                    goto end;
+                }
+                break;
+            case 'c':
+                if ((ret = run_cr(&ctr_drbg)) != 0) {
+                    goto end;
+                }
+                break;
+            case 'k':
+                if ((ret = run_kur(&ctr_drbg)) != 0) {
+                    goto end;
+                }
+                break;
+            default:
+                usage(argv);
+                goto end;
+        }
     }
 end:
     mbedtls_ctr_drbg_free(&ctr_drbg);

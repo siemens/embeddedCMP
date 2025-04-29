@@ -55,10 +55,21 @@ After changing the configuration a recompilation by invoking `make` is required.
 # Running the CMP client
 
 Create the directories for storing the enrollment results and invoke the client.
-The enrollment result path must fit the configuration given in `program/cmpclient_config.h`.
+The enrollment result paths must fit the configuration given in `program/cmpclient_config.h`.
 
 ```bash
-mkdir -p resources/sdcard_root/SDHC/certs/playground/operat
-./build/embedded_cmp
+mkdir -p resources/sdcard_root/SDHC/certs/playground/operat \
+		  resources/sdcard_root/SDHC/certs/playground/vendor
+./build/embedded_cmp -ick
 ``` 
+
+# Command line options
+
+The `./build/embedded_cmp` executable supports the options below:
+
+* `-i` invokes the imprinting (IR) usecase
+* `-c` invokes the bootstrapping (CR) usecase
+* `-k` invokes the key update (KUR) usecase
+
+
 
