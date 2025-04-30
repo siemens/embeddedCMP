@@ -69,7 +69,11 @@ if (SELFHOSTED)
 #    add_definitions(-DEE_CFG_SELFHOSTED=1)
     add_executable(embedded_cmp ${SOURCE})
     target_link_libraries(embedded_cmp "builtin" "mbedtls" "mbedx509")
-	set_target_properties(embedded_cmp PROPERTIES INSTALL_RPATH mbedtls)
+    set_target_properties(embedded_cmp PROPERTIES INSTALL_RPATH mbedtls)
+    include(CTest)
+    add_test(NAME TestImprinting COMMAND embedded_cmp -i WORKING_DIRECTORY ..)
+    add_test(NAME TestBootstrapping COMMAND embedded_cmp -c WORKING_DIRECTORY ..)
+    add_test(NAME TestKeyupdate COMMAND embedded_cmp -k WORKING_DIRECTORY ..)
 else()
     set(SOURCE
 		library/cmpcl_ctx.c
