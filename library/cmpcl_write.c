@@ -794,26 +794,45 @@ static int cmpcl_CMPwrite_PBMParameter_der(unsigned char **p, unsigned char *sta
     int ret;
     size_t len = 0;
     size_t sub_len = 0;
-    const char *sig_oid;
-    size_t sig_oid_len = 0;
+    const char *oid;
+    size_t oid_len = 0;
 
     /* mac AlgorithmIdentifier */
 
+#define setoid(_oid) { oid = _oid; oid_len = sizeof(_oid)-1; break; }
+
+    switch (pbmp->mac) {
+        case MBEDTLS_MD_RIPEMD160: setoid(MBEDTLS_OID_HMAC_RIPEMD160);
+        case MBEDTLS_MD_SHA1: setoid(MBEDTLS_OID_HMAC_SHA1);
+        case MBEDTLS_MD_SHA224: setoid(MBEDTLS_OID_HMAC_SHA224);
+        case MBEDTLS_MD_SHA256: setoid(MBEDTLS_OID_HMAC_SHA256);
+        case MBEDTLS_MD_SHA384: setoid(MBEDTLS_OID_HMAC_SHA384);
+        case MBEDTLS_MD_SHA512: setoid(MBEDTLS_OID_HMAC_SHA512);
+        case MBEDTLS_MD_SHA3_224: setoid(MBEDTLS_OID_HMAC_SHA3_224);
+        case MBEDTLS_MD_SHA3_256: setoid(MBEDTLS_OID_HMAC_SHA3_256);
+        case MBEDTLS_MD_SHA3_384: setoid(MBEDTLS_OID_HMAC_SHA3_384);
+        case MBEDTLS_MD_SHA3_512: setoid(MBEDTLS_OID_HMAC_SHA3_384);
+        default:
+            return -1;
+    }
+#undef setoid
+
     MBEDTLS_ASN1_CHK_ADD(len,
-                         mbedtls_asn1_write_algorithm_identifier(p, start, MBEDTLS_OID_HMAC_SHA1,
-                                                                 strlen(MBEDTLS_OID_HMAC_SHA1), 0));
+                         mbedtls_asn1_write_algorithm_identifier(p, start, oid, strlen(oid),
+                                                                 0));
+
     //MBEDTLS_ASN1_CHK_ADD( len, mbedtls_asn1_write_algorithm_identifier( p, start, HMAC_SHA256_OID, strlen( HMAC_SHA256_OID), 0 ) );
 
     /* iterationCount      INTEGER, */
     MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_int(p, start, pbmp->iterationCount));
 
     /* owf                 AlgorithmIdentifier, */
-    if ((ret = mbedtls_oid_get_oid_by_md(pbmp->owf, &sig_oid, &sig_oid_len)) != 0) {
+    if ((ret = mbedtls_oid_get_oid_by_md(pbmp->owf, &oid, &oid_len)) != 0) {
         return ret;
     }
 
     MBEDTLS_ASN1_CHK_ADD(len,
-                         mbedtls_asn1_write_algorithm_identifier(p, start, sig_oid, strlen(sig_oid),
+                         mbedtls_asn1_write_algorithm_identifier(p, start, oid, strlen(oid),
                                                                  0));
 
     /* salt                OCTET STRING, */

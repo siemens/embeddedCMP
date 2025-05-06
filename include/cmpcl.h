@@ -410,11 +410,14 @@ void cmp_ctx_set_prot_crt_chain(cmp_ctx *ctx, mbedtls_x509_crt *crt);
  *
  * \param ctx       CMP context
  * \param ctr_drbg  The CTR_DRBG context to use
+ * \param owf		owf to use
+ * \param mac		mac to use (must be MBEDTLS_MD_*)
  * \param sec       secret, gets copied
  * \param len       length of secret in bytes
  */
 int cmp_ctx_set_prot_pbm_secret(cmp_ctx *ctx,
                                 mbedtls_ctr_drbg_context *ctr_drbg,
+                                mbedtls_md_type_t owf, mbedtls_md_type_t mac,
                                 const unsigned char *sec,
                                 size_t len);
 

@@ -115,12 +115,13 @@ int cmpcl_do_transaction(cmp_ctx *ctx, const int body_type)
         CMPDBGS("No Certificate received\n");
         cmp_ctx_set_failinfo(ctx, CMP_PKIFAILINFO_INCORECTDATA);
         ret = CMPCL_ERR_CERT_NOT_RECEIVED;
-        goto conferr;
+        goto syserr;
     }
 conferr:
     /* check if implicit confirm was granted */
 /* preserve ret, if certconf succeeds */
-    if (cmp_response->implicit_conf_granted  == 0 || ctx->cert_conf_fail_info != 0) {     /* proceed with certConf <--> PKIConf */
+    if ((cmp_response->implicit_conf_granted  == 0 || ctx->cert_conf_fail_info != 0) &&
+        ctx->new_cert != NULL) {                                                                                     /* proceed with certConf <--> PKIConf */
 
         CMPINFOV("## Certificate Confirmation ##");
 

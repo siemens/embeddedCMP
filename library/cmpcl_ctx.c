@@ -60,6 +60,7 @@ int cmp_ctx_init(cmp_ctx *ctx, mbedtls_ctr_drbg_context *ctr_drbg,
 
 /* **************************************************************** */
 int cmp_ctx_set_prot_pbm_secret(cmp_ctx *ctx, mbedtls_ctr_drbg_context *ctr_drbg,
+                                mbedtls_md_type_t owf, mbedtls_md_type_t mac,
                                 const unsigned char *sec, size_t len)
 {
     setStr(&ctx->prot_secret, sec, len);
@@ -72,8 +73,8 @@ int cmp_ctx_set_prot_pbm_secret(cmp_ctx *ctx, mbedtls_ctr_drbg_context *ctr_drbg
         return CMPCL_ERR_MEMORY_ALLOCATION;
     }
     if (cmp_PBMParameter_init(pbmp, ctr_drbg, 16,
-                              MBEDTLS_MD_SHA256, 1000,
-                              MBEDTLS_MD_SHA1) != 0) {  /* TODO HARDCODED */
+                              owf, 1000,
+                              mac) != 0) { /* TODO HARDCODED */
         CMPERRS("FAILED to set PBM parameter!");
         return CMPCL_ERR_PBM_PARM;
     }

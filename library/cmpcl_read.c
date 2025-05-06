@@ -450,10 +450,13 @@ static int cmp_header_parse_check_der(cmp_ctx *ctx, cmp_pkimessage *cmp,
                 return ret;
             }
             if ((ret = mbedtls_oid_get_md_hmac(&tmp_alg_buf, &cmp->pbmp->mac)) != 0) {
-                //CMPERRV("Could not parse PBM mac! ret: 0x%04x", -ret);
-                cmp_ctx_set_failinfo(ctx, CMP_PKIFAILINFO_BADALG);
-                cmp_pkimessage_free(cmp);
-                return ret;
+                // be a little bit sloppy about hmac and digest OIDs
+                if ((ret = mbedtls_oid_get_md_alg(&tmp_alg_buf, &cmp->pbmp->mac)) != 0) {
+                    //CMPERRV("Could not parse PBM mac! ret: 0x%04x", -ret);
+                    cmp_ctx_set_failinfo(ctx, CMP_PKIFAILINFO_BADALG);
+                    cmp_pkimessage_free(cmp);
+                    return ret;
+                }
             }
 
         } else { /* MSG_SIG_ALG  */

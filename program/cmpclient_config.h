@@ -40,7 +40,7 @@
 #ifdef LOCAL_RA_CA
 // local LigthweightCmpRaComponent
 
-#define USE_PLAIN_HTTP 1
+#define USE_PLAIN_HTTP 0
 
 # define CERTS_ROOT_PATH "./resources/sdcard_root/SDHC/certs/local_ra_lra/"
 
@@ -58,7 +58,9 @@
 
 //# define UNPROTECTED_IR   /* IR may be unprotected if authenticated by LRA */
 # define PBM_SECRET "myPresharedSecret"
-# define REFERENCE "keyIdentification"
+# define PBM_KID "keyIdentification"
+#define PBM_OWF MBEDTLS_MD_SHA256
+#define PBM_MAC MBEDTLS_MD_SHA256
 
 #endif
 
@@ -82,9 +84,12 @@
 # define SERVER_PORT   443
 
 # define SERVER_PATH_IR   "/ejbca/publicweb/cmp/PlaygroundECC_PBE"
-# define PBM_SECRET "SecretCmp"
-# define REFERENCE "keyIdentification"
 
+# define PBM_SECRET "SecretCmp"
+# define PBM_KID "keyIdentification"
+
+#define PBM_OWF MBEDTLS_MD_SHA256
+#define PBM_MAC MBEDTLS_MD_SHA256
 
 # define SERVER_PATH_CR   "/ejbca/publicweb/cmp/PlaygroundECC"
 
@@ -119,7 +124,7 @@
 
 //# define UNPROTECTED_IR   /* IR may be unprotected if authenticated by LRA */
 # define PBM_SECRET "insta"
-# define REFERENCE "3078"
+# define PBM_KID "3078"
 
 #endif
 
@@ -138,7 +143,7 @@
 
 //# define UNPROTECTED_IR   /* IR may be unprotected if authenticated by LRA */
 # define PBM_SECRET "9pp8-b35i-Xd3Q-udNR"
-# define REFERENCE "4787"
+# define PBM_KID "4787"
 
 #endif
 

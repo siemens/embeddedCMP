@@ -313,7 +313,7 @@ int invoke_cert_request(const int body_type,
         }
         cmp_ctx_set_prot_key(&ctx, &prot_key);
     } else if (pbm_secret != NULL && body_type != MBEDTLS_CMP_PKIBODY_KUR) { /* this enables use of PBM */
-        ret = cmp_ctx_set_prot_pbm_secret(&ctx, ctr_drbg,
+        ret = cmp_ctx_set_prot_pbm_secret(&ctx, ctr_drbg, PBM_OWF, PBM_MAC,
                                           (const unsigned char *) pbm_secret,
                                           strlen((const char *) pbm_secret));
         if (ret != 0) {
@@ -467,8 +467,8 @@ int invoke_ir_transaction(cmp_send_receive_cb send_receive_func,
         IMPRINTING_SUBJECT_NAME,        // subject_name,
         IMPRINTING_SUBJECT_NAME,        // sender_name,
         RECIPIENT_NAME,                 // recipient_name
-#ifdef REFERENCE                        // reference
-        REFERENCE
+#ifdef PBM_KID                        // reference
+        PBM_KID
 #else
         NULL
 #endif
