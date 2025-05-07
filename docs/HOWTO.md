@@ -58,8 +58,8 @@ Create the directories for storing the enrollment results and invoke the client.
 The enrollment result paths must fit the configuration given in `program/cmpclient_config.h`.
 
 ```bash
-mkdir -p resources/sdcard_root/SDHC/certs/playground/operat \
-		  resources/sdcard_root/SDHC/certs/playground/vendor
+mkdir -p resources/certs/playground/operat \
+		  resources/certs/playground/vendor
 ./build/embedded_cmp -ick
 ```
 
@@ -69,8 +69,8 @@ Create the directories for storing the enrollment results and invoke the client.
 The enrollment result paths must fit the configuration given in `program/cmpclient_config.h`.
 
 ```bash
-mkdir -p resources/sdcard_root/SDHC/certs/playground/operat \
-		  resources/sdcard_root/SDHC/certs/playground/vendor
+mkdir -p resources/sdcard_root/playground/operat \
+		  resources/certs/playground/vendor
 cd build
 make test
 cd ..
