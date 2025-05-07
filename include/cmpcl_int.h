@@ -26,6 +26,7 @@
 /* TODO: HARDCODED - that's not in mbedtls/include/mbedtls/oid.h */
 #define PBM_OID "\x2a\x86\x48\x86\xf6\x7d\x07\x42\x0d"
 #define IMPLICITCONFIRM_OID "\x2b\x06\x01\x05\x05\x07\x04\x0d"
+#define RFC4210_HMAC_SHA1_OID "\x2b\x06\x01\x05\x05\x08\x01\x02"
 
 #ifndef CMPCL_INT_H
 #define CMPCL_INT_H

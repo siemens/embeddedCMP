@@ -803,7 +803,7 @@ static int cmpcl_CMPwrite_PBMParameter_der(unsigned char **p, unsigned char *sta
 
     switch (pbmp->mac) {
         case MBEDTLS_MD_RIPEMD160: setoid(MBEDTLS_OID_HMAC_RIPEMD160);
-        case MBEDTLS_MD_SHA1: setoid(MBEDTLS_OID_HMAC_SHA1);
+        case MBEDTLS_MD_SHA1: setoid(RFC4210_HMAC_SHA1_OID);
         case MBEDTLS_MD_SHA224: setoid(MBEDTLS_OID_HMAC_SHA224);
         case MBEDTLS_MD_SHA256: setoid(MBEDTLS_OID_HMAC_SHA256);
         case MBEDTLS_MD_SHA384: setoid(MBEDTLS_OID_HMAC_SHA384);

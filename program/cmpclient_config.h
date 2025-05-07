@@ -60,7 +60,7 @@
 # define PBM_SECRET "myPresharedSecret"
 # define PBM_KID "keyIdentification"
 #define PBM_OWF MBEDTLS_MD_SHA256
-#define PBM_MAC MBEDTLS_MD_SHA256
+#define PBM_MAC MBEDTLS_MD_SHA1
 
 #endif
 
@@ -90,6 +90,7 @@
 
 #define PBM_OWF MBEDTLS_MD_SHA256
 #define PBM_MAC MBEDTLS_MD_SHA256
+
 
 # define SERVER_PATH_CR   "/ejbca/publicweb/cmp/PlaygroundECC"
 
@@ -125,6 +126,8 @@
 //# define UNPROTECTED_IR   /* IR may be unprotected if authenticated by LRA */
 # define PBM_SECRET "insta"
 # define PBM_KID "3078"
+#define PBM_OWF MBEDTLS_MD_SHA256
+#define PBM_MAC MBEDTLS_MD_SHA1
 
 #endif
 

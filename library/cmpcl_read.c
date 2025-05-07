@@ -449,13 +449,21 @@ static int cmp_header_parse_check_der(cmp_ctx *ctx, cmp_pkimessage *cmp,
                 cmp_pkimessage_free(cmp);
                 return ret;
             }
-            if ((ret = mbedtls_oid_get_md_hmac(&tmp_alg_buf, &cmp->pbmp->mac)) != 0) {
+            if ((ret = mbedtls_oid_get_md_hmac(&tmp_alg_buf, &cmp->pbmp->mac))
+                != 0) {
                 // be a little bit sloppy about hmac and digest OIDs
-                if ((ret = mbedtls_oid_get_md_alg(&tmp_alg_buf, &cmp->pbmp->mac)) != 0) {
-                    //CMPERRV("Could not parse PBM mac! ret: 0x%04x", -ret);
-                    cmp_ctx_set_failinfo(ctx, CMP_PKIFAILINFO_BADALG);
-                    cmp_pkimessage_free(cmp);
-                    return ret;
+                if ((ret = mbedtls_oid_get_md_alg(&tmp_alg_buf, &cmp->pbmp->mac))
+                    != 0) {
+                    if (tmp_alg_buf.len == (sizeof(RFC4210_HMAC_SHA1_OID) -1) &&
+                        memcmp(tmp_alg_buf.p, RFC4210_HMAC_SHA1_OID,
+                               (sizeof(RFC4210_HMAC_SHA1_OID) -1)) == 0) {
+                        cmp->pbmp->mac = MBEDTLS_MD_SHA1;
+                    } else {
+                        //CMPERRV("Could not parse PBM mac! ret: 0x%04x", -ret);
+                        cmp_ctx_set_failinfo(ctx, CMP_PKIFAILINFO_BADALG);
+                        cmp_pkimessage_free(cmp);
+                        return ret;
+                    }
                 }
             }
 
