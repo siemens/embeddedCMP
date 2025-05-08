@@ -208,7 +208,7 @@ typedef struct cmp_PBMParameter {
     size_t salt_len;
     mbedtls_md_type_t owf;
     int iterationCount;
-    mbedtls_md_type_t mac; /* TODO TODO TODO this is wrong as HMAC-SHA1 is not
+    mbedtls_md_type_t mac; /* this is normally wrong as HMAC-SHA1 is not
                               covered by this mbedtls_md_type_t */
 } cmp_PBMParameter;
 

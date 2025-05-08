@@ -33,13 +33,14 @@
 /* define details of selected CA and associated certs/keys */
 
 #ifdef LOCAL_RA_CA
+
 // local LigthweightCmpRaComponent
 
 /* CMP server */
 
 #define USE_PLAIN_HTTP 0
 
-# define SERVER_HOST   "localhost" // IP address must be used if no proxy is used, corresponds to "pki.certificate.fi"
+# define SERVER_HOST   "localhost"
 # define SERVER_PORT   6000
 # define SERVER_PATH_IR   "onlinelra"
 # define SERVER_PATH_CR   "onlinelra"
@@ -75,7 +76,6 @@
 # define IMPRINTING_SUBJECT_NAME "CN=subject"
 # define BOOTSTRAPPING_SUBJECT_NAME "CN=subject"
 
-//# define UNPROTECTED_IR   /* IR may be unprotected if authenticated by LRA */
 # define PBM_SECRET "myPresharedSecret"
 # define PBM_KID "keyIdentification"
 #define PBM_OWF MBEDTLS_MD_SHA256
@@ -181,7 +181,6 @@
 # define IMPRINTING_SUBJECT_NAME "CN=Device,serialNumber=0000000001,O=Nokia,OU=Test"
 # define BOOTSTRAPPING_SUBJECT_NAME "CN=Operation,O=Nokia,OU=Test"
 
-//# define UNPROTECTED_IR   /* IR may be unprotected if authenticated by LRA */
 # define PBM_SECRET "insta"
 # define PBM_KID "3078"
 #define PBM_OWF MBEDTLS_MD_SHA256
@@ -195,7 +194,7 @@
 # define CERTS_ROOT_PATH    PATH_FS   "certs/netguard/"
 # define RECIPIENT_NAME    "C=FI,ST=Uusimaa,L=Espoo,O=Nokia,OU=Security,CN=NetGuard Test CA" /* only needed for PBM */
 /* if set, use given subject name, else use name from file PATH_TO_VENDOR_CERT_PEM */
-//#define SUBJECT_NAME "CN=Device,serialNumber=0000000001,O=Nokia,OU=Test"
+
 /* CMP server */
 # define SERVER_HOST   "certifier.mynetwork"
 # define SERVER_PORT   8080
@@ -204,7 +203,6 @@
 # define PROXY_NAME    "194.145.60.1"
 # define PROXY_PORT    9400
 
-//# define UNPROTECTED_IR   /* IR may be unprotected if authenticated by LRA */
 # define PBM_SECRET "9pp8-b35i-Xd3Q-udNR"
 # define PBM_KID "4787"
 

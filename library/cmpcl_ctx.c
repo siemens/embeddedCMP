@@ -73,8 +73,8 @@ int cmp_ctx_set_prot_pbm_secret(cmp_ctx *ctx, mbedtls_ctr_drbg_context *ctr_drbg
         return CMPCL_ERR_MEMORY_ALLOCATION;
     }
     if (cmp_PBMParameter_init(pbmp, ctr_drbg, 16,
-                              owf, 1000,
-                              mac) != 0) { /* TODO HARDCODED */
+                              owf, 1000, /* TODO HARDCODED */
+                              mac) != 0) {
         CMPERRS("FAILED to set PBM parameter!");
         return CMPCL_ERR_PBM_PARM;
     }

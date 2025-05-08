@@ -41,7 +41,7 @@ int cmpcl_do_transaction(cmp_ctx *ctx, const int body_type)
     cmp_ctx_set_body_type(ctx, body_type);
     int unprotected = ctx->unprotected_ir && (ctx->body_type == MBEDTLS_CMP_PKIBODY_IR);
 
-    len = cmpcl_CMPwrite_PKIMessage_der(&output_start, output_buf, ctx, unprotected); /* TODO that random stuff for ECDSA... */
+    len = cmpcl_CMPwrite_PKIMessage_der(&output_start, output_buf, ctx, unprotected);
 
     if (len < 0) {
         CMPERRV("cmpcl_CMPwrite_PKIMessage der returned %d", len);
@@ -132,15 +132,10 @@ conferr:
         memset(output_buf, 0, sizeof(output_buf));
         output_start = output_buf+sizeof(output_buf);
 
-        /* TODO: validate which fields of context must be manipulated / may be reused
-         * and be sure to not override existing pointer without free()
-         */
-
         cmp_ctx_set_body_type(ctx, MBEDTLS_CMP_PKIBODY_CERTCONF);
 
-        /* build certConf message
-         * TODO: implement actual certConf body build up */
-        len = cmpcl_CMPwrite_PKIMessage_der(&output_start, output_buf, ctx, unprotected); /* TODO that random stuff for ECDSA... */
+        /* build certConf message */
+        len = cmpcl_CMPwrite_PKIMessage_der(&output_start, output_buf, ctx, unprotected);
 
         if (len < 0) {
             CMPERRV("cmpcl_CMPwrite_PKIMessage der returned %d", len);
@@ -149,7 +144,7 @@ conferr:
         }
 
         /* reuse send_receive for now
-         * TODO: leave tcp connection open to improve performance
+         * TODO: leave http session open to improve performance
          */
         input = NULL;
         inputlen = 0;

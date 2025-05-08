@@ -56,11 +56,6 @@ int cmpcl_CMPwrite_CertConfCont_der(unsigned char **p,
      *    }
      */
 
-    /* only positive case implemented
-     * TODO: check if cert should actually be accepted and
-     *  implement appropriate negative certConf
-     */
-
     /* statusInfo  PKIStatusInfo OPTIONAL
      *
      *  PKIStatusInfo ::= SEQUENCE {
@@ -176,7 +171,6 @@ int cmpcl_CMPwrite_CertConfCont_der(unsigned char **p,
      *  -- the hash of the certificate, using the same hash algorithm
      *  -- as is used to create and verify the certificate signature
      */
-    /* TODO: how to best access the received cert? */
     CMPCL_ASN1_CHK_ADD(ret,
                        mbedtls_md(mbedtls_md_info_from_type(ctx->new_cert->MBEDTLS_PRIVATE(sig_md)),
                                   ctx->new_cert->raw.p, ctx->new_cert->raw.len, hash));
@@ -241,13 +235,6 @@ int cmpcl_CRMFwrite_CertReqMessages_der(unsigned char **p, unsigned char *start,
                                                       0 /* raVerified */));
             break;
         case CMP_CTX_POPO_SIGNATURE:
-            /* TODO
-               poposkInput contains the data to be signed, when present.  This
-               field MUST be present when the certificate template does not
-               contain both the public key value and a subject name value.
-
-               So far this implements RFC4211 section 4.1.3 with omitted poposkInput
-             */
             /*
              * save old output buffer state, use buffer for POPO calculation
              */
@@ -356,10 +343,6 @@ int cmpcl_CRMFwrite_CertRequest_der(unsigned char **p, unsigned char *start,
     size_t subj_len = 0;
     size_t pub_len = 0;
     size_t tmpl_len = 0; /* template length */
-
-
-    /* TODO: check whether necessary fields are populated in context
-     * TODO: add error handling     */
 
     /* Controls
      * Controls ::= SEQUENCE SIZE(1..MAX) OF AttributeTypeAndValue
@@ -511,8 +494,6 @@ static int msg_sig_alg_prot(cmp_ctx *ctx,
 
     hash_len = mbedtls_md(mbedtls_md_info_from_type(ctx->sig_prot_md_alg), input, in_len, hash);
 
-    /* TODO the last parameters f_rng and p_rng need to come from outside for EC keys... */
-
     return mbedtls_pk_sign(ctx->prot_key,
                            ctx->sig_prot_md_alg,
                            hash,
@@ -611,7 +592,7 @@ static int same_cert(mbedtls_x509_crt *crt1, mbedtls_x509_crt *crt2)
         return crt1 == crt2;
     }
     return mbedtls_asn1_buf_cmp(&crt1->serial, &crt2->serial) == 0 &&
-           mbedtls_asn1_buf_cmp(&crt1->issuer_raw, &crt2->issuer_raw) == 0;   // TODO use better DN comparison
+           mbedtls_asn1_buf_cmp(&crt1->issuer_raw, &crt2->issuer_raw) == 0;
 }
 
 static size_t cmpcl_CMPwrite_ExtraCerts_der(unsigned char **p,
@@ -632,7 +613,7 @@ static size_t cmpcl_CMPwrite_ExtraCerts_der(unsigned char **p,
         ctx->body_type == MBEDTLS_CMP_PKIBODY_KUR ||
         ctx->body_type == MBEDTLS_CMP_PKIBODY_RR) {
         while (crt) {
-            if (mbedtls_asn1_buf_cmp(&crt->issuer_raw, &crt->subject_raw) != 0 &&       // TODO use better DN comparison
+            if (mbedtls_asn1_buf_cmp(&crt->issuer_raw, &crt->subject_raw) != 0 &&
                 !same_cert(crt, ctx->prot_cert)) {
                 MBEDTLS_ASN1_CHK_ADD(len,
                                      mbedtls_asn1_write_raw_buffer(p, start, crt->raw.p,
@@ -665,7 +646,7 @@ static size_t cmpcl_CMPwrite_ExtraCerts_der(unsigned char **p,
 
 /* **************************************************************** */
 int cmpcl_CMPwrite_PKIMessage_der(unsigned char **p, unsigned char *start,
-                                  cmp_ctx *ctx, int unprotected) /* TODO that random stuff for ECDSA... */
+                                  cmp_ctx *ctx, int unprotected)
 {
     int ret;
     size_t len = 0;
@@ -711,7 +692,6 @@ int cmpcl_CMPwrite_PKIMessage_der(unsigned char **p, unsigned char *start,
         case MBEDTLS_CMP_PKIBODY_PKICONF: /* the client does not need to send that - but easiest for first testing ;-) */
             MBEDTLS_ASN1_CHK_ADD(body_len, mbedtls_asn1_write_null(p, start));
             break;
-        /* TODO: add additional body types */
         case MBEDTLS_CMP_PKIBODY_CERTCONF:
             MBEDTLS_ASN1_CHK_ADD(body_len, cmpcl_CMPwrite_CertConfCont_der(p, start, ctx));
             break;

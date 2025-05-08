@@ -21,8 +21,6 @@
  *  SPDX-License-Identifier: Apache-2.0
  */
 
-// #define NO_CMP /* just for CMP code size differential measurement */
-
 /*******************************************************************************
  * Includes
  ******************************************************************************/
@@ -433,9 +431,6 @@ int invoke_cr_transaction(cmp_send_receive_cb send_receive_func,
                               cb_context,
                               send_receive_func,
                               ctr_drbg,
-//                              PATH_TO_VENDOR_CERT_PEM,
-//                              PATH_TO_VENDOR_KEY_PEM,
-//                              PATH_TO_VENDOR_CHAIN_PEM,
                               PATH_TO_PROTECTION_CERT,
                               PATH_TO_PROTECTION_KEY,
                               PATH_TO_PROTECTION_CHAIN,

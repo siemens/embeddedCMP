@@ -44,7 +44,6 @@ void cmp_asn1_sequence_free(mbedtls_asn1_sequence *asn1_sequence)
 void cmp_asn1_bitstring_free(mbedtls_asn1_bitstring *asn1_bitstring)
 {
 
-//    mbedtls_free(asn1_bitstring->p);
     mbedtls_platform_zeroize(asn1_bitstring, sizeof(asn1_bitstring));
 }
 
@@ -79,7 +78,7 @@ int setStr(unsigned char **dst, const unsigned char *src, const size_t len)
         CMPERRS("Error allocating space\n");
         return CMPCL_ERR_MEMORY_ALLOCATION;
     }
-    memcpy(*dst, src, len);  /* TODO: catch error */
+    memcpy(*dst, src, len);
     return 0;
 }
 
@@ -378,7 +377,7 @@ int cmp_PBM_new(const cmp_PBMParameter *pbmp,
 
     /* cleanup */
 err:
-    mbedtls_md_free(&md_ctx); /* TODO: do I need to check anything before? */
+    mbedtls_md_free(&md_ctx);
     mbedtls_free(basekey);
     return ret;
 }
