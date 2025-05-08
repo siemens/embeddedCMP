@@ -60,19 +60,19 @@ static int cmp_extra_certs_parse_check(cmp_ctx *ctx, cmp_pkimessage *cmp)
         unsigned char *p = cmp->extraCerts.p;
         const unsigned char *end = cmp->extraCerts.p + cmp->extraCerts.len;
         if (*p != (MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE)) {
-            //CMPERRS("wrong tagged extra certs");
+            CMPERRS("wrong tagged extra certs");
             ret = -1;
             goto err;
         }
         p++;
         size_t cert_sequence_len;
         if ((ret = mbedtls_asn1_get_len(&p, end, &cert_sequence_len)) != 0) {
-            //CMPERRV("mbedtls_asn1_get_len(): 0x%04x", -ret);
+            CMPERRV("mbedtls_asn1_get_len(): 0x%04x", -ret);
             goto err;
         }
 
         if (cert_sequence_len == 0) {
-            //CMPDBGS("Empty sequence of extraCerts received");
+            CMPDBGS("Empty sequence of extraCerts received");
             return 0;
         }
         if (ctx->extraCerts) {
@@ -81,7 +81,7 @@ static int cmp_extra_certs_parse_check(cmp_ctx *ctx, cmp_pkimessage *cmp)
         }
         ctx->extraCerts = mbedtls_calloc(1, sizeof(mbedtls_x509_crt));
         if (!ctx->extraCerts) {
-            //CMPERRS("calloc");
+            CMPERRS("calloc");
             goto err;
         }
 
@@ -93,13 +93,13 @@ static int cmp_extra_certs_parse_check(cmp_ctx *ctx, cmp_pkimessage *cmp)
             // skip SEQUENCE tag
             p++;
             if ((ret = mbedtls_asn1_get_len(&p, end, &cert_len)) != 0) {
-                //CMPERRV("mbedtls_asn1_get_len(): 0x%04x", -ret);
+                CMPERRV("mbedtls_asn1_get_len(): 0x%04x", -ret);
                 goto err;
             }
             unsigned char *next_cert = p + cert_len;
             if ((ret = mbedtls_x509_crt_parse_der(ctx->extraCerts, cert_start,
                                                   cert_sequence_len)) != 0) {
-                //CMPERRV("mbedtls_x509_crt_parse_der(extraCerts): 0x%04x", -ret);
+                CMPERRV("mbedtls_x509_crt_parse_der(extraCerts): 0x%04x", -ret);
                 goto err;
             }
             p = next_cert;
@@ -142,7 +142,7 @@ static int cmp_prot_check(cmp_ctx *ctx, cmp_pkimessage *cmp)
     prot_part_len = cmp->header.len + cmp->body.len;
     start = mbedtls_calloc(1, prot_part_len + ASN1_SEQ_TAG_LEN);
     if (start == NULL) {
-        //CMPERRS("Out of memory!");
+        CMPERRS("Out of memory!");
         ret = -1;
         goto err;
     }
@@ -159,14 +159,14 @@ static int cmp_prot_check(cmp_ctx *ctx, cmp_pkimessage *cmp)
 
         mac = mbedtls_calloc(1, MBEDTLS_MPI_MAX_SIZE);
         if (mac == NULL) {
-            //CMPERRS("Out of memory!");
+            CMPERRS("Out of memory!");
             ret = -1;
             goto err;
         }
 
         /* calculate verification MAC */
         if (ctx->prot_secret == NULL) {
-            //CMPERRS("No secret provided, therefore no calculation of MAC possible.");
+            CMPERRS("No secret provided, therefore no calculation of MAC possible.");
             goto err;
         }
 
@@ -175,28 +175,29 @@ static int cmp_prot_check(cmp_ctx *ctx, cmp_pkimessage *cmp)
                                *p, prot_part_len,
                                mac, &mac_len))
             != 0) {
-            //CMPERRS("Failed to calculate MAC value for protection verification!");
+            CMPERRS("Failed to calculate MAC value for protection verification!");
             goto err;
         }
         ;
 
         /* compare */
         if ((ret = memcmp(mac, cmp->protection->p, cmp->protection->len)) != 0) {
-            //CMPERRV("MAC does not match! memcmp ret: %d", ret);
+            CMPERRV("MAC does not match! memcmp ret: %d", ret);
             ret = -1;
         }
     } else { /* check sig prot */
 
         /* parsing of extraCerts already done; use pk_ctx directly from there */
         if (ctx->extraCerts == NULL) {
-            //CMPERRS("No extraCerts found! Abort signature protection verification!");
+            CMPERRS("No extraCerts found! Abort signature protection verification!");
             ret = -1;
             goto err;
         }
 
         /* check if signer key type matches algorithm provided in protectionAlg */
         if (!mbedtls_pk_can_do(&ctx->extraCerts->pk, cmp->sig_pk)) {
-            //CMPERRS("Protection algorithm in protAlg field does not match key type of first cert in extraCerts!");
+            CMPERRS(
+                "Protection algorithm in protAlg field does not match key type of first cert in extraCerts!");
             ret = -1;
             goto err;
         }
@@ -211,7 +212,7 @@ static int cmp_prot_check(cmp_ctx *ctx, cmp_pkimessage *cmp)
 
         md = (unsigned char *) mbedtls_calloc(1, md_len);
         if (md == NULL) {
-            //CMPERRS("Out of memory!");
+            CMPERRS("Out of memory!");
             ret = -1;
             goto err;
         }
@@ -220,7 +221,7 @@ static int cmp_prot_check(cmp_ctx *ctx, cmp_pkimessage *cmp)
                               *p,
                               prot_part_len,
                               md)) != 0) {
-            //CMPERRV("mbedtls_md returned 0x%04x", -ret);
+            CMPERRV("mbedtls_md returned 0x%04x", -ret);
             goto err;
         }
 
@@ -231,11 +232,12 @@ static int cmp_prot_check(cmp_ctx *ctx, cmp_pkimessage *cmp)
                                      md_len,
                                      cmp->protection->p,
                                      cmp->protection->len)) != 0) {
-            //CMPERRS("Signature protection could not be verified (assuming first extraCert is signer cert)!");
-            //CMPERRV("mbedtls_pk_verify returned: 0x%04x", -ret);
+            CMPERRS(
+                "Signature protection could not be verified (assuming first extraCert is signer cert)!");
+            CMPERRV("mbedtls_pk_verify returned: 0x%04x", -ret);
             goto err;
         }
-        //CMPDBGS("Signature protection verification was successful")
+        CMPDBGS("Signature protection verification was successful")
     }
 
 err:
@@ -299,7 +301,7 @@ static int cmp_header_parse_check_der(cmp_ctx *ctx, cmp_pkimessage *cmp,
     }
 
     if ((ret = mbedtls_x509_get_name(&p, p + len, &cmp->sender)) != 0) {
-        //CMPWARNS("response PKIHeader sender field contains empty RDN sequence (NULL DN).");
+        CMPWARNS("response PKIHeader sender field contains empty RDN sequence (NULL DN).");
     }
 
     cmp->sender_raw.len = p - cmp->sender_raw.p;
@@ -321,7 +323,7 @@ static int cmp_header_parse_check_der(cmp_ctx *ctx, cmp_pkimessage *cmp,
     }
 
     if ((ret = mbedtls_x509_get_name(&p, p + len, &cmp->recipient)) != 0) {
-        //CMPDBGV("response PKIHeader recipient field is empty!");
+        CMPDBGV("response PKIHeader recipient field is empty!");
         cmp_pkimessage_free(cmp);
         return ret;
     }
@@ -366,7 +368,7 @@ static int cmp_header_parse_check_der(cmp_ctx *ctx, cmp_pkimessage *cmp,
             /* allocate memory */
             cmp->pbmp = (cmp_PBMParameter *) mbedtls_calloc(1, sizeof(cmp_PBMParameter));
             if (cmp->pbmp == NULL) {
-                //CMPERRS("Out of memory!");
+                CMPERRS("Out of memory!");
                 cmp_pkimessage_free(cmp);
                 return CMPCL_ERR_MEMORY_ALLOCATION;
             }
@@ -390,7 +392,7 @@ static int cmp_header_parse_check_der(cmp_ctx *ctx, cmp_pkimessage *cmp,
             }
             cmp->pbmp->salt = (unsigned char *) mbedtls_calloc(1, sublen);
             if (cmp->pbmp->salt == NULL) {
-                //CMPERRS("Out of memory!");
+                CMPERRS("Out of memory!");
                 cmp_pkimessage_free(cmp);
                 return CMPCL_ERR_MEMORY_ALLOCATION;
             }
@@ -411,7 +413,7 @@ static int cmp_header_parse_check_der(cmp_ctx *ctx, cmp_pkimessage *cmp,
             prot_alg_params_buf.len -= tmp_alg_buf.len;
 
             if ((ret = mbedtls_oid_get_md_alg(&tmp_alg_buf, &cmp->pbmp->owf)) != 0) {
-                //CMPERRV("Could not parse PBM owf! ret: 0x%04x", -ret);
+                CMPERRV("Could not parse PBM owf! ret: 0x%04x", -ret);
                 cmp_ctx_set_failinfo(ctx, CMP_PKIFAILINFO_BADALG);
                 cmp_pkimessage_free(cmp);
                 return ret;
@@ -421,7 +423,7 @@ static int cmp_header_parse_check_der(cmp_ctx *ctx, cmp_pkimessage *cmp,
             if ((ret = mbedtls_asn1_get_int(&prot_alg_params_buf.p,
                                             prot_alg_params_buf.p + prot_alg_params_buf.len,
                                             &cmp->pbmp->iterationCount)) != 0) {
-                //CMPERRV("Could not parse PBM iteration count! ret: 0x%04x", -ret);
+                CMPERRV("Could not parse PBM iteration count! ret: 0x%04x", -ret);
                 cmp_pkimessage_free(cmp);
                 return ret;
             }
@@ -430,7 +432,7 @@ static int cmp_header_parse_check_der(cmp_ctx *ctx, cmp_pkimessage *cmp,
             if ((ret = mbedtls_asn1_get_alg_null(&prot_alg_params_buf.p,
                                                  prot_alg_params_buf.p + prot_alg_params_buf.len,
                                                  &tmp_alg_buf)) != 0) {
-                //CMPERRV("Could not parse PBM mac! ret: 0x%04x", -ret);
+                CMPERRV("Could not parse PBM mac! ret: 0x%04x", -ret);
                 cmp_ctx_set_failinfo(ctx, CMP_PKIFAILINFO_BADALG);
                 cmp_pkimessage_free(cmp);
                 return ret;
@@ -445,7 +447,7 @@ static int cmp_header_parse_check_der(cmp_ctx *ctx, cmp_pkimessage *cmp,
                                (sizeof(RFC4210_HMAC_SHA1_OID) -1)) == 0) {
                         cmp->pbmp->mac = MBEDTLS_MD_SHA1;
                     } else {
-                        //CMPERRV("Could not parse PBM mac! ret: 0x%04x", -ret);
+                        CMPERRV("Could not parse PBM mac! ret: 0x%04x", -ret);
                         cmp_ctx_set_failinfo(ctx, CMP_PKIFAILINFO_BADALG);
                         cmp_pkimessage_free(cmp);
                         return ret;
@@ -456,7 +458,7 @@ static int cmp_header_parse_check_der(cmp_ctx *ctx, cmp_pkimessage *cmp,
         } else { /* MSG_SIG_ALG  */
             if ((ret = mbedtls_oid_get_sig_alg(&prot_alg_buf, &cmp->sig_md,
                                                &cmp->sig_pk)) != 0) {
-                //CMPERRS("Signature based protection algorithm could not be parsed!");
+                CMPERRS("Signature based protection algorithm could not be parsed!");
                 cmp_ctx_set_failinfo(ctx, CMP_PKIFAILINFO_BADALG);
                 cmp_pkimessage_free(cmp);
                 return -1;
@@ -492,17 +494,17 @@ static int cmp_header_parse_check_der(cmp_ctx *ctx, cmp_pkimessage *cmp,
         if (ctx->transactionID_len != len) {
             cmp_pkimessage_free(cmp);
             cmp_ctx_set_failinfo(ctx, CMP_PKIFAILINFO_BADMESSAGECHECK);
-            //CMPERRS("TransactionID not matching!");
+            CMPERRS("TransactionID not matching!");
             return -1;
         }
 
         if (memcmp(ctx->transactionID, p, len) != 0) {
             cmp_pkimessage_free(cmp);
             cmp_ctx_set_failinfo(ctx, CMP_PKIFAILINFO_BADMESSAGECHECK);
-            //CMPERRS("TransactionID not matching!");
+            CMPERRS("TransactionID not matching!");
             return -1;
         }
-        //CMPDBGS("TransactionID match!");
+        CMPDBGS("TransactionID match!");
 
         p = p + len;
     }
@@ -522,7 +524,7 @@ static int cmp_header_parse_check_der(cmp_ctx *ctx, cmp_pkimessage *cmp,
         }
 
         if (setStr(&(ctx->recipNonce), p, len) != 0) {
-            //CMPERRS("Failed to store recipNonce in context!");
+            CMPERRS("Failed to store recipNonce in context!");
             cmp_pkimessage_free(cmp);
             return -1;
         }
@@ -543,17 +545,17 @@ static int cmp_header_parse_check_der(cmp_ctx *ctx, cmp_pkimessage *cmp,
         /* check for length */
         if (ctx->senderNonce_len != len) {
             cmp_pkimessage_free(cmp);
-            //CMPERRS("TransactionID not matching!");
+            CMPERRS("TransactionID not matching!");
             return -1;
         }
 
         if (memcmp(ctx->senderNonce, p, len) != 0) {
             cmp_pkimessage_free(cmp);
             cmp_ctx_set_failinfo(ctx, CMP_PKIFAILINFO_BADRECIPIENTNONCE);
-            //CMPERRS("recipNonce does not match sent senderNonce!");
+            CMPERRS("recipNonce does not match sent senderNonce!");
             return -1;
         }
-        //CMPDBGS("recipNonce matches sent senderNonce!");
+        CMPDBGS("recipNonce matches sent senderNonce!");
         p = p + len;
     }
 
@@ -598,7 +600,7 @@ static int cmp_header_parse_check_der(cmp_ctx *ctx, cmp_pkimessage *cmp,
 
             /* look for implicitConfim */
             if (memcmp(cur->p, IMPLICITCONFIRM_OID, cur->len) == 0) {
-                //CMPDBGS("implicitConfirm was granted");
+                CMPDBGS("implicitConfirm was granted");
                 cmp->implicit_conf_granted = 1;
             }
 
@@ -699,7 +701,7 @@ static int cmp_pkibody_PKIStatusInfo_parse_der(cmp_PKIStatusInfo *sinfo,
     if ((ret = mbedtls_asn1_get_tag(&tmpp, end, &len,
                                     MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE)) == 0) {
         len += tmpp-p;
-        //CMPERRV("Response StatusString(s): ");
+        CMPERRV("Response StatusString(s): ");
         if ((ret = cmp_pkibody_PKIFreeText_parse_der(&p, p+len, &sinfo->statusString)) != 0) {
             return ret;
         }
@@ -722,8 +724,9 @@ static int cmp_pkibody_PKIStatusInfo_parse_der(cmp_PKIStatusInfo *sinfo,
                 len > 2 ? (unsigned char) sinfo->PKIFailureInfo.p[2] : 0,
                 len > 3 ? (unsigned char) sinfo->PKIFailureInfo.p[3] : 0,
                 (int) sinfo->statusString->buf.len, errMsg);
-        /*if (len > 4)
-            CMPWARNS("PKIFailureInfo field has more than four bytes!");*/
+        if (len > 4) {
+            CMPWARNS("PKIFailureInfo field has more than four bytes!");
+        }
     } else {
         MBEDTLS_ERR(ret);
         return CMPCL_ERR_ASN1_PARSING;
@@ -781,7 +784,7 @@ static int cmp_pkibody_CertifiedKeyPair_parse_der(
              */
             break;
         default:
-            //CMPERRV("Error, unsupported CertOrEncCert choice %d\n", certChoice);
+            CMPERRV("Error, unsupported CertOrEncCert choice %d\n", certChoice);
             ret = CMPCL_ERR_CERT_OR_ENCCERT;
             break;
     }
@@ -904,7 +907,7 @@ static int cmp_pkibody_crepmsg_parse_der(cmp_CertRepMessage *crep,
 
     crep->response = mbedtls_calloc(1, sizeof(struct cmp_CertResponse));
     if ((ret = cmp_pkibody_certrep_parse_der(crep->response, p, p+len)) != 0) {
-        //CMPERRS("Parsing of cerRep body failed!");
+        CMPERRS("Parsing of cerRep body failed!");
         return CMPCL_ERR_CERTREP_B_PARSING;
     }
     p += len;
@@ -958,7 +961,7 @@ static int cmp_pkibody_errmsgcnt_parse_der(cmp_ErrorMsgContent *emc,
             MBEDTLS_ERR(ret);
             return CMPCL_ERR_ASN1_PARSING;
         }
-        //CMPERRV( "Response with Error Code: %d", emc->errorCode );
+        CMPERRV("Response with Error Code: %d", emc->errorCode);
         if (p == end) {
             return 0;
         }
@@ -972,7 +975,7 @@ static int cmp_pkibody_errmsgcnt_parse_der(cmp_ErrorMsgContent *emc,
     if ((ret = mbedtls_asn1_get_tag(&tmpp, end, &len,
                                     MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE)) == 0) {
         len += tmpp-p;
-        //CMPERRV("Response Error Detail(s): ");
+        CMPERRV("Response Error Detail(s): ");
         if ((ret = cmp_pkibody_PKIFreeText_parse_der(&p, p+len, &emc->errorDetails)) != 0) {
             return ret;
         }
@@ -1072,7 +1075,7 @@ int cmp_pkimessage_parse_check_der(cmp_ctx *ctx, int expected_type, cmp_pkimessa
     }
 
     if (bodytype != MBEDTLS_CMP_PKIBODY_ERROR && bodytype != expected_type) {
-        //CMPERRV("Wrong response type %d", bodytype);
+        CMPERRV("Wrong response type %d", bodytype);
         ret = CMPCL_ERR_WRONG_RESP_TYPE;
         goto err;
     }
@@ -1086,7 +1089,7 @@ int cmp_pkimessage_parse_check_der(cmp_ctx *ctx, int expected_type, cmp_pkimessa
                 return MBEDTLS_ERR_X509_INVALID_FORMAT;
             }
             if ((cmp->crep = mbedtls_calloc(1, sizeof(struct cmp_CertRepMessage))) == NULL) {
-                //CMPERRS("Out of memory!");
+                CMPERRS("Out of memory!");
                 ret = CMPCL_ERR_MEMORY_ALLOCATION;
                 goto err;
             }
@@ -1099,16 +1102,16 @@ int cmp_pkimessage_parse_check_der(cmp_ctx *ctx, int expected_type, cmp_pkimessa
             }
             cmp->error = mbedtls_calloc(1, sizeof(cmp_ErrorMsgContent));
             if ((ret = cmp_pkibody_errmsgcnt_parse_der(cmp->error, p, p+len)) != 0) {
-                //CMPERRS("PKIBody error message parse failed!");
+                CMPERRS("PKIBody error message parse failed!");
                 goto err;
             }
             ret = -1;
             break;
         case MBEDTLS_CMP_PKIBODY_PKICONF:
-            //CMPDBGS("PKIConf message received!");
+            CMPDBGS("PKIConf message received!");
             break;
         default:
-            //CMPERRV("Unsupported body type %d", bodytype);
+            CMPERRV("Unsupported body type %d", bodytype);
             ret = CMPCL_ERR_UNSUPPORTED_BODYTYPE;
             break;
     }
@@ -1129,12 +1132,12 @@ err:
     if (!PARSE_ASN1_CONSTRUCTED_TAG(MBEDTLS_ASN1_CONTEXT_SPECIFIC | 0)) {
         cmp->protection = mbedtls_calloc(1, sizeof(mbedtls_asn1_bitstring));
         if ((ret = mbedtls_asn1_get_bitstring(&p, p + len, cmp->protection)) != 0) {
-            //CMPERRS("Failed to retrieve protection bitstring!");
+            CMPERRS("Failed to retrieve protection bitstring!");
             cmp_pkimessage_free(cmp);
             return MBEDTLS_ERR_X509_INVALID_FORMAT;
         }
     } else {
-        //CMPDBGS("WARNING: Received PKIMessage not protected!");
+        CMPDBGS("WARNING: Received PKIMessage not protected!");
     }
 
     /*
@@ -1155,7 +1158,7 @@ err:
 
 
     if (p != end) {
-        //CMPERRV("Unexpected end of response; length difference = %s", p - end);
+        CMPERRV("Unexpected end of response; length difference = " SIZEFMT, p - end);
         cmp_pkimessage_free(cmp);
         return MBEDTLS_ERR_X509_INVALID_FORMAT +
                MBEDTLS_ERR_ASN1_LENGTH_MISMATCH;
@@ -1166,7 +1169,8 @@ err:
     /* 1. check CMP protection */
     if (cmp->protection == NULL || cmp_prot_check(ctx, cmp) != 0) {
 
-        //CMPDBGV("Response protection %s", cmp->protection == NULL ? "not present!" :  "could not be verified!");
+        CMPDBGV("Response protection %s",
+                cmp->protection == NULL ? "not present!" :  "could not be verified!");
 
         if (ctx->unprotected_errors == 0 ||
             (bodytype != MBEDTLS_CMP_PKIBODY_PKICONF &&
@@ -1185,7 +1189,7 @@ err:
 
 
         if (ctx->prot_trust_anchor == NULL) {
-            //CMPERRS("No protection trust anchor provided. Cannot validate protection chain!");
+            CMPERRS("No protection trust anchor provided. Cannot validate protection chain!");
             cmp_pkimessage_free(cmp);
             return -1;
         }

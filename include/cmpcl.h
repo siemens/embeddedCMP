@@ -35,7 +35,7 @@ extern "C" {
 #endif
 
 #define CMPCL_ASN1_CHK_ADD(g, f) do { if ((ret = f) < 0) \
-                                      { CMPERRV("ret=%d\n", (int) ret); \
+                                      { CMPERRV("ret=%d\n", ret); \
                                         goto err; }       \
                                       else g += ret; } while (0)
 

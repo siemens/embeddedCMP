@@ -359,13 +359,9 @@ int invoke_cert_request(const int body_type,
 err:
     /* cleanup */
     cmp_ctx_free(&ctx);
-    // CMPDBGV("Free address 0x%x", &enrol_key);
     mbedtls_pk_free(&enrol_key);
-    // CMPDBGV("Free address 0x%x", &existing_key)
     mbedtls_pk_free(&prot_key);
-    // CMPDBGV("Free address 0x%x", &existing_chain);
     mbedtls_x509_crt_free(&prot_chain);
-    // CMPDBGV("Free address 0x%x", &existing_cert);
     mbedtls_x509_crt_free(&prot_cert);
     mbedtls_x509_crt_free(&prot_trust_anchor);
     mbedtls_x509_crl_free(&prot_crls);

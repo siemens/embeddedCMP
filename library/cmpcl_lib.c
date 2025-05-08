@@ -88,17 +88,17 @@ int write_to_file(char *output_file, const unsigned char *data, size_t len)
     FILE *f;
 
     if ((f = fopen(output_file, "wb")) == NULL) {
-        //CMPDBGV("fopen failed for %s", output_file);
+        CMPDBGV("fopen failed for %s", output_file);
         return CMPCL_ERR_FILE_OPEN;
     }
 
     if (fwrite(data, 1, len, f) != len) {
-        //CMPDBGV("fwrite failed for %s", output_file);
+        CMPDBGV("fwrite failed for %s", output_file);
         fclose(f);
         return CMPCL_ERR_FILE_WRITE;
     }
 
-    //CMPDBGV("Binary data written to %s", output_file);
+    CMPDBGV("Binary data written to %s", output_file);
 
     fclose(f);
     return len;
@@ -119,7 +119,7 @@ char *cmp_x509_cn_gets(mbedtls_x509_name *dn)
     cn_start = mbedtls_asn1_find_named_data(dn, MBEDTLS_OID_AT_CN, sizeof(MBEDTLS_OID_AT_CN) - 1);
 
     if (cn_start == NULL) {
-        //CMPDBGS("Failed to find CN in given DN");
+        CMPDBGS("Failed to find CN in given DN");
         return NULL;
     }
 
@@ -150,7 +150,7 @@ int cmp_x509_crt_verify(mbedtls_x509_crt *crt,
     char *expected_cn = NULL;
 
     if (trust_ca == NULL) {
-        //CMPDBGS("Empty trusted certs chain. Abort verification.");
+        CMPDBGS("Empty trusted certs chain. Abort verification.");
         return CMPCL_ERR_EMPTY_TRUST_CA;
     }
 
@@ -159,7 +159,7 @@ int cmp_x509_crt_verify(mbedtls_x509_crt *crt,
         expected_cn = cmp_x509_cn_gets(exp_name);
 
         if (expected_cn == NULL) {      /*CN extraction failed */
-            //CMPERRS("Failed to extract CN name");
+            CMPERRS("Failed to extract CN name");
             ret = CMPCL_ERR_EXTRACT_CN;
             goto err;
         }
@@ -207,12 +207,12 @@ int cmp_ctx_set_rndm_str(unsigned char **str,
     }
     *str = (unsigned char *) mbedtls_calloc(1, len);
     if (*str == NULL) {
-        //CMPERRS("Error allocating memory!");
+        CMPERRS("Error allocating memory!");
         return -1;
     }
     *str_len = len;
     if ((ret = mbedtls_ctr_drbg_random(ctr_drbg, *str, len)) != 0) {
-        //CMPERRV("Error generating random string: %d\n", ret);
+        CMPERRV("Error generating random string: %d\n", ret);
         ;
     }
     return ret;
@@ -235,7 +235,7 @@ int cmp_PBMParameter_init(cmp_PBMParameter *pbmp,
                              &pbmp->salt_len,
                              ctr_drbg,
                              salt_len) != 0) {
-        //CMPERRS("Error setting PBM parameters!");
+        CMPERRS("Error setting PBM parameters!");
         return -1;
     }
 
@@ -270,7 +270,7 @@ int cmp_PBM_new(const cmp_PBMParameter *pbmp,
     basekey = (unsigned char *) mbedtls_calloc(1, MBEDTLS_MD_MAX_SIZE);
 
     if (!basekey) {
-        //CMPERRS("Error allocating memory!");
+        CMPERRS("Error allocating memory!");
         goto err;
     }
     if (!mac) {

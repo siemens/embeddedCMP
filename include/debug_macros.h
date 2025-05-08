@@ -17,7 +17,9 @@ extern "C" {
 #define SIZEFMT "%lu"
 #endif
 
-#if DEBUG
+// #define DEBUG
+
+#ifdef DEBUG
 #define CMPDBGV(fmt, ...) \
     do { \
         PRINTF("DEBUG: %s:%d %s " fmt NEWLINE, __FILE__, __LINE__, __func__, \
@@ -26,6 +28,7 @@ extern "C" {
 #else
 #define CMPDBGV(fmt, ...) /* no-op */
 #endif
+
 #define CMPDBGS(str) CMPDBGV(str)
 #define CMPDBG       CMPDBGS("")
 
@@ -40,6 +43,7 @@ extern "C" {
     do { \
         PRINTF("ERROR: %s:%d %s " str NEWLINE, __FILE__, (int) __LINE__, __func__); \
     } while (0)
+
 #define CMPERRV(fmt, ...) \
     do { \
         PRINTF("ERROR: %s:%d %s " fmt NEWLINE, __FILE__, (int) __LINE__, __func__, \

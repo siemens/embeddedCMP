@@ -76,8 +76,8 @@ int cmpcl_do_transaction(cmp_ctx *ctx, const int body_type)
         goto conferr;
     }
 
-//	CMPDBGV("Received Header Len %d", (int )cmp->header.len);
-//	CMPDBGV("Received Body Len %d", (int )cmp->body.len);
+    CMPDBGV("Received Header Len %d", (int) cmp_response->header.len);
+    CMPDBGV("Received Body Len %d", (int) cmp_response->body.len);
 
 
     /* check before possible certConf because new_cert is needed as input */

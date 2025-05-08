@@ -34,30 +34,30 @@ static int read_file(unsigned char **contents, const char *filename)
     struct stat statbuf;
     int error = stat(filename, &statbuf);
     if (error) {
-        CMPERRV("====ERROR====  stat of %s failed: %s\r\n", filename,
+        CMPERRV("stat of %s failed: %s\r\n", filename,
                 strerror(errno));
         return -1;
     }
     if (statbuf.st_size >= MAX_FILE_SIZE) {
-        CMPERRV("====ERROR==== file %s too large for loading, len= %d\r\n",
-                filename, (int) statbuf.st_size);
+        CMPERRV("file %s too large for loading, len= " SIZEFMT "\r\n",
+                filename, statbuf.st_size);
         return -1;
     }
     FILE *fileObject = fopen(filename, "r");
     if (fileObject == NULL) {
-        CMPERRV("====ERROR==== fopen of %s failed: %s\r\n", filename,
+        CMPERRV("fopen of %s failed: %s\r\n", filename,
                 strerror(errno));
         return -1;
     }
     size_t readBytes = fread(content_buffer, 1, statbuf.st_size, fileObject);
     if (readBytes != statbuf.st_size) {
-        CMPERRV("====ERROR==== wrong f_read of %s: %d != %d \r\n", filename,
-                (int) readBytes, (int) statbuf.st_size);
+        CMPERRV("wrong f_read of %s: " SIZEFMT " != " SIZEFMT "\r\n", filename,
+                readBytes,  statbuf.st_size);
         return -1;
     }
     error = fclose(fileObject);
     if (error) {
-        CMPERRV("====ERROR==== f_close of %s failed: %s\r\n", filename,
+        CMPERRV("f_close of %s failed: %s\r\n", filename,
                 strerror(errno));
         return -1;
     }
@@ -73,19 +73,19 @@ static int write_file(unsigned char *content, size_t len, const char *filename,
 
     FILE *fileObject = fopen(filename, append ? "a" : "w");
     if (fileObject == NULL) {
-        CMPERRV("====ERROR==== fopen of %s failed: %s\r\n", filename,
+        CMPERRV("fopen of %s failed: %s\r\n", filename,
                 strerror(errno));
         return -1;
     }
     size_t writtenBytes = fwrite(content, 1, len, fileObject);
     if (len != writtenBytes) {
-        CMPERRV("====ERROR==== wrong f_read of %s: %d != %d \r\n", filename,
-                (int) writtenBytes, (int) len);
+        CMPERRV("====ERROR==== wrong f_read of %s: " SIZEFMT " != " SIZEFMT " \r\n", filename,
+                writtenBytes,  len);
         return -1;
     }
     int error = fclose(fileObject);
     if (error) {
-        CMPERRV("====ERROR==== f_close of %s failed: %s\r\n", filename,
+        CMPERRV("f_close of %s failed: %s\r\n", filename,
                 strerror(errno));
         return -1;
     }

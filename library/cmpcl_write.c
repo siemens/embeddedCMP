@@ -365,7 +365,7 @@ int cmpcl_CRMFwrite_CertRequest_der(unsigned char **p, unsigned char *start,
             CMPERRS("No client cert provided; KUR ONLY with OldCert!");
             return CMPCL_ERR_KUR_OLDCERT;
         }
-//        CMPDBGS("Include OldCertId")
+        CMPDBGS("Include OldCertId")
         /* oldCertId */
 
         /* serialNumber INTEGER */
