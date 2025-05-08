@@ -23,10 +23,11 @@
 /* EC curve to be used for key generation */
 #define NEW_KEY_ECCURVE "secp256r1"
 
-/* select CA to be used */
+/* select one CA to be used */
 #define PLAYGROUND
 // #define LOCAL_RA_CA
 // #define INSTA
+// #define DOCKER_EJBCA
 // XXXX NETGUARD was not tested yet
 // #define NETGUARD
 
@@ -187,6 +188,55 @@
 #define PBM_MAC MBEDTLS_MD_SHA1
 
 #endif
+
+#ifdef DOCKER_EJBCA
+
+/* CMP server */
+#define USE_PLAIN_HTTP 1
+# define SERVER_HOST   "127.0.0.1"
+# define SERVER_PORT   6080
+# define SERVER_PATH_IR   "ejbca/publicweb/cmp/cmp_imprint_RA"
+# define SERVER_PATH_CR   "ejbca/publicweb/cmp/cmp_bootstrap_RA"
+# define SERVER_PATH_KUR   "ejbca/publicweb/cmp/cmp_client"
+
+# define CERTS_ROOT_PATH "./resources/certs/docker_ejbca/"
+// vendor credentials
+#define PATH_TO_VENDOR_CERT_PEM         CERTS_ROOT_PATH  "vendor/VD_CERT.PEM"
+#define PATH_TO_VENDOR_KEY_PEM          CERTS_ROOT_PATH  "vendor/VD_PRIV.PEM"
+#define PATH_TO_VENDOR_CHAIN_PEM        CERTS_ROOT_PATH  "vendor/VD_CHAIN.PEM"
+
+// operational credentials
+#define PATH_TO_OPERATIONAL_CERT_PEM    CERTS_ROOT_PATH  "operat/OP_CERT.PEM"
+#define PATH_TO_OPERATIONAL_KEY_PEM     CERTS_ROOT_PATH  "operat/OP_PRIV.PEM"
+#define PATH_TO_OPERATIONAL_CHAIN_PEM   CERTS_ROOT_PATH  "operat/OP_CHAIN.PEM"
+
+// protection credentials
+#define PATH_TO_PROTECTION_CERT PATH_TO_VENDOR_CERT_PEM
+#define PATH_TO_PROTECTION_KEY PATH_TO_VENDOR_KEY_PEM
+#define PATH_TO_PROTECTION_CHAIN NULL
+
+// trusted protection CA certificates /CRLs
+#define PATH_TO_PROTECTION_TRUST_ANCHOR_PEM    CERTS_ROOT_PATH  "trusted/trusted.crt"
+# define PATH_TO_PROTECTION_CRLS NULL
+
+// trusted enrollment CA certificates /CRLs
+#define PATH_TO_ENROLLMENT_TRUST_ANCHOR_PEM    CERTS_ROOT_PATH  "trusted/trusted.crt"
+# define PATH_TO_ENROLLMENT_CRLS NULL
+
+# define RECIPIENT_NAME "CN=CUSTOMER_ISSUING_CA" /* only needed for PBM */
+/* if set, use given subject name, else use name from file PATH_TO_VENDOR_CERT_PEM */
+# define IMPRINTING_SUBJECT_NAME \
+    "CN=test-genCMPClientDemo,OU=For testing purposes only,O=Siemens,C=DE,OU=IDevID"
+# define BOOTSTRAPPING_SUBJECT_NAME \
+    "CN=test-genCMPClientDemo,OU=For testing purposes only,O=Siemens,C=DE"
+
+# define PBM_SECRET "SecretCmp"
+# define PBM_KID ""
+#define PBM_OWF MBEDTLS_MD_SHA256
+#define PBM_MAC MBEDTLS_MD_SHA256
+
+#endif
+
 
 #ifdef NETGUARD
 // XXXX not tested!

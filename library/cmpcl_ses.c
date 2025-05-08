@@ -102,7 +102,7 @@ int cmpcl_do_transaction(cmp_ctx *ctx, const int body_type)
                                        ctx->enrol_trust_anchor,
                                        ctx->enrol_crls,
                                        ctx->subject)) != 0) {
-
+            CMPERRV("enrollment chain validation failed %d\n", ret);
             cmp_ctx_set_failinfo(ctx, CMP_PKIFAILINFO_INCORECTDATA);
         }
         new_cert->next = NULL;
@@ -112,7 +112,7 @@ int cmpcl_do_transaction(cmp_ctx *ctx, const int body_type)
         cmp_response->crep->response->certifiedKeyPair->cert = NULL; /* don't free */
 
     } else {
-        CMPDBGS("No Certificate received\n");
+
         cmp_ctx_set_failinfo(ctx, CMP_PKIFAILINFO_INCORECTDATA);
         ret = CMPCL_ERR_CERT_NOT_RECEIVED;
         goto syserr;
