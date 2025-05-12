@@ -6,16 +6,16 @@ SPDX-License-Identifier: Apache-2.0 -->
 
 # CMP Client
 
-This project provides source code, documentation, and test files 
-for an embedded CMP client implementation, so far based on mbed TLS.
-It implements the mandatory feature set of CMP 
-according section 7.1 of the Lightweight CMP Profile 
+This project is a proof-of-concept of an embedded CMP client, 
+so far based on mbed TLS.
+It implements the mandatory feature set of Certificate Management Protocol 
+(CMP) for end entities according to section 7.1 of the Lightweight CMP Profile 
 [RFC9483](https://tools.ietf.org/html/rfc9483)
 for use in embedded systems and the IoT.
 
-It essentially uses just the cryptography support provided by mbed TLS
-and some basic I/O functionality including a bare-bones HTTP client.
-Tests so far focus on using the PPKI Playground as a CMP test/demo server.
+It essentially uses just the cryptography support provided by mbedTLS
+and some basic I/O functionality including a bare-bone HTTPS client.
+Tests so far focus on using the [PPKI CM Playground](https://wiki.siemens.com/spaces/ProductPKI/pages/497324136/Certificate+Management+Playground) as a CMP test/demo server.
 
 
 ## License
@@ -38,6 +38,7 @@ and can only serve as an example or starting point for further development.
 For instructions how to get the required underlying sources
 and then build and use this software
 please refer to [HOWTO.md](/docs/HOWTO.md).
+
 
 ## Software architecture
 
