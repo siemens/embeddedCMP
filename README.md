@@ -1,4 +1,4 @@
-<!-- Copyright (c) 2019 Siemens AG
+<!-- Copyright (c) 2019-2025 Siemens AG
 
 Licensed under the Apache License, Version 2.0
 
@@ -6,25 +6,16 @@ SPDX-License-Identifier: Apache-2.0 -->
 
 # CMP Client
 
-This project provides source code, documentation, and other files for a CMP client
-implementation. This prototypical code explicitly does not have production quality
-but constructively proves that CMP can be implemented and used
-even on a device that does not have the capacity to contain OpenSSL
-nor a proper operating system.
+This project provides source code, documentation, and other files 
+for an embedded CMP client implementation, so far based on mbed TLS.
 
 It essentially uses just the cryptography support provided by mbedTLS
-and some basic I/O functionality including a bare-bones HTTP or CoAP client.
-As expected, its code size, network bandwidth, and computation resource
-footprint are similar to an EST implementation (while it does not need (d)TLS
-but performs self-contained message protection as far as needed).
+and some basic I/O functionality including a bare-bones HTTP client.
 
-This also serves as a PoC for current standardization efforts at the IETF
-on profiling the CMP standard 
-[RFC 4210](https://tools.ietf.org/html/rfc4210),
-[RFC9480](https://tools.ietf.org/html/rfc9480),
-[RFC9481](https://tools.ietf.org/html/rfc9481) 
-[RFC6712](https://tools.ietf.org/html/rfc6712)
-towards use in embedded systems and the IoT.
+This implements the mandatory feature set of CMP 
+according the Lightweight CMP Profile 
+[RFC9483](https://tools.ietf.org/html/rfc9483)
+for use in embedded systems and the IoT.
 
 ## License
 
