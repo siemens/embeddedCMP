@@ -28,7 +28,7 @@ The following tools need to be installed:
 Go to a writable directory of your choice and execute
 
 ```bash
-git clone git@code.siemens.com:product-pki/ct_rda/embeddedCMP.git
+git clone git@code.siemens.com:product-pki/playground/embeddedCMP.git
 cd embeddedCMP/external
 git clone --recurse-submodules https://github.com/Mbed-TLS/mbedtls.git
 cd ..
