@@ -30,8 +30,8 @@ option(ENABLE_TESTING "Build mbed TLS tests." OFF)
 
 # set(CMAKE_INSTALL_NAME_DIR ${CMAKE_INSTALL_FULL_LIBDIR}/lib)
 include_directories(external/mbedtls/include)
-include_directories(external/mbedtls/tf-psa-crypto/include)
-include_directories(external/mbedtls/tf-psa-crypto/drivers/builtin/include)
+#include_directories(external/mbedtls/tf-psa-crypto/include)
+#include_directories(external/mbedtls/tf-psa-crypto/drivers/builtin/include)
 
 # Use custom config file for Mbed TLS
 add_definitions(-DMBEDTLS_CONFIG_FILE="${CMAKE_SOURCE_DIR}/external/mbedtls/include/mbedtls/mbedtls_config.h")
@@ -39,11 +39,11 @@ add_definitions(-DMBEDTLS_CONFIG_FILE="${CMAKE_SOURCE_DIR}/external/mbedtls/incl
 # option(USE_STATIC_MBEDTLS_LIBRARY "Build mbed TLS static library." off)
 # option(USE_SHARED_MBEDTLS_LIBRARY "Build mbed TLS shared library." on)
 
-if (CMAKE_SYSTEM MATCHES "OpenBSD")
-	option(LINK_WITH_PTHREAD "Explicitly link mbed TLS library to pthread." on)
-endif()
+#if (CMAKE_SYSTEM MATCHES "OpenBSD")
+#	option(LINK_WITH_PTHREAD "Explicitly link mbed TLS library to pthread." on)
+#endif()
 
-set(MBEDTLS_LIBRARIES "builtin" "mbedtls" "mbedx509")
+set(MBEDTLS_LIBRARIES "mbedtls" "mbedx509")
 
 add_subdirectory(external/mbedtls mbedtls)
 
@@ -68,7 +68,7 @@ if (SELFHOSTED)
     )
 #    add_definitions(-DEE_CFG_SELFHOSTED=1)
     add_executable(embedded_cmp ${SOURCE})
-    target_link_libraries(embedded_cmp "builtin" "mbedtls" "mbedx509")
+    target_link_libraries(embedded_cmp "mbedtls" "mbedx509")
     set_target_properties(embedded_cmp PROPERTIES INSTALL_RPATH mbedtls)
     include(CTest)
     add_test(NAME TestImprinting COMMAND embedded_cmp -i WORKING_DIRECTORY ..)

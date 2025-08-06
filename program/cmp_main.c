@@ -24,9 +24,9 @@
  * Includes
  ******************************************************************************/
 #include <string.h>
-  #include <stdio.h>
-       #include <stdlib.h>
-       #include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
+//#include <unistd.h>
 #include "mbedtls_transport.h"
 #include "cmpclient.h"
 #include "cmpclient_config.h"

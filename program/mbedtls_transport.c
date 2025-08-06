@@ -115,6 +115,11 @@ int mbed_tls_transport_init(mbed_tls_transport_ctx *ctx,
                    ret);
             return -1;
         }
+        
+        //added the following lines to comple with mbedtls 3.6.4 TY
+        //mbedtls_ctr_drbg_set_entropy_len(ctr_drbg, 16);
+        mbedtls_ssl_conf_rng( &ctx->conf, mbedtls_ctr_drbg_random, ctr_drbg );
+        
         mbedtls_ssl_conf_dbg(&ctx->conf, mbed_tls_debug, NULL);
         mbedtls_ssl_conf_renegotiation(&ctx->conf, MBEDTLS_SSL_RENEGOTIATION_ENABLED);
         // mbedtls_debug_set_threshold(3);

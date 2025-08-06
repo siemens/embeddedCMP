@@ -191,7 +191,7 @@ int invoke_cert_request(const int body_type,
     }
 
     /* protection trust anchor CRLs*/
-    if (path_to_protection_crls != NULL) {
+/*    if (path_to_protection_crls != NULL) {
         if ((ret = append_crls_from_pem(&prot_crls, path_to_protection_crls)
                    == 0)) {
             CMPDBGS("Parsed protection trust CRL");
@@ -203,7 +203,7 @@ int invoke_cert_request(const int body_type,
     } else {
         CMPDBGS("No protection trust CRL provided");
     }
-
+*/
     /* enrollment trust anchor */
     if (path_to_enrollment_trust_anchor != NULL) {
         if ((ret = append_certs_from_pem(&enrol_trust_anchor,
@@ -219,7 +219,7 @@ int invoke_cert_request(const int body_type,
     }
 
     /* enrollment trust anchor CRLs*/
-    if (path_to_enrollment_crls != NULL) {
+/*    if (path_to_enrollment_crls != NULL) {
         if ((ret = append_crls_from_pem(&enrol_crls, path_to_enrollment_crls)
                    == 0)) {
             CMPDBGS("Parsed enrollment CRL");
@@ -231,7 +231,7 @@ int invoke_cert_request(const int body_type,
     } else {
         CMPDBGS("No enrollment CRL provided");
     }
-
+*/
 
 
     /* set basic header info in ctx */
@@ -379,7 +379,7 @@ int invoke_kur_transaction(cmp_send_receive_cb send_receive_func,
 
     int ret = -1;
 
-    CMPINFOV("### Starting KUR transaction ###");
+    //CMPINFOV("### Starting KUR transaction ###");
     ret = invoke_cert_request(MBEDTLS_CMP_PKIBODY_KUR,
                               NULL,
                               NULL,
@@ -417,7 +417,7 @@ int invoke_cr_transaction(cmp_send_receive_cb send_receive_func,
 
     int ret = -1;
 
-    CMPINFOV("### Starting CR transaction ###");
+    //CMPINFOV("### Starting CR transaction ###");
     ret = invoke_cert_request(MBEDTLS_CMP_PKIBODY_CR,
                               BOOTSTRAPPING_SUBJECT_NAME,
                               NULL,
@@ -451,7 +451,7 @@ int invoke_ir_transaction(cmp_send_receive_cb send_receive_func,
 
     int ret = -1;
 
-    CMPINFOV("### Starting IR transaction ###");
+    //CMPINFOV("### Starting IR transaction ###");
 
     ret = invoke_cert_request(
         MBEDTLS_CMP_PKIBODY_IR,         // body_type,

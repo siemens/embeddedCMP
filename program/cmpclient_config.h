@@ -93,7 +93,8 @@
 
 #define USE_PLAIN_HTTP 0
 
-# define SERVER_HOST   "signservice-playground.ct.siemens.com"
+//# define SERVER_HOST   "signservice-playground.ct.siemens.com"
+# define SERVER_HOST   "ppki-playground.ct.siemens.com"
 # define SERVER_PORT   443
 
 # define SERVER_PATH_IR   "/ejbca/publicweb/cmp/PlaygroundECC_PBE"

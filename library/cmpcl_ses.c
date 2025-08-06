@@ -42,14 +42,15 @@ int cmpcl_do_transaction(cmp_ctx *ctx, const int body_type)
     int unprotected = ctx->unprotected_ir && (ctx->body_type == MBEDTLS_CMP_PKIBODY_IR);
 
     len = cmpcl_CMPwrite_PKIMessage_der(&output_start, output_buf, ctx, unprotected);
-
+    //CMPINFOV("cmpcl_CMPwrite_PKIMessage_der length: %d", len);
+    
     if (len < 0) {
         CMPERRV("cmpcl_CMPwrite_PKIMessage der returned %d", len);
         ret = len; /* if negative, len is an error code*/
         goto syserr;
     }
     #ifdef DEVELOPMENT /* for debugging */
-    write_to_file("SentPKIMessage.der", output_start, len);
+    //write_to_file("SentPKIMessage.der", output_start, len);
     #endif
     ret = ctx->send_receive_func(ctx->cb_context,
                                  output_start, (size_t) len, &input, &inputlen);
@@ -58,7 +59,7 @@ int cmpcl_do_transaction(cmp_ctx *ctx, const int body_type)
         goto syserr;
     }
 #ifdef DEVELOPMENT /* for debugging */
-    write_to_file("ReceivedPKIMessage.der", input, inputlen);
+    //write_to_file("ReceivedPKIMessage.der", input, inputlen);
 #endif
 
     cmp_response = mbedtls_calloc(1, sizeof(cmp_pkimessage));

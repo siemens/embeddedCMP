@@ -252,9 +252,10 @@ int cmpcl_CRMFwrite_CertReqMessages_der(unsigned char **p, unsigned char *start,
                                           popo_input_len, hash));
 
             CMPCL_ASN1_CHK_ADD(ret,
-                               mbedtls_pk_sign(ctx->new_key, ctx->popo_md_alg, hash, 0, sig,
-                                               MBEDTLS_MPI_MAX_SIZE,
-                                               &sig_len));
+                               mbedtls_pk_sign(ctx->new_key, ctx->popo_md_alg, hash, 
+                                               mbedtls_md_get_size(mbedtls_md_info_from_type(ctx->popo_md_alg)), 
+                                               sig, MBEDTLS_MPI_MAX_SIZE, &sig_len,
+                                               mbedtls_ctr_drbg_random, ctx->ctr_drbg));
             /*
              * restore output buffer state
              */
@@ -495,12 +496,13 @@ static int msg_sig_alg_prot(cmp_ctx *ctx,
     hash_len = mbedtls_md(mbedtls_md_info_from_type(ctx->sig_prot_md_alg), input, in_len, hash);
 
     return mbedtls_pk_sign(ctx->prot_key,
-                           ctx->sig_prot_md_alg,
-                           hash,
-                           hash_len,
-                           sig,
-                           MBEDTLS_MPI_MAX_SIZE,
-                           sig_len);
+                       ctx->sig_prot_md_alg,
+                       hash,
+                       mbedtls_md_get_size(mbedtls_md_info_from_type(ctx->sig_prot_md_alg)),
+                       sig,
+                       MBEDTLS_MPI_MAX_SIZE,
+                       sig_len,
+                       mbedtls_ctr_drbg_random, ctx->ctr_drbg);
 }
 
 /* **************************************************************** */

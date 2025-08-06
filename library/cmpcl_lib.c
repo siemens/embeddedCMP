@@ -85,7 +85,7 @@ int setStr(unsigned char **dst, const unsigned char *src, const size_t len)
 #ifdef DEVELOPMENT
 int write_to_file(char *output_file, const unsigned char *data, size_t len)
 {
-    FILE *f;
+/*    FILE *f;
 
     if ((f = fopen(output_file, "wb")) == NULL) {
         CMPDBGV("fopen failed for %s", output_file);
@@ -101,7 +101,8 @@ int write_to_file(char *output_file, const unsigned char *data, size_t len)
     CMPDBGV("Binary data written to %s", output_file);
 
     fclose(f);
-    return len;
+*/
+    return 0;//len;
 }
 #endif
 
