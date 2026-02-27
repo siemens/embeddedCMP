@@ -18,7 +18,7 @@ include(cmake/splint.cmake)
 #set(CMAKE_NM ${tools}/bin/arm-none-eabi-nm)
 #set(CMAKE_OBJDUMP ${tools}/bin/arm-none-eabi-objdump)
 
-set(CMAKE_C_FLAGS "-pedantic -Wall -O3")
+set(CMAKE_C_FLAGS "-pedantic -Wall -Wno-variadic-macro-arguments-omitted -Wno-gnu-zero-variadic-macro-arguments -O3")
 
 
 # -- MBEDTLS --
