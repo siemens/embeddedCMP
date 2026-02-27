@@ -29,7 +29,6 @@
 #include "mbedtls/error.h"
 #include "mbedtls/ssl.h"
 #include "mbedtls/debug.h"
-#include "cmpcl.h"
 #include "credential_storage.h"
 #include "debug_macros.h"
 

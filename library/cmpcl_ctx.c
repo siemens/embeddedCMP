@@ -27,11 +27,16 @@
 /* **************************************************************** */
 /* CMP CTX-setting functions */
 /* **************************************************************** */
-int cmp_ctx_init(cmp_ctx *ctx, mbedtls_ctr_drbg_context *ctr_drbg,
+cmp_ctx *cmp_ctx_init(mbedtls_ctr_drbg_context *ctr_drbg,
                  void *cb_context, cmp_send_receive_cb send_receive_func,
                  int popo_method, int prot_md_alg, int popo_md_alg)
 {
 
+    cmp_ctx *ctx = calloc(1, sizeof(cmp_ctx));
+    if (ctx == NULL) {
+        CMPERRS("Out of memory\n");
+        return NULL;
+    }
     memset(ctx, 0, sizeof(cmp_ctx));
 
     ctx->cb_context = cb_context;
@@ -40,11 +45,13 @@ int cmp_ctx_init(cmp_ctx *ctx, mbedtls_ctr_drbg_context *ctr_drbg,
 
     if (cmp_ctx_set_transactionID(ctx, 16) != 0) {
         CMPERRS("Failed to set transaction ID!");
-        return -1;
+        cmp_ctx_free(ctx);
+        return NULL;
     }
     if (cmp_ctx_set_senderNonce(ctx, 16) != 0) {
         CMPERRS("Failed to set sender nonce!");
-        return -1;
+        cmp_ctx_free(ctx);
+        return NULL;
 
     }
     cmp_ctx_set_popo_method(ctx, popo_method);
@@ -55,7 +62,7 @@ int cmp_ctx_init(cmp_ctx *ctx, mbedtls_ctr_drbg_context *ctr_drbg,
     ctx->cb_context = cb_context;
     ctx->send_receive_func = send_receive_func;
 
-    return 0;
+    return ctx;
 }
 
 /* **************************************************************** */
@@ -279,8 +286,23 @@ void cmp_ctx_set_failinfo(cmp_ctx *ctx, int fail_info)
 }
 /* **************************************************************** */
 
+mbedtls_x509_crt *cmp_ctx_get_new_cert(const cmp_ctx *ctx)
+{
+    return ctx->new_cert;
+}
+/* **************************************************************** */
+
+mbedtls_x509_crt *cmp_ctx_get_extraCerts(const cmp_ctx *ctx)
+{
+    return ctx->extraCerts;
+}
+/* **************************************************************** */
+
 void cmp_ctx_free(cmp_ctx *ctx)
 {
+    if (ctx == NULL)
+        return;
+
     mbedtls_asn1_free_named_data_list(&ctx->sender);
     mbedtls_asn1_free_named_data_list(&ctx->recipient);
 

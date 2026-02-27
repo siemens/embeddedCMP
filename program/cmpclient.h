@@ -23,7 +23,7 @@
 /* Include */
 /* **************************************************************** */
 
-#include "cmpcl.h"
+#include "cmpcl_low.h"
 
 int invoke_ir_transaction(cmp_send_receive_cb send_receive_func,
                           void *cb_context,

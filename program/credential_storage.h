@@ -16,7 +16,7 @@
 
 #include "stdio.h"
 #include "mbedtls/x509_crt.h"
-#include "cmpcl.h"
+#include "mbedtls/ctr_drbg.h"
 
 int append_certs_from_pem(mbedtls_x509_crt *crt, const char *path_to_pem);
 

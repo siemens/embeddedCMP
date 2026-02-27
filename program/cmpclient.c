@@ -129,13 +129,13 @@ int invoke_cert_request(const int body_type,
     mbedtls_x509_crl_init(&enrol_crls);
 
 
-    /* create new context */
-    cmp_ctx ctx;
 
-    int ret = cmp_ctx_init(&ctx, ctr_drbg, cb_context, send_receive_func,
+    int ret = -1;
+    /* create new context */
+    cmp_ctx *ctx = cmp_ctx_init(ctr_drbg, cb_context, send_receive_func,
                            POPO_METHOD, SIG_PROT_MD_ALG,
                            POPO_MD_ALG);
-    if (ret != 0) {
+    if (ctx == NULL) {
         CMPERRS("Error initializing context");
         goto err;
         /* need to call cmp_ctx_free() since cmp_ctx_init() does not clean up on error */
@@ -185,7 +185,7 @@ int invoke_cert_request(const int body_type,
             CMPERRS("Parsing protection trust failed");
             goto err;
         }
-        cmp_ctx_set_prot_trust_anchor(&ctx, &prot_trust_anchor);
+        cmp_ctx_set_prot_trust_anchor(ctx, &prot_trust_anchor);
     } else {
         CMPDBGS("No protection trust certs provided");
     }
@@ -195,7 +195,7 @@ int invoke_cert_request(const int body_type,
         if ((ret = append_crls_from_pem(&prot_crls, path_to_protection_crls)
                    == 0)) {
             CMPDBGS("Parsed protection trust CRL");
-            cmp_ctx_set_prot_crls(&ctx, &prot_crls);
+            cmp_ctx_set_prot_crls(ctx, &prot_crls);
         } else {
             CMPERRS("Parsing protection trust CRL failed");
             goto err;
@@ -213,7 +213,7 @@ int invoke_cert_request(const int body_type,
             CMPERRS("Parsing enrollment trust anchor failed!");
             goto err;
         }
-        cmp_ctx_set_enrol_trust_anchor(&ctx, &enrol_trust_anchor);
+        cmp_ctx_set_enrol_trust_anchor(ctx, &enrol_trust_anchor);
     } else {
         CMPDBGS("No enrollment trust anchor provided");
     }
@@ -223,7 +223,7 @@ int invoke_cert_request(const int body_type,
         if ((ret = append_crls_from_pem(&enrol_crls, path_to_enrollment_crls)
                    == 0)) {
             CMPDBGS("Parsed enrollment CRL");
-            cmp_ctx_set_enrol_crls(&ctx, &enrol_crls);
+            cmp_ctx_set_enrol_crls(ctx, &enrol_crls);
         } else {
             CMPERRS("Parsing enrollment CRL failed");
             goto err;
@@ -247,7 +247,7 @@ int invoke_cert_request(const int body_type,
         }
         sender_name = sender_name_aux;
     }
-    ret = cmp_ctx_set_sender_name(&ctx, sender_name);
+    ret = cmp_ctx_set_sender_name(ctx, sender_name);
     if (ret != 0) {
         CMPERRS("Error setting sender name");
         goto err;
@@ -265,13 +265,13 @@ int invoke_cert_request(const int body_type,
         }
         recipient_name = recipient_name_aux;
     }
-    ret = cmp_ctx_set_recipient_name(&ctx, recipient_name);
+    ret = cmp_ctx_set_recipient_name(ctx, recipient_name);
     if (ret != 0) {
         goto err;
     }
 
     if (reference != NULL) {
-        ret = cmp_ctx_set_senderKID(&ctx, (const unsigned char *) reference,
+        ret = cmp_ctx_set_senderKID(ctx, (const unsigned char *) reference,
                                     strlen((const char *) reference));
         if (ret != 0) {
             goto err;
@@ -282,7 +282,7 @@ int invoke_cert_request(const int body_type,
     if ((ret = gen_ec_key(&enrol_key, ctr_drbg)) < 0) {
         goto err;
     }
-    cmp_ctx_set_new_key(&ctx, &enrol_key);
+    cmp_ctx_set_new_key(ctx, &enrol_key);
 
     /* take given subject name or read from existing cert */
     if (subject_name == NULL && path_to_protection_cert != NULL) {
@@ -295,7 +295,7 @@ int invoke_cert_request(const int body_type,
         subject_name = subject_name_aux;
     }
 
-    if ((ret = cmp_ctx_set_subject_name(&ctx, subject_name)) != 0) {
+    if ((ret = cmp_ctx_set_subject_name(ctx, subject_name)) != 0) {
         CMPERRS("Error setting subject name");
         goto err;
     }
@@ -305,13 +305,13 @@ int invoke_cert_request(const int body_type,
             CMPERRS("No certificate for CR or KUR!");
             goto err;
         }
-        cmp_ctx_set_prot_crt(&ctx, &prot_cert);
+        cmp_ctx_set_prot_crt(ctx, &prot_cert);
         if (body_type == MBEDTLS_CMP_PKIBODY_CR) {
-            cmp_ctx_set_prot_crt_chain(&ctx, &prot_chain);
+            cmp_ctx_set_prot_crt_chain(ctx, &prot_chain);
         }
-        cmp_ctx_set_prot_key(&ctx, &prot_key);
+        cmp_ctx_set_prot_key(ctx, &prot_key);
     } else if (pbm_secret != NULL && body_type != MBEDTLS_CMP_PKIBODY_KUR) { /* this enables use of PBM */
-        ret = cmp_ctx_set_prot_pbm_secret(&ctx, ctr_drbg, PBM_OWF, PBM_MAC,
+        ret = cmp_ctx_set_prot_pbm_secret(ctx, ctr_drbg, PBM_OWF, PBM_MAC,
                                           (const unsigned char *) pbm_secret,
                                           strlen((const char *) pbm_secret));
         if (ret != 0) {
@@ -321,36 +321,36 @@ int invoke_cert_request(const int body_type,
     }
 
 #ifdef UNPROTECTED_ERRORS
-    cmp_ctx_set_unprotected_errors(&ctx, 1);
+    cmp_ctx_set_unprotected_errors(ctx, 1);
 #endif
 
 #ifdef IMPLICIT_CONFIRM
-    cmp_ctx_set_implicit_confirm(&ctx, 1);
+    cmp_ctx_set_implicit_confirm(ctx, 1);
 #endif
 
 #ifdef CACHE_EXTRACERTS
-    cmp_ctx_set_cache_extracerts(&ctx, 1);
+    cmp_ctx_set_cache_extracerts(ctx, 1);
 #endif
 
 #ifdef UNPROTECTED_IR
-    cmp_ctx_set_unprotected_ir(&ctx, 1);
+    cmp_ctx_set_unprotected_ir(ctx, 1);
 #endif
 
     /* execute CMP operation */
-    if ((ret = cmpcl_do_transaction(&ctx, body_type)) != 0) {
+    if ((ret = cmpcl_do_transaction(ctx, body_type)) != 0) {
         CMPERRS("Certificate enrollment failed :-/");
     } else {
-        print_certinfo(ctx.new_cert, "\rrecvd: "); /* TODO: find more elegant way to deal with Eclipse terminal */
+        print_certinfo(cmp_ctx_get_new_cert(ctx), "\rrecvd: "); /* TODO: find more elegant way to deal with Eclipse terminal */
 
         if (write_private_key_pem(&enrol_key, path_to_new_key) != 0) {
             CMPERRV("Failed to write new key to file %s", path_to_new_key);
             ret = -1;
         }
-        if (write_cert_pem(ctx.new_cert, path_to_new_cert) != 0) {
+        if (write_cert_pem(cmp_ctx_get_new_cert(ctx), path_to_new_cert) != 0) {
             CMPERRV("Failed to write new cert to file %s", path_to_new_cert);
             ret = -1;
         }
-        if (write_cert_pem(ctx.extraCerts, path_to_new_chain) != 0) {
+        if (write_cert_pem(cmp_ctx_get_extraCerts(ctx), path_to_new_chain) != 0) {
             CMPERRV("Failed to write new chain to file %s", path_to_new_chain);
             ret = -1;
         }
@@ -358,7 +358,7 @@ int invoke_cert_request(const int body_type,
 
 err:
     /* cleanup */
-    cmp_ctx_free(&ctx);
+    cmp_ctx_free(ctx);
     mbedtls_pk_free(&enrol_key);
     mbedtls_pk_free(&prot_key);
     mbedtls_x509_crt_free(&prot_chain);
