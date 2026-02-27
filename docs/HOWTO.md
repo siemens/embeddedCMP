@@ -31,7 +31,13 @@ Go to a writable directory of your choice and execute
 git clone git@code.siemens.com:product-pki/playground/embeddedCMP.git
 cd embeddedCMP/external
 git clone --recurse-submodules https://github.com/Mbed-TLS/mbedtls.git
-cd ..
+cd mbedtls
+git checkout master
+pip install --break-system-packages --user -r scripts/basic.requirements.txt
+./framework/scripts/make_generated_files.py
+cmake -DENABLE_TESTING=Off .
+cmake --build .
+cd ../..
 ```
 
 # Compiling the code
