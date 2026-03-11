@@ -31,8 +31,7 @@ cmp_ctx *cmp_ctx_init(mbedtls_ctr_drbg_context *ctr_drbg,
                  void *cb_context, cmp_send_receive_cb send_receive_func,
                  int popo_method, int prot_md_alg, int popo_md_alg)
 {
-
-    cmp_ctx *ctx = calloc(1, sizeof(cmp_ctx));
+    cmp_ctx *ctx = mbedtls_calloc(1, sizeof(cmp_ctx));
     if (ctx == NULL) {
         CMPERRS("Out of memory\n");
         return NULL;
@@ -338,5 +337,6 @@ void cmp_ctx_free(cmp_ctx *ctx)
         mbedtls_x509_crt_free(ctx->new_cert);
         mbedtls_free(ctx->new_cert);
     }
-    mbedtls_platform_zeroize(ctx, sizeof(mbedtls_x509write_cert));
+    mbedtls_platform_zeroize(ctx, sizeof(cmp_ctx));
+    mbedtls_free(ctx);
 }

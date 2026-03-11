@@ -25,6 +25,69 @@
 
 static unsigned char output_buf[OUTPUT_BUF_SIZE];
 
+static int cmp_get_first_failinfo_bit(const mbedtls_asn1_bitstring *fi)
+{
+    size_t byte_idx;
+    size_t bit_idx;
+
+    if (fi == NULL || fi->p == NULL || fi->len == 0) {
+        return -1;
+    }
+
+    for (byte_idx = 0; byte_idx < fi->len; byte_idx++) {
+        unsigned char b = fi->p[byte_idx];
+        if (b == 0) {
+            continue;
+        }
+        for (bit_idx = 0; bit_idx < 8; bit_idx++) {
+            if ((b & (0x80u >> bit_idx)) != 0) {
+                return (int) (byte_idx * 8 + bit_idx);
+            }
+        }
+    }
+    return -1;
+}
+
+static void cmp_log_freetext(const char *label, const mbedtls_asn1_sequence *seq)
+{
+    int i = 0;
+    const mbedtls_asn1_sequence *cur = seq;
+    while (cur != NULL) {
+        CMPERRV("%s[%d]: %.*s", label, i, (int) cur->buf.len, cur->buf.p == NULL ? "" : (const char *) cur->buf.p);
+        cur = cur->next;
+        i++;
+    }
+}
+
+static void cmp_log_server_error(cmp_ctx *ctx, const cmp_pkimessage *cmp_response)
+{
+    int failinfo = -1;
+
+    if (cmp_response == NULL || cmp_response->error == NULL) {
+        CMPERRS("CMP error response received, but no error details were parsed");
+        cmp_ctx_set_failinfo(ctx, CMP_PKIFAILINFO_BADDATAFORMAT);
+        return;
+    }
+
+    CMPERRV("CMP server error: PKIStatus=%d", cmp_response->error->pKIStatusInfo.PKIStatus);
+    CMPERRV("CMP server errorCode=%d", cmp_response->error->errorCode);
+
+    if (cmp_response->error->pKIStatusInfo.statusString != NULL) {
+        cmp_log_freetext("CMP statusString", cmp_response->error->pKIStatusInfo.statusString);
+    }
+    if (cmp_response->error->errorDetails != NULL) {
+        cmp_log_freetext("CMP errorDetails", cmp_response->error->errorDetails);
+    }
+
+    failinfo = cmp_get_first_failinfo_bit(&cmp_response->error->pKIStatusInfo.PKIFailureInfo);
+    if (failinfo >= 0) {
+        CMPERRV("CMP failInfo bit=%d", failinfo);
+        cmp_ctx_set_failinfo(ctx, failinfo);
+    } else {
+        cmp_ctx_set_failinfo(ctx, CMP_PKIFAILINFO_BADDATAFORMAT);
+    }
+}
+
 /* body_type may be ir, cr, or kur */
 int cmpcl_do_transaction(cmp_ctx *ctx, const int body_type)
 {
@@ -40,6 +103,13 @@ int cmpcl_do_transaction(cmp_ctx *ctx, const int body_type)
 
     cmp_ctx_set_body_type(ctx, body_type);
     int unprotected = ctx->unprotected_ir && (ctx->body_type == MBEDTLS_CMP_PKIBODY_IR);
+    size_t sender_nonce_len = ctx->senderNonce_len ? ctx->senderNonce_len : 16;
+
+    /* Generate a fresh senderNonce for each outgoing CMP message. */
+    if ((ret = cmp_ctx_set_senderNonce(ctx, sender_nonce_len)) != 0) {
+        CMPERRS("Failed to set fresh senderNonce for initial request");
+        goto syserr;
+    }
 
     len = cmpcl_CMPwrite_PKIMessage_der(&output_start, output_buf, ctx, unprotected);
     //CMPINFOV("cmpcl_CMPwrite_PKIMessage_der length: %d", len);
@@ -49,18 +119,18 @@ int cmpcl_do_transaction(cmp_ctx *ctx, const int body_type)
         ret = len; /* if negative, len is an error code*/
         goto syserr;
     }
-    #ifdef DEVELOPMENT /* for debugging */
-    //write_to_file("SentPKIMessage.der", output_start, len);
-    #endif
+    if (ctx->body_type == MBEDTLS_CMP_PKIBODY_IR) {
+        (void) write_to_file("last_ir_request.der", output_start, len);
+    } else {
+        (void) write_to_file("last_request.der", output_start, len);
+    }
     ret = ctx->send_receive_func(ctx->cb_context,
                                  output_start, (size_t) len, &input, &inputlen);
     if (ret < 0) {
         CMPERRS("transport failed");
         goto syserr;
     }
-#ifdef DEVELOPMENT /* for debugging */
-    //write_to_file("ReceivedPKIMessage.der", input, inputlen);
-#endif
+    (void) write_to_file("last_response.der", input, inputlen);
 
     cmp_response = mbedtls_calloc(1, sizeof(cmp_pkimessage));
     if (!cmp_response) {
@@ -72,6 +142,10 @@ int cmpcl_do_transaction(cmp_ctx *ctx, const int body_type)
 
     if ((ret = cmp_pkimessage_parse_check_der(ctx, body_type + 1 /* ip, cp, or kup */, cmp_response,
                                               input, inputlen)) < 0) {
+        if (ret == CMPCL_ERR_SERVER_ERROR) {
+            cmp_log_server_error(ctx, cmp_response);
+            goto syserr;
+        }
         CMPERRV("Parsing of response FAILED with return code %d", ret);
         cmp_ctx_set_failinfo(ctx, CMP_PKIFAILINFO_BADDATAFORMAT);
         goto conferr;
@@ -99,12 +173,16 @@ int cmpcl_do_transaction(cmp_ctx *ctx, const int body_type)
         }
         new_cert->next = ctx->extraCerts;
 
-        if ((ret = cmp_x509_crt_verify(cmp_response->crep->response->certifiedKeyPair->cert,
-                                       ctx->enrol_trust_anchor,
-                                       ctx->enrol_crls,
-                                       ctx->subject)) != 0) {
-            CMPERRV("enrollment chain validation failed %d\n", ret);
-            cmp_ctx_set_failinfo(ctx, CMP_PKIFAILINFO_INCORECTDATA);
+        if (ctx->enrol_trust_anchor != NULL) {
+            if ((ret = cmp_x509_crt_verify(cmp_response->crep->response->certifiedKeyPair->cert,
+                                           ctx->enrol_trust_anchor,
+                                           ctx->enrol_crls,
+                                           ctx->subject)) != 0) {
+                CMPERRV("enrollment chain validation failed %d\n", ret);
+                cmp_ctx_set_failinfo(ctx, CMP_PKIFAILINFO_INCORECTDATA);
+            }
+        } else {
+            CMPINFOV("Skipping enrollment chain validation: no trust anchor configured");
         }
         new_cert->next = NULL;
 
@@ -135,6 +213,11 @@ conferr:
 
         cmp_ctx_set_body_type(ctx, MBEDTLS_CMP_PKIBODY_CERTCONF);
 
+        if ((ret = cmp_ctx_set_senderNonce(ctx, sender_nonce_len)) != 0) {
+            CMPERRS("Failed to set fresh senderNonce for certConf");
+            goto syserr;
+        }
+
         /* build certConf message */
         len = cmpcl_CMPwrite_PKIMessage_der(&output_start, output_buf, ctx, unprotected);
 
@@ -156,6 +239,7 @@ conferr:
             ret = len; /* if negative, len is an error code */
             goto syserr;
         }
+        (void) write_to_file("last_pki_conf_response.der", input, inputlen);
 
         /* parse received PKIConf message */
         if ((len = cmp_pkimessage_parse_check_der(ctx, MBEDTLS_CMP_PKIBODY_PKICONF,

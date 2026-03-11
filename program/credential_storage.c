@@ -349,48 +349,70 @@ static const char * const HARDCODED_ENROLLMENT_TRUST_ANCHOR =
 /* Read file to (binary) string */
 static int read_file(unsigned char **contents, const char *filename)
 {
-/*    *contents = NULL;
-    struct stat statbuf;
-    int error = stat(filename, &statbuf);
-    if (error) {
-        CMPERRV("stat of %s failed: %s\r\n", filename,
-                strerror(errno));
-        return -1;
-    }
-    if (statbuf.st_size >= MAX_FILE_SIZE) {
-        CMPERRV("file %s too large for loading, len= " SIZEFMT "\r\n",
-                filename, statbuf.st_size);
-        return -1;
-    }
-    FILE *fileObject = fopen(filename, "r");
+    FILE *fileObject = NULL;
+    long fileSize = 0;
+    size_t readBytes = 0;
+    unsigned char *buffer = NULL;
+
+    *contents = NULL;
+
+    fileObject = fopen(filename, "rb");
     if (fileObject == NULL) {
-        CMPERRV("fopen of %s failed: %s\r\n", filename,
-                strerror(errno));
+        CMPERRV("fopen of %s failed: %s\r\n", filename, strerror(errno));
         return -1;
     }
-    size_t readBytes = fread(content_buffer, 1, statbuf.st_size, fileObject);
-    if (readBytes != statbuf.st_size) {
-        CMPERRV("wrong f_read of %s: " SIZEFMT " != " SIZEFMT "\r\n", filename,
-                readBytes,  statbuf.st_size);
+
+    if (fseek(fileObject, 0, SEEK_END) != 0) {
+        CMPERRV("fseek end failed for %s: %s\r\n", filename, strerror(errno));
+        fclose(fileObject);
         return -1;
     }
-    error = fclose(fileObject);
-    if (error) {
-        CMPERRV("f_close of %s failed: %s\r\n", filename,
-                strerror(errno));
+    fileSize = ftell(fileObject);
+    if (fileSize < 0) {
+        CMPERRV("ftell failed for %s: %s\r\n", filename, strerror(errno));
+        fclose(fileObject);
         return -1;
     }
-    // always terminate loaded string
-    content_buffer[readBytes] = '\0';
-    *contents = content_buffer;
-*/    
-    return 0;//readBytes;
+    if ((size_t) fileSize >= MAX_FILE_SIZE) {
+        CMPERRV("file %s too large for loading, len=%ld\r\n", filename, fileSize);
+        fclose(fileObject);
+        return -1;
+    }
+    if (fseek(fileObject, 0, SEEK_SET) != 0) {
+        CMPERRV("fseek set failed for %s: %s\r\n", filename, strerror(errno));
+        fclose(fileObject);
+        return -1;
+    }
+
+    buffer = calloc(1, (size_t) fileSize + 1);
+    if (buffer == NULL) {
+        CMPERRV("alloc failed for %s\r\n", filename);
+        fclose(fileObject);
+        return -1;
+    }
+
+    readBytes = fread(buffer, 1, (size_t) fileSize, fileObject);
+    if (readBytes != (size_t) fileSize) {
+        CMPERRV("wrong fread of %s: %zu != %ld\r\n", filename, readBytes, fileSize);
+        free(buffer);
+        fclose(fileObject);
+        return -1;
+    }
+    buffer[readBytes] = '\0';
+
+    if (fclose(fileObject) != 0) {
+        CMPERRV("fclose of %s failed: %s\r\n", filename, strerror(errno));
+        free(buffer);
+        return -1;
+    }
+
+    *contents = buffer;
+    return (int) readBytes;
 }
 
 static int write_file(unsigned char *content, size_t len, const char *filename,
                       int append)
 {
-/*
     FILE *fileObject = fopen(filename, append ? "a" : "w");
     if (fileObject == NULL) {
         CMPERRV("fopen of %s failed: %s\r\n", filename,
@@ -409,8 +431,7 @@ static int write_file(unsigned char *content, size_t len, const char *filename,
                 strerror(errno));
         return -1;
     }
-*/
-    return 0;//len;
+    return (int) writtenBytes;
 
 }
 
@@ -421,7 +442,7 @@ int append_certs_from_pem(mbedtls_x509_crt *crt, const char *path_to_pem)
     int ret = 0;
     unsigned char *pem_str = NULL;
     int len = 0;
-    //bool is_dynamic_alloc = false; // Flag to track if pem_str was dynamically allocated
+    int is_dynamic_alloc = 0;
 
     // Check if the path matches the special protection certificate path
     if (strcmp(path_to_pem, PATH_TO_PROTECTION_CERT) == 0) {
@@ -461,13 +482,12 @@ int append_certs_from_pem(mbedtls_x509_crt *crt, const char *path_to_pem)
         // is_dynamic_alloc remains false, as we are using a static string literal        
     }
     else {
-        // Original logic: read from file
-//        len = read_file(&pem_str, path_to_pem);
-//        if (len < 0) {
-//            CMPERRV("Loading certs from %s FAILED", path_to_pem);
-//            return FILE_ERR_FILE_READ; // Return immediately on file read error
-//        }
-        //is_dynamic_alloc = true; // Memory was allocated by read_file
+        len = read_file(&pem_str, path_to_pem);
+        if (len < 0) {
+            CMPERRV("Loading certs from %s FAILED", path_to_pem);
+            return FILE_ERR_FILE_READ;
+        }
+        is_dynamic_alloc = 1;
     }
 
     if (len == 0) {
@@ -486,6 +506,10 @@ int append_certs_from_pem(mbedtls_x509_crt *crt, const char *path_to_pem)
     if (ret != 0) {
         CMPERRV("Parsing certs FAILED - mbedtls_x509_crt_parse returned -0x%04x for %s",
                 -ret, path_to_pem);
+    }
+
+    if (is_dynamic_alloc && pem_str != NULL) {
+        free(pem_str);
     }
     
     return ret;
@@ -522,6 +546,8 @@ int parse_key_from_pem(mbedtls_pk_context *pk_ctx,
 {
     unsigned char *pem_str = NULL;
     int len = 0;
+    int is_dynamic_alloc = 0;
+    int ret = 0;
 
     mbedtls_pk_init(pk_ctx);
   
@@ -538,23 +564,35 @@ int parse_key_from_pem(mbedtls_pk_context *pk_ctx,
         // is_dynamic_alloc remains false, as we are using a static string literal
     }    
     else {
-//        len = read_file(&pem_str, path_to_pem);
-//        if (len <= 0) {
-//           CMPERRV("Loading KEY from %s FAILED", path_to_pem);
-//           return FILE_ERR_FILE_READ;
-//        }    
+        len = read_file(&pem_str, path_to_pem);
+        if (len <= 0) {
+            CMPERRV("Loading KEY from %s FAILED", path_to_pem);
+            return FILE_ERR_FILE_READ;
+        }
+        is_dynamic_alloc = 1;
     }
-        
-    int ret = mbedtls_pk_parse_key(pk_ctx,
-                                   pem_str,
-                                   len + 1,
-                                   NULL,
-                                   0,
-                                   mbedtls_ctr_drbg_random,
-                                   ctr_drbg);
+
+    if (pem_str == NULL || len <= 0) {
+        CMPERRV("No key data available for %s", path_to_pem);
+        ret = FILE_ERR_FILE_READ;
+        goto cleanup;
+    }
+
+    ret = mbedtls_pk_parse_key(pk_ctx,
+                               pem_str,
+                               len + 1,
+                               NULL,
+                               0,
+                               mbedtls_ctr_drbg_random,
+                               ctr_drbg);
     if (ret != 0) {
         CMPERRV("parsing key FAILED - mbedtls_pk_parse_key returned -0x%04x",
                 -ret);
+    }
+
+cleanup:
+    if (is_dynamic_alloc && pem_str != NULL) {
+        free(pem_str);
     }
     return ret;
 }
@@ -589,6 +627,7 @@ int write_cert_pem(mbedtls_x509_crt *cert, const char *output_file)
     int i = 0;
     while (cert) {
         size_t olen = 0;
+        size_t write_len = 0;
         int ret;
         if ((ret = mbedtls_pem_write_buffer("-----BEGIN CERTIFICATE-----\n",
                                             "-----END CERTIFICATE-----\n", cert->raw.p,
@@ -599,7 +638,11 @@ int write_cert_pem(mbedtls_x509_crt *cert, const char *output_file)
                 ret);
             return ret;
         }
-        if (write_file(content_buffer, olen, output_file, i != 0) <= 0) {
+        write_len = olen;
+        if (write_len > 0 && content_buffer[write_len - 1] == '\0') {
+            write_len--;
+        }
+        if (write_file(content_buffer, write_len, output_file, i != 0) <= 0) {
             CMPERRV("Writing CERT to file FAILED\n %s", output_file);
             return -1;
         }

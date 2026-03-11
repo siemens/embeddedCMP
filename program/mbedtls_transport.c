@@ -38,7 +38,7 @@
 
 #define NEWLINE "\r\n"
 
-#define INPUT_BUF_SIZE 8000
+#define INPUT_BUF_SIZE 65536
 static unsigned char input_buf[INPUT_BUF_SIZE];
 
 static char errbuf[100];
@@ -241,6 +241,10 @@ int mbed_tls_send_receive(void *cb_context, const unsigned char *outbuf,
      */
     int read_len = 0;
     do {
+        if (read_len >= INPUT_BUF_SIZE - 1) {
+            PRINTF("HTTP response too large for input buffer (%d bytes)\n", INPUT_BUF_SIZE);
+            return -1;
+        }
         memset(input_buf+read_len, 0, sizeof(input_buf)-read_len);
         if (ctx->use_plain_http) {
             ret = mbedtls_net_recv(&ctx->server_fd,

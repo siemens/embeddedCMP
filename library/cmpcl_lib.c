@@ -43,8 +43,11 @@ void cmp_asn1_sequence_free(mbedtls_asn1_sequence *asn1_sequence)
 
 void cmp_asn1_bitstring_free(mbedtls_asn1_bitstring *asn1_bitstring)
 {
+    if (asn1_bitstring == NULL) {
+        return;
+    }
 
-    mbedtls_platform_zeroize(asn1_bitstring, sizeof(asn1_bitstring));
+    mbedtls_platform_zeroize(asn1_bitstring, sizeof(*asn1_bitstring));
 }
 
 char *strdup(const char *src)
@@ -56,14 +59,16 @@ char *strdup(const char *src)
 
 char *strndup(const char *s, size_t n)
 {
-    char *result = NULL;
-    int rc = setStr((unsigned char **) &result, (unsigned char *) s, n + 1);
-    if (rc == 0) {
-        result[n] = '\0';
-        return result;
-    } else {
+    char *result;
+
+    result = mbedtls_calloc(1, n + 1);
+    if (result == NULL) {
         return NULL;
     }
+
+    memcpy(result, s, n);
+    result[n] = '\0';
+    return result;
 }
 
 int setStr(unsigned char **dst, const unsigned char *src, const size_t len)
@@ -85,7 +90,7 @@ int setStr(unsigned char **dst, const unsigned char *src, const size_t len)
 #ifdef DEVELOPMENT
 int write_to_file(char *output_file, const unsigned char *data, size_t len)
 {
-/*    FILE *f;
+    FILE *f;
 
     if ((f = fopen(output_file, "wb")) == NULL) {
         CMPDBGV("fopen failed for %s", output_file);
@@ -101,8 +106,7 @@ int write_to_file(char *output_file, const unsigned char *data, size_t len)
     CMPDBGV("Binary data written to %s", output_file);
 
     fclose(f);
-*/
-    return 0;//len;
+    return 0;
 }
 #endif
 
@@ -154,7 +158,6 @@ int cmp_x509_crt_verify(mbedtls_x509_crt *crt,
         CMPDBGS("Empty trusted certs chain. Abort verification.");
         return CMPCL_ERR_EMPTY_TRUST_CA;
     }
-
     if (exp_name != NULL) {
 
         expected_cn = cmp_x509_cn_gets(exp_name);
@@ -177,15 +180,13 @@ int cmp_x509_crt_verify(mbedtls_x509_crt *crt,
                                                &failure_bits,
                                                NULL,
                                                NULL);
-/*
-    if( ret == 0) {
-        CMPDBGV("%s chain verified successfully", description);
+    if (ret == 0) {
+        CMPINFOV("Enrollment certificate chain verified successfully");
     } else {
-        CMPERRV("%s chain validation FAILED!", description);
+        CMPERRV("Enrollment certificate chain validation FAILED");
         CMPERRV("mbedtls_x509_crt_verify() returned: 0x%04x", -ret);
-        CMPERRV("verification failure bits: 0x%04x", failure_bits);
+        CMPERRV("verification failure bits: 0x%08x", failure_bits);
     }
- */
 
 err:
     mbedtls_free(expected_cn);

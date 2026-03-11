@@ -25,9 +25,11 @@
  * Includes
  ******************************************************************************/
 #include "cmpclient.h"
+#include "cmpcl.h"
 #include "cmpclient_config.h"
 #include "debug_macros.h"
 #include <string.h>
+#include <time.h>
 #include "credential_storage.h"
 
 /*******************************************************************************
@@ -109,6 +111,9 @@ int invoke_cert_request(const int body_type,
                         const char *path_to_new_key,
                         const char *path_to_new_chain)
 {
+    time_t now;
+    struct tm gm_now;
+    char msg_time[MBEDTLS_X509_RFC5280_UTC_TIME_LEN];
 
     mbedtls_x509_crt prot_cert;
     mbedtls_x509_crt_init(&prot_cert);
@@ -143,7 +148,7 @@ int invoke_cert_request(const int body_type,
 
     /* protection Cert */
     if (path_to_protection_cert != NULL) {
-        if ((ret = append_certs_from_pem(&prot_cert, path_to_protection_cert) == 0)) {
+        if ((ret = append_certs_from_pem(&prot_cert, path_to_protection_cert)) == 0) {
             CMPDBGS("Parsed protecting Cert");
         } else {
             CMPERRS("Parsing protecting Cert failed");
@@ -154,8 +159,8 @@ int invoke_cert_request(const int body_type,
     }
 
     if (path_to_protection_chain != NULL) {
-        if ((ret = append_certs_from_pem(&prot_chain, path_to_protection_chain)
-                   == 0)) {
+        if ((ret = append_certs_from_pem(&prot_chain, path_to_protection_chain))
+                   == 0) {
             CMPDBGS("Parsed protecting Chain");
         } else {
             CMPERRS("Parsing protecting Chain failed");
@@ -166,7 +171,7 @@ int invoke_cert_request(const int body_type,
     }
 
     if (path_to_protection_key != NULL) {
-        if ((ret = parse_key_from_pem(&prot_key, path_to_protection_key, ctr_drbg) == 0)) {
+        if ((ret = parse_key_from_pem(&prot_key, path_to_protection_key, ctr_drbg)) == 0) {
             CMPDBGS("Parsed protecting Key");
         } else {
             CMPERRS("Parsing protecting Key failed");
@@ -178,8 +183,8 @@ int invoke_cert_request(const int body_type,
 
     /* protection trust anchor */
     if (path_to_protection_trust_anchor != NULL) {
-        if ((ret = append_certs_from_pem(&prot_trust_anchor, path_to_protection_trust_anchor)
-                   == 0)) {
+        if ((ret = append_certs_from_pem(&prot_trust_anchor, path_to_protection_trust_anchor))
+                   == 0) {
             CMPDBGS("Parsed protection trust certs");
         } else {
             CMPERRS("Parsing protection trust failed");
@@ -207,7 +212,7 @@ int invoke_cert_request(const int body_type,
     /* enrollment trust anchor */
     if (path_to_enrollment_trust_anchor != NULL) {
         if ((ret = append_certs_from_pem(&enrol_trust_anchor,
-                                         path_to_enrollment_trust_anchor) == 0)) {
+                                         path_to_enrollment_trust_anchor)) == 0) {
             CMPDBGS("Parsed enrollment trust anchor");
         } else {
             CMPERRS("Parsing enrollment trust anchor failed!");
@@ -297,6 +302,16 @@ int invoke_cert_request(const int body_type,
 
     if ((ret = cmp_ctx_set_subject_name(ctx, subject_name)) != 0) {
         CMPERRS("Error setting subject name");
+        goto err;
+    }
+
+    /* Provide current UTC messageTime for servers enforcing badTime checks. */
+    now = time(NULL);
+    if (now == (time_t) -1 || gmtime_r(&now, &gm_now) == NULL ||
+        strftime(msg_time, sizeof(msg_time), "%Y%m%d%H%M%S", &gm_now) !=
+            (MBEDTLS_X509_RFC5280_UTC_TIME_LEN - 1) ||
+        (ret = cmp_ctx_set_messageTime(ctx, msg_time)) != 0) {
+        CMPERRS("Error setting messageTime");
         goto err;
     }
 

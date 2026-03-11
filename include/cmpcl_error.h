@@ -34,6 +34,7 @@ extern "C" {
 #define CMPCL_ERR_CERT_NOT_RECEIVED             -0x0016     /** No certificate received in certrep message */
 #define CMPCL_ERR_FILE_OPEN                     -0x0017     /** Error in file opening */
 #define CMPCL_ERR_FILE_WRITE                    -0x0018     /** Error in file writing */
+#define CMPCL_ERR_SERVER_ERROR                  -0x0019     /** Server returned CMP ErrorMsgContent */
 
 
 #define CMPCL_ER_BUF_LEN                        100

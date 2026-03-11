@@ -410,10 +410,12 @@ int cmpcl_CRMFwrite_CertRequest_der(unsigned char **p, unsigned char *start,
        Controls ::= SEQUENCE
      */
 
-    MBEDTLS_ASN1_CHK_ADD(ctrl_len, mbedtls_asn1_write_len(p, start, ctrl_len));
-    MBEDTLS_ASN1_CHK_ADD(ctrl_len, mbedtls_asn1_write_tag(p, start, MBEDTLS_ASN1_CONSTRUCTED |
-                                                          MBEDTLS_ASN1_SEQUENCE));
-    len += ctrl_len;
+    if (ctrl_len > 0) {
+        MBEDTLS_ASN1_CHK_ADD(ctrl_len, mbedtls_asn1_write_len(p, start, ctrl_len));
+        MBEDTLS_ASN1_CHK_ADD(ctrl_len, mbedtls_asn1_write_tag(p, start, MBEDTLS_ASN1_CONSTRUCTED |
+                                                              MBEDTLS_ASN1_SEQUENCE));
+        len += ctrl_len;
+    }
 
     /* certTemplate */
     /*
@@ -491,9 +493,14 @@ static int msg_sig_alg_prot(cmp_ctx *ctx,
                             size_t *sig_len)
 {
     unsigned char hash[MBEDTLS_MD_MAX_SIZE];
-    int hash_len = 0;
+    int ret;
 
-    hash_len = mbedtls_md(mbedtls_md_info_from_type(ctx->sig_prot_md_alg), input, in_len, hash);
+    ret = mbedtls_md(mbedtls_md_info_from_type(ctx->sig_prot_md_alg), input, in_len, hash);
+    if (ret != 0) {
+        CMPERRV("Failed to hash protected part before signature, mbedtls_md returned: 0x%04x",
+                -ret);
+        return ret;
+    }
 
     return mbedtls_pk_sign(ctx->prot_key,
                        ctx->sig_prot_md_alg,
@@ -765,12 +772,19 @@ static int cmpcl_CMPwrite_PBMParameter_der(unsigned char **p, unsigned char *sta
                                            cmp_PBMParameter *pbmp)
 {
     /*
-       PBMParameter ::= SEQUENCE {
-         salt                OCTET STRING,
-         owf                 AlgorithmIdentifier,
-         iterationCount      INTEGER,
-         mac                 AlgorithmIdentifier
-         )
+     * Encode PBMParameter as DER.
+     *
+     * ASN.1 definition:
+     *   PBMParameter ::= SEQUENCE {
+     *     salt            OCTET STRING,
+     *     owf             AlgorithmIdentifier,
+     *     iterationCount  INTEGER,
+     *     mac             AlgorithmIdentifier
+     *   }
+     *
+     * mbedTLS writes ASN.1 backwards, so fields are emitted in reverse order:
+     * mac -> iterationCount -> owf -> salt. OIDs are binary data and must use
+     * explicit lengths (oid_len), not strlen().
      */
 
     int ret;
@@ -779,9 +793,9 @@ static int cmpcl_CMPwrite_PBMParameter_der(unsigned char **p, unsigned char *sta
     const char *oid;
     size_t oid_len = 0;
 
-    /* mac AlgorithmIdentifier */
+    /* Resolve OID for mac AlgorithmIdentifier from pbmp->mac. */
 
-#define setoid(_oid) { oid = _oid; oid_len = sizeof(_oid)-1; break; }
+#define setoid(_oid) { oid = _oid; oid_len = sizeof(_oid) - 1; break; }
 
     switch (pbmp->mac) {
         case MBEDTLS_MD_RIPEMD160: setoid(MBEDTLS_OID_HMAC_RIPEMD160);
@@ -793,31 +807,29 @@ static int cmpcl_CMPwrite_PBMParameter_der(unsigned char **p, unsigned char *sta
         case MBEDTLS_MD_SHA3_224: setoid(MBEDTLS_OID_HMAC_SHA3_224);
         case MBEDTLS_MD_SHA3_256: setoid(MBEDTLS_OID_HMAC_SHA3_256);
         case MBEDTLS_MD_SHA3_384: setoid(MBEDTLS_OID_HMAC_SHA3_384);
-        case MBEDTLS_MD_SHA3_512: setoid(MBEDTLS_OID_HMAC_SHA3_384);
+        case MBEDTLS_MD_SHA3_512: setoid(MBEDTLS_OID_HMAC_SHA3_512);
         default:
             return -1;
     }
 #undef setoid
 
     MBEDTLS_ASN1_CHK_ADD(len,
-                         mbedtls_asn1_write_algorithm_identifier(p, start, oid, strlen(oid),
+                         mbedtls_asn1_write_algorithm_identifier(p, start, oid, oid_len,
                                                                  0));
 
-    //MBEDTLS_ASN1_CHK_ADD( len, mbedtls_asn1_write_algorithm_identifier( p, start, HMAC_SHA256_OID, strlen( HMAC_SHA256_OID), 0 ) );
-
-    /* iterationCount      INTEGER, */
+    /* iterationCount INTEGER */
     MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_int(p, start, pbmp->iterationCount));
 
-    /* owf                 AlgorithmIdentifier, */
+    /* Resolve OID for owf AlgorithmIdentifier. */
     if ((ret = mbedtls_oid_get_oid_by_md(pbmp->owf, &oid, &oid_len)) != 0) {
         return ret;
     }
 
     MBEDTLS_ASN1_CHK_ADD(len,
-                         mbedtls_asn1_write_algorithm_identifier(p, start, oid, strlen(oid),
+                         mbedtls_asn1_write_algorithm_identifier(p, start, oid, oid_len,
                                                                  0));
 
-    /* salt                OCTET STRING, */
+    /* salt OCTET STRING */
     sub_len = 0;
     MBEDTLS_ASN1_CHK_ADD(sub_len,
                          mbedtls_asn1_write_raw_buffer(p, start, pbmp->salt, pbmp->salt_len));
@@ -825,7 +837,7 @@ static int cmpcl_CMPwrite_PBMParameter_der(unsigned char **p, unsigned char *sta
     MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(p, start, sub_len));
     MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_tag(p, start, MBEDTLS_ASN1_OCTET_STRING));
 
-    /* PBMParameter ::= SEQUENCE { */
+    /* Wrap all fields into PBMParameter SEQUENCE. */
     MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(p, start, len));
     MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_tag(p, start,
                                                      MBEDTLS_ASN1_CONSTRUCTED |

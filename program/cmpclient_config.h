@@ -24,7 +24,8 @@
 #define NEW_KEY_ECCURVE "secp256r1"
 
 /* select one CA to be used */
-#define PLAYGROUND
+// #define PLAYGROUND
+#define MOCK_CA
 // #define LOCAL_RA_CA
 // #define INSTA
 // #define DOCKER_EJBCA
@@ -69,7 +70,7 @@
 # define PATH_TO_PROTECTION_CRLS NULL
 
 // trusted enrollment CA certificates /CRLs
-#define PATH_TO_ENROLLMENT_TRUST_ANCHOR_PEM    CERTS_ROOT_PATH  "trusted/enr_ca.crt"
+#define PATH_TO_ENROLLMENT_TRUST_ANCHOR_PEM    "trusted/root_cert.pem"
 # define PATH_TO_ENROLLMENT_CRLS NULL
 
 # define RECIPIENT_NAME "CN=recip"
@@ -81,6 +82,50 @@
 # define PBM_KID "keyIdentification"
 #define PBM_OWF MBEDTLS_MD_SHA256
 #define PBM_MAC MBEDTLS_MD_SHA1
+
+#endif
+
+#ifdef MOCK_CA
+
+/* CMP test-suite Mock CA */
+#define USE_PLAIN_HTTP 1
+# define SERVER_HOST   "127.0.0.1"
+# define SERVER_PORT   5000
+# define SERVER_PATH_IR   "issuing"
+# define SERVER_PATH_CR   "issuing"
+# define SERVER_PATH_KUR   "issuing"
+
+# define CERTS_ROOT_PATH "./resources/certs/local_ra_lra/"
+
+/* enrollment output paths */
+#define PATH_TO_VENDOR_CERT_PEM         CERTS_ROOT_PATH  "vendor/VD_CERT.PEM"
+#define PATH_TO_VENDOR_KEY_PEM          CERTS_ROOT_PATH  "vendor/VD_PRIV.PEM"
+#define PATH_TO_VENDOR_CHAIN_PEM        CERTS_ROOT_PATH  "vendor/VD_CHAIN.PEM"
+
+/* operational credentials (unused for -i, kept for completeness) */
+#define PATH_TO_OPERATIONAL_CERT_PEM    CERTS_ROOT_PATH  "operat/OP_CERT.PEM"
+#define PATH_TO_OPERATIONAL_KEY_PEM     CERTS_ROOT_PATH  "operat/OP_PRIV.PEM"
+#define PATH_TO_OPERATIONAL_CHAIN_PEM   CERTS_ROOT_PATH  "operat/OP_CHAIN.PEM"
+
+/* protection credentials (unused for PBM-protected IR) */
+#define PATH_TO_PROTECTION_CERT CERTS_ROOT_PATH "protection/CMP_EE_Cert.pem"
+#define PATH_TO_PROTECTION_KEY CERTS_ROOT_PATH "protection/CMP_EE_Key.pem"
+#define PATH_TO_PROTECTION_CHAIN CERTS_ROOT_PATH "protection/CMP_EE_Chain.pem"
+
+/* enable enrollment chain validation for local mock server */
+#define PATH_TO_PROTECTION_TRUST_ANCHOR_PEM    NULL
+# define PATH_TO_PROTECTION_CRLS NULL
+#define PATH_TO_ENROLLMENT_TRUST_ANCHOR_PEM    "trusted/root_cert.pem"
+# define PATH_TO_ENROLLMENT_CRLS NULL
+
+# define RECIPIENT_NAME "CN=recip"
+# define IMPRINTING_SUBJECT_NAME "CN=embeddedcmp-ir"
+# define BOOTSTRAPPING_SUBJECT_NAME "CN=embeddedcmp-cr"
+
+# define PBM_SECRET "SiemensIT"
+# define PBM_KID "embeddedcmp-ir"
+#define PBM_OWF MBEDTLS_MD_SHA256
+#define PBM_MAC MBEDTLS_MD_SHA256
 
 #endif
 

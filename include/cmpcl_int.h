@@ -271,22 +271,30 @@ typedef struct cmp_CertRepMessage {
  * CMP PKIMessage structure
  */
 typedef struct cmp_pkimessage {
+    /* Borrowed view into transport input buffer; never free in cmp_pkimessage_free(). */
     cmp_buf raw; /**< The raw msg data (DER). */
 
+    /* Borrowed views into raw DER. */
     cmp_buf body; /**< The raw msg data (DER). */
     cmp_buf header; /**< The raw msg data (DER). */
+    /* Owned heap allocations. */
     cmp_CertRepMessage *crep; /* The CertRepMessage in case of IP/CP/KUP */
     cmp_ErrorMsgContent *error; /* An Error */
 
-    mbedtls_asn1_bitstring *protection; /**< The raw msg data (DER). */
+    /* Owned heap allocation. */
+    mbedtls_asn1_bitstring *protection; /**< Parsed protection */
+    /* Borrowed view into raw DER. */
     cmp_buf extraCerts; /**< The raw msg data (DER). */
 
+    /* Borrowed view + parsed name whose list nodes are owned by this struct. */
     cmp_buf sender_raw; /**< The raw sender data (DER). */
     mbedtls_x509_name sender; /**< The parsed sender data (named information object). */
 
+    /* Borrowed view + parsed name whose list nodes are owned by this struct. */
     cmp_buf recipient_raw; /**< The raw recipient data (DER). */
     mbedtls_x509_name recipient; /**< The parsed recipient data (named information object). */
 
+    /* Owned heap allocation. */
     cmp_PBMParameter *pbmp;
 
     mbedtls_md_type_t sig_md; /**< Internal representation of the MD algorithm of the signature algorithm, e.g. MBEDTLS_MD_SHA256 */
