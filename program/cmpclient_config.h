@@ -138,11 +138,10 @@
 
 #define USE_PLAIN_HTTP 0
 
-//# define SERVER_HOST   "signservice-playground.ct.siemens.com"
 # define SERVER_HOST   "ppki-playground.ct.siemens.com"
 # define SERVER_PORT   443
 
-# define SERVER_PATH_IR   "/ejbca/publicweb/cmp/PlaygroundECC_PBE"
+# define SERVER_PATH_IR   "/ejbca/publicweb/cmp/PlaygroundECC"
 # define SERVER_PATH_CR   "/ejbca/publicweb/cmp/PlaygroundECC"
 # define SERVER_PATH_KUR   "/ejbca/publicweb/cmp/PlaygroundCMPSigning"
 
@@ -174,9 +173,9 @@
 # define RECIPIENT_NAME "CN=recip"
 /* if set, use given subject name, else use name from file PATH_TO_VENDOR_CERT_PEM */
 # define IMPRINTING_SUBJECT_NAME \
-    "CN=subject,OU=PPKI Playground,OU=Corporate Technology,OU=For internal test purposes only,O=Siemens,C=DE"
+    "CN=subject,OU=Quality System - For Test Purpose Only,,O=Siemens,C=DE"
 # define BOOTSTRAPPING_SUBJECT_NAME \
-    "CN=my_ECC,OU=PPKI Playground,OU=Corporate Technology,OU=For internal test purposes only,O=Siemens,C=DE"
+    "CN=my_ECC,OU=Quality System - For Test Purpose Only,O=Siemens,C=DE"
 
 # define PBM_SECRET "SecretCmp"
 # define PBM_KID "keyIdentification"

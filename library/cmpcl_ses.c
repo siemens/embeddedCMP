@@ -22,6 +22,7 @@
  */
 
 #include "cmpcl_int.h"
+#include <time.h>
 
 static unsigned char output_buf[OUTPUT_BUF_SIZE];
 
@@ -100,6 +101,19 @@ int cmpcl_do_transaction(cmp_ctx *ctx, const int body_type)
     int ret = -1;
     cmp_pkimessage *cmp_response = NULL;
     cmp_pkimessage *pki_conf_msg = NULL;
+
+    time_t now;
+    struct tm gm_now;
+    char msg_time[MBEDTLS_X509_RFC5280_UTC_TIME_LEN];
+    /* Provide current UTC messageTime for servers enforcing badTime checks. */
+    now = time(NULL);
+    if (now == (time_t) -1 || gmtime_r(&now, &gm_now) == NULL ||
+        strftime(msg_time, sizeof(msg_time), "%Y%m%d%H%M%S", &gm_now) !=
+            (MBEDTLS_X509_RFC5280_UTC_TIME_LEN - 1) ||
+        (ret = cmp_ctx_set_messageTime(ctx, msg_time)) != 0) {
+        CMPERRS("Error setting messageTime");
+        goto syserr;
+    }
 
     cmp_ctx_set_body_type(ctx, body_type);
     int unprotected = ctx->unprotected_ir && (ctx->body_type == MBEDTLS_CMP_PKIBODY_IR);

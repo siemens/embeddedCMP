@@ -29,12 +29,12 @@ option(ENABLE_PROGRAMS "Build mbed TLS programs." OFF)
 option(ENABLE_TESTING "Build mbed TLS tests." OFF)
 
 # set(CMAKE_INSTALL_NAME_DIR ${CMAKE_INSTALL_FULL_LIBDIR}/lib)
-include_directories(external/mbedtls/mbedtls/include)
+include_directories(external/mbedtls/include)
 #include_directories(external/mbedtls/tf-psa-crypto/include)
 #include_directories(external/mbedtls/tf-psa-crypto/drivers/builtin/include)
 
 # Use custom config file for Mbed TLS
-add_definitions(-DMBEDTLS_CONFIG_FILE="${CMAKE_SOURCE_DIR}/external/mbedtls/mbedtls/include/mbedtls/mbedtls_config.h")
+add_definitions(-DMBEDTLS_CONFIG_FILE="${CMAKE_SOURCE_DIR}/external/mbedtls/include/mbedtls/mbedtls_config.h")
 
 # option(USE_STATIC_MBEDTLS_LIBRARY "Build mbed TLS static library." off)
 # option(USE_SHARED_MBEDTLS_LIBRARY "Build mbed TLS shared library." on)
@@ -45,7 +45,7 @@ add_definitions(-DMBEDTLS_CONFIG_FILE="${CMAKE_SOURCE_DIR}/external/mbedtls/mbed
 
 set(MBEDTLS_LIBRARIES "mbedtls" "mbedx509")
 
-add_subdirectory(external/mbedtls/mbedtls mbedtls)
+add_subdirectory(external/mbedtls mbedtls)
 
 
 include_directories(include)

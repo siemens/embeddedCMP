@@ -215,7 +215,7 @@ static int cmp_prot_check(cmp_ctx *ctx, cmp_pkimessage *cmp)
             goto err;
         }
 
-        if (mac_len!=cmp->protection->len) {
+        if (mac_len != cmp->protection->len) {
             CMPERRV("MAC length mismatch: %zu vs. %zu", mac_len, cmp->protection->len);
             ret = -1;
         }
@@ -1292,7 +1292,25 @@ int cmp_pkimessage_parse_check_der(cmp_ctx *ctx, int expected_type, cmp_pkimessa
         }
     }
 
-cleanup:
+    if (1) {
+        CMPINFOV("received PKIMessage header length: %zu", cmp->header.len);
+        if (g_rc_len_cert > 0)
+            CMPINFOV("received certificate length: %zu", g_rc_len_cert);
+        if (g_rc_len_caPubs > 0)
+            CMPINFOV("received caPubs length: %zu", g_rc_len_caPubs);
+        if (cmp->protection != NULL && cmp->pbmp != NULL)
+            CMPINFOV("PBM-based protection");
+        else if (cmp->protection != NULL && cmp->pbmp == NULL)
+            CMPINFOV("signature-based protection");
+        else
+            CMPINFOV("no protection");
+        // CMPINFOV("received PKIMessage protection length: %zu", protection_len);
+        CMPINFOV("received %zu extraCerts with total length: %zu", g_rc_n_extraCerts, g_rc_len_extraCerts);
+        // CMPINFOV("response PKIMessage overhead (excl. certs): %zu", buflen - g_rc_len_cert - g_rc_len_caPubs - g_rc_len_extraCerts);
+        CMPINFOV("response PKIMessage total length: %zu", buflen);
+    }
+
+    cleanup:
     return ret;
 }
 

@@ -511,7 +511,7 @@ int append_certs_from_pem(mbedtls_x509_crt *crt, const char *path_to_pem)
     if (is_dynamic_alloc && pem_str != NULL) {
         free(pem_str);
     }
-    
+
     return ret;
 }
 /* **************************************************************** */

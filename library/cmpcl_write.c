@@ -361,7 +361,7 @@ int cmpcl_CRMFwrite_CertRequest_der(unsigned char **p, unsigned char *start,
      * }
      */
 
-    if ((ctx->body_type == MBEDTLS_CMP_PKIBODY_KUR)) {
+    if (ctx->body_type == MBEDTLS_CMP_PKIBODY_KUR) {
         if (ctx->prot_cert == NULL) {
             CMPERRS("No client cert provided; KUR ONLY with OldCert!");
             return CMPCL_ERR_KUR_OLDCERT;

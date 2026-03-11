@@ -50,13 +50,13 @@ static int run_ir(mbedtls_ctr_drbg_context *ctr_drbg)
                                      TLS_CLIENT_KEY,
                                      TLS_SERVER_ROOT,
                                      SERVER_HOST, TOSTRING(SERVER_PORT), SERVER_PATH_IR)) != 0) {
-        PRINTF("failed to initialize transport context");
+        PRINTF("failed to initialize ir transport context\n");
         mbed_tls_transport_free(&ctx);
         return ret;
     }
 
     if ((ret = invoke_ir_transaction(mbed_tls_send_receive, (void *) &ctx, ctr_drbg)) != 0) {
-        PRINTF("failed to execute transaction");
+        PRINTF("failed to execute ir transaction\n");
         mbed_tls_transport_free(&ctx);
         return ret;
     }
@@ -74,7 +74,7 @@ static int run_cr(mbedtls_ctr_drbg_context *ctr_drbg)
                                      TLS_CLIENT_KEY,
                                      TLS_SERVER_ROOT,
                                      SERVER_HOST, TOSTRING(SERVER_PORT), SERVER_PATH_CR)) != 0) {
-        PRINTF("failed to initialize transport context");
+        PRINTF("failed to initialize cr transport context\n");
         mbed_tls_transport_free(&ctx);
         return ret;
     }
@@ -82,7 +82,7 @@ static int run_cr(mbedtls_ctr_drbg_context *ctr_drbg)
      * call invoke_cr_transaction
      */
     if ((ret = invoke_cr_transaction(mbed_tls_send_receive, (void *) &ctx, ctr_drbg)) != 0) {
-        PRINTF("failed to execute transaction");
+        PRINTF("failed to execute cr transaction\n");
         mbed_tls_transport_free(&ctx);
         return ret;
     }
@@ -102,12 +102,12 @@ static int run_kur(mbedtls_ctr_drbg_context *ctr_drbg)
                                      TLS_CLIENT_KEY,
                                      TLS_SERVER_ROOT,
                                      SERVER_HOST, TOSTRING(SERVER_PORT), SERVER_PATH_KUR)) != 0) {
-        PRINTF("failed to initialize transport context");
+        PRINTF("failed to initialize kur transport context\n");
         mbed_tls_transport_free(&ctx);
         return ret;
     }
     if ((ret = invoke_kur_transaction(mbed_tls_send_receive, (void *) &ctx, ctr_drbg)) != 0) {
-        PRINTF("failed to execute transaction");
+        PRINTF("failed to execute kur transaction\n");
         mbed_tls_transport_free(&ctx);
         return ret;
     }
