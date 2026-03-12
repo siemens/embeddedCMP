@@ -35,8 +35,6 @@ cd mbedtls
 git checkout master
 pip install --break-system-packages --user -r scripts/basic.requirements.txt
 ./framework/scripts/make_generated_files.py
-/opt/homebrew/Frameworks/Python.framework/Versions/3.13/bin/python3.13 -m pip install --break-system-packages --user jsonschema
-/opt/homebrew/Frameworks/Python.framework/Versions/3.13/bin/python3.13 -m pip install --break-system-packages --user jinja2
 cmake -DENABLE_TESTING=Off .
 cmake --build .
 cd ../..
@@ -47,8 +45,11 @@ cd ../..
 Create a build directory and compile the code by executing the commands below
 
 ```bash
-cmake .
+mkdir -p build
+cd build
+cmake .. -B .
 make
+cd ..
 ```
 
 # Configuration
@@ -79,7 +80,7 @@ Create the directories for storing the enrollment results and invoke the client.
 The enrollment result paths must fit the configuration given in `program/cmpclient_config.h`.
 
 ```bash
-./embedded_cmp -ick
+./build/embedded_cmp -ick
 ```
 
 # Running the CMP client tests
@@ -88,13 +89,15 @@ Create the directories for storing the enrollment results and invoke the client.
 The enrollment result paths must fit the configuration given in `program/cmpclient_config.h`.
 
 ```bash
+cd build
 make test
+cd ..
 ```
 
 
 # Command line options
 
-The `./embedded_cmp` executable supports the options below:
+The `./build/embedded_cmp` executable supports the options below:
 
 * `-i` invokes the imprinting (IR) usecase
 * `-c` invokes the bootstrapping (CR) usecase
