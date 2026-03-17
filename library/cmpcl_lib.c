@@ -169,9 +169,11 @@ int cmp_x509_crt_verify(mbedtls_x509_crt *crt,
         }
     }
 
-    /* for compatibility with insta CA enable SHA1*/
     mbedtls_x509_crt_profile ver_prof = mbedtls_x509_crt_profile_default;
+#ifdef INSTA
+    /* for compatibility with insta CA enable SHA1*/
     ver_prof.allowed_mds |= MBEDTLS_X509_ID_FLAG(MBEDTLS_MD_SHA1);
+#endif
 
 
     ret = mbedtls_x509_crt_verify_with_profile(crt, /* treat ret appropriately in caller */
