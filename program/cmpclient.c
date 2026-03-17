@@ -472,8 +472,8 @@ int invoke_ir_transaction(cmp_send_receive_cb send_receive_func,
         NULL,                           // path_to_protecting_cert
         NULL,                           // path_to_protecting_key
         NULL,                           // path_to_protecting_chain
-        NULL,                           // protection_trust
-        NULL,                           // protection_trust_crl
+        PATH_TO_PROTECTION_TRUST_ANCHOR_PEM,
+        PATH_TO_PROTECTION_CRLS,
         PATH_TO_ENROLLMENT_TRUST_ANCHOR_PEM,
         PATH_TO_ENROLLMENT_CRLS,
         PATH_TO_VENDOR_CERT_PEM,        // path_to_new_cert,
