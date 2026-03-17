@@ -24,8 +24,8 @@
 #define NEW_KEY_ECCURVE "secp256r1"
 
 /* select one CA to be used */
-// #define PLAYGROUND
-#define MOCK_CA
+#define PLAYGROUND
+// #define MOCK_CA
 // #define LOCAL_RA_CA
 // #define INSTA
 // #define DOCKER_EJBCA
@@ -141,8 +141,8 @@
 # define SERVER_HOST   "ppki-playground.ct.siemens.com"
 # define SERVER_PORT   443
 
-# define SERVER_PATH_IR   "/ejbca/publicweb/cmp/PlaygroundECC"
-# define SERVER_PATH_CR   "/ejbca/publicweb/cmp/PlaygroundECC"
+# define SERVER_PATH_IR   "/ejbca/publicweb/cmp/PlaygroundECC-tmp_issuingca"
+# define SERVER_PATH_CR   "/ejbca/publicweb/cmp/PlaygroundECC-tmp_issuingca"
 # define SERVER_PATH_KUR   "/ejbca/publicweb/cmp/PlaygroundCMPSigning"
 
 # define CERTS_ROOT_PATH "./resources/certs/playground/"
@@ -173,9 +173,9 @@
 # define RECIPIENT_NAME "CN=recip"
 /* if set, use given subject name, else use name from file PATH_TO_VENDOR_CERT_PEM */
 # define IMPRINTING_SUBJECT_NAME \
-    "CN=subject,OU=Quality System - For Test Purpose Only,,O=Siemens,C=DE"
+    "CN=test-IDevID-embeddedCMP,OU=PPKI Playground for internal test purposes only,O=Siemens,C=DE"
 # define BOOTSTRAPPING_SUBJECT_NAME \
-    "CN=my_ECC,OU=Quality System - For Test Purpose Only,O=Siemens,C=DE"
+    "CN=test-LDevID-embeddedCMP,OU=PPKI Playground for internal test purposes only,O=Siemens,C=DE"
 
 # define PBM_SECRET "SecretCmp"
 # define PBM_KID "keyIdentification"
