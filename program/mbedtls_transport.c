@@ -186,6 +186,9 @@ int mbed_tls_send_receive(void *cb_context, const unsigned char *outbuf,
     *inlen = 0;
     int ret = 1;
 
+    CMPINFOV("contacting server '%s:%s' endpoint '%s'",
+             ctx->server_fqdn, ctx->server_port, ctx->server_path);
+
     if ((ret = mbedtls_net_connect(&ctx->server_fd,
                                    ctx->server_fqdn, ctx->server_port,
                                    MBEDTLS_NET_PROTO_TCP)) != 0) {
