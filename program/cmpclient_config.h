@@ -311,7 +311,7 @@
 # define SNI_HOSTNAME SERVER_HOST
 #endif
 
-/* MBED TLS server configuration */
+/* MBED TLS server configuration, unused */
 #define TLS_CREDENTIAL_ROOT CERTS_ROOT_PATH "tlssrv/"
 #define TLS_SERVER_ROOT TLS_CREDENTIAL_ROOT "srvcrt.crt"
 #define TLS_CLIENT_KEY TLS_CREDENTIAL_ROOT "clientkey.key"

@@ -34,6 +34,7 @@
 #define PATH_TO_PROTECTION_TRUST_ANCHOR_PEM    CERTS_ROOT_PATH  "trusted/prot_ca.crt"
 #define PATH_TO_ENROLLMENT_TRUST_ANCHOR_PEM    CERTS_ROOT_PATH  "trusted/enr_ca.crt"
 
+/* MBED TLS server configuration, unused */
 #define TLS_CREDENTIAL_ROOT CERTS_ROOT_PATH "tlssrv/"
 #define TLS_SERVER_ROOT TLS_CREDENTIAL_ROOT "srvcrt.crt"
 #define TLS_CLIENT_KEY TLS_CREDENTIAL_ROOT "clientkey.key"

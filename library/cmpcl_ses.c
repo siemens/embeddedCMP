@@ -196,7 +196,7 @@ int cmpcl_do_transaction(cmp_ctx *ctx, const int body_type)
                 cmp_ctx_set_failinfo(ctx, CMP_PKIFAILINFO_INCORECTDATA);
             }
         } else {
-            CMPINFOV("Skipping enrollment chain validation: no trust anchor configured");
+            CMPINFOV("Skipping enrollment chain validation: no trust anchor given");
         }
         new_cert->next = NULL;
 

@@ -1037,7 +1037,7 @@ int cmpcl_CMPwrite_PKIHeader_der(unsigned char **p, unsigned char *start,
                                                     MBEDTLS_ASN1_CONTEXT_SPECIFIC |
                                                     MBEDTLS_ASN1_CONSTRUCTED | 1));
     } else {
-        CMPERRS("No protection credentials configured!");
+        CMPERRS("Missing protection credentials!");
     }
 
     /*
