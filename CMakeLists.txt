@@ -76,9 +76,9 @@ if (SELFHOSTED)
     target_link_libraries(embedded_cmp "mbedtls" "mbedx509")
     set_target_properties(embedded_cmp PROPERTIES INSTALL_RPATH mbedtls)
     include(CTest)
-    add_test(NAME TestImprinting COMMAND embedded_cmp -i WORKING_DIRECTORY ..)
-    add_test(NAME TestBootstrapping COMMAND embedded_cmp -c WORKING_DIRECTORY ..)
-    add_test(NAME TestKeyupdate COMMAND embedded_cmp -k WORKING_DIRECTORY ..)
+    add_test(NAME TestImprinting COMMAND embedded_cmp -i WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+    add_test(NAME TestBootstrapping COMMAND embedded_cmp -c WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+    add_test(NAME TestKeyupdate COMMAND embedded_cmp -k WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
 else()
     set(SOURCE
 		library/cmpcl_ctx.c
