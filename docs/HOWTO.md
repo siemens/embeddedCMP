@@ -33,14 +33,18 @@ git clone git@code.siemens.com:product-pki/playground/embeddedCMP.git
 
 # Compiling the code
 
-Create a build directory and compile the code by executing the commands below
-
+Optionally create a build directory and compile the code like this:
 ```bash
 mkdir -p build
 cd build
 cmake .. -B .
 make
 cd ..
+```
+Alternatively, you can also build directly in the source directory:
+```bash
+cmake .
+make
 ```
 
 # Configuration
@@ -73,6 +77,10 @@ The enrollment result paths must fit the configuration given in `program/cmpclie
 ```bash
 ./build/embedded_cmp -ick
 ```
+or when built in the source directory:
+```bash
+./embedded_cmp -ick
+```
 
 # Running the CMP client tests
 
@@ -84,11 +92,15 @@ cd build
 make test
 cd ..
 ```
+or when built in the source directory:
+```bash
+make test
+```
 
 
 # Command line options
 
-The `./build/embedded_cmp` executable supports the options below:
+The `embedded_cmp` executable supports the options below:
 
 * `-i` invokes the imprinting (IR) usecase
 * `-c` invokes the bootstrapping (CR) usecase
