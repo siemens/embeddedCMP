@@ -15,6 +15,7 @@
 
 #include "cmpcl.h"
 #include "debug_macros.h"
+#include "mbedtls/platform.h"
 #include "mbedtls/pem.h"
 #include <string.h>
 #include <stdlib.h>
@@ -384,7 +385,7 @@ static int read_file(unsigned char **contents, const char *filename)
         return -1;
     }
 
-    buffer = calloc(1, (size_t) fileSize + 1);
+    buffer = mbedtls_calloc(1, (size_t) fileSize + 1);
     if (buffer == NULL) {
         CMPERRV("alloc failed for %s\r\n", filename);
         fclose(fileObject);
@@ -394,7 +395,7 @@ static int read_file(unsigned char **contents, const char *filename)
     readBytes = fread(buffer, 1, (size_t) fileSize, fileObject);
     if (readBytes != (size_t) fileSize) {
         CMPERRV("wrong fread of %s: %zu != %ld\r\n", filename, readBytes, fileSize);
-        free(buffer);
+        mbedtls_free(buffer);
         fclose(fileObject);
         return -1;
     }
@@ -402,7 +403,7 @@ static int read_file(unsigned char **contents, const char *filename)
 
     if (fclose(fileObject) != 0) {
         CMPERRV("fclose of %s failed: %s\r\n", filename, strerror(errno));
-        free(buffer);
+        mbedtls_free(buffer);
         return -1;
     }
 
@@ -509,7 +510,7 @@ int append_certs_from_pem(mbedtls_x509_crt *crt, const char *path_to_pem)
     }
 
     if (is_dynamic_alloc && pem_str != NULL) {
-        free(pem_str);
+    	mbedtls_free(pem_str);
     }
 
     return ret;
@@ -592,7 +593,7 @@ int parse_key_from_pem(mbedtls_pk_context *pk_ctx,
 
 cleanup:
     if (is_dynamic_alloc && pem_str != NULL) {
-        free(pem_str);
+    	mbedtls_free(pem_str);
     }
     return ret;
 }
