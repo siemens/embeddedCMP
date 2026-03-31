@@ -17,9 +17,9 @@ extern "C" {
 #define SIZEFMT "%lu"
 #endif
 
-// #define DEBUG
+// #define EMBEDDEDCMP_DEBUG
 
-#ifdef DEBUG
+#ifdef EMBEDDEDCMP_DEBUG
 #define CMPDBGV(fmt, ...) \
     do { \
         PRINTF("DEBUG: %s:%d %s " fmt NEWLINE, __FILE__, __LINE__, __func__, \
