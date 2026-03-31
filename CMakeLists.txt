@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10.2)
+cmake_minimum_required(VERSION 3.14)
 project(embedded_cmp
         DESCRIPTION "Embedded CMP"
         LANGUAGES C
@@ -7,6 +7,7 @@ project(embedded_cmp
 option(SELFHOSTED "Set to '1' to build self-hosted binary, '0' by default makes a library" 1)
 
 include(cmake/splint.cmake)
+include(FetchContent)
 
 # Cross compiling with cmake (a possible example)
 #set(tools /Users/ptorelli/dev/gcc-arm-none-eabi-8-2018-q4-major)
@@ -20,6 +21,9 @@ include(cmake/splint.cmake)
 
 set(CMAKE_C_FLAGS "-pedantic -Wall -Wno-variadic-macro-arguments-omitted -Wno-gnu-zero-variadic-macro-arguments -O3")
 
+# -- Logging --
+
+option(EMBEDDEDCMP_DEBUG "Enable CMP Debugging" OFF)
 
 # -- MBEDTLS --
 
@@ -27,13 +31,22 @@ option(USE_PKCS11_HELPER_LIBRARY "Build mbed TLS with the pkcs11-helper library.
 option(ENABLE_ZLIB_SUPPORT "Build mbed TLS with zlib library." OFF)
 option(ENABLE_PROGRAMS "Build mbed TLS programs." OFF)
 option(ENABLE_TESTING "Build mbed TLS tests." OFF)
-
-# set(CMAKE_INSTALL_NAME_DIR ${CMAKE_INSTALL_FULL_LIBDIR}/lib)
+# option(USE_STATIC_MBEDTLS_LIBRARY "Build mbed TLS static library." OFF)
+# option(USE_SHARED_MBEDTLS_LIBRARY "Build mbed TLS shared library." ON)
 
 # Use custom config file for Mbed TLS
+# set(MBEDTLS_CONFIG_FILE "${CMAKE_CURRENT_SOURCE_DIR}/config/mbedtls_config.h"
+# CACHE STRING "Custom Mbed TLS config" FORCE)
 
-# option(USE_STATIC_MBEDTLS_LIBRARY "Build mbed TLS static library." off)
-# option(USE_SHARED_MBEDTLS_LIBRARY "Build mbed TLS shared library." on)
+FetchContent_Declare(
+   mbedtls
+   GIT_REPOSITORY https://github.com/Mbed-TLS/mbedtls.git
+   GIT_TAG v3.6.4
+)
+
+FetchContent_MakeAvailable(mbedtls)
+
+# set(CMAKE_INSTALL_NAME_DIR ${CMAKE_INSTALL_FULL_LIBDIR}/lib)
 
 #if (CMAKE_SYSTEM MATCHES "OpenBSD")
 #	option(LINK_WITH_PTHREAD "Explicitly link mbed TLS library to pthread." on)
@@ -41,10 +54,7 @@ option(ENABLE_TESTING "Build mbed TLS tests." OFF)
 
 set(MBEDTLS_LIBRARIES "mbedtls" "mbedx509")
 
-
-
 include_directories(include)
-
 
 add_compile_options(-g)
 
@@ -58,8 +68,8 @@ if (SELFHOSTED)
 		library/cmpcl_write.c
 		program/cmp_main.c
 		program/cmpclient.c
-        	program/mbedtls_transport.c
-        	program/credential_storage.c
+		program/mbedtls_transport.c
+		program/credential_storage.c
     )
 #    add_definitions(-DEE_CFG_SELFHOSTED=1)
     add_executable(embedded_cmp ${SOURCE})
