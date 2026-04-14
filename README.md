@@ -37,7 +37,7 @@ and can only serve as an example or starting point for further development.
 
 For instructions how to get the required underlying sources
 and then build and use this software
-please refer to [HOWTO.md](/docs/HOWTO.md).
+please refer to [HOWTO.md](/doc/HOWTO.md).
 
 
 ## Software architecture
