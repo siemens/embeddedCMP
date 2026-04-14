@@ -50,7 +50,7 @@ make
 # Configuration
 
 The hardcoded CMP client configuration can be found in `program/cmpclient_config.h`.
-The CMP client was tested with 
+The CMP client was tested with
 * a public reachable CA at http://pki.certificate.fi:8700/pkix
   * internet access is required
   * uncomment `#define INSTA`
@@ -65,8 +65,8 @@ The CMP client was tested with
   * the EjbCA container needs to be started locally
   * uncomment `#define DOCKER_EJBCA`
 
-After changing the configuration in `program/cmpclient_config.h` a recompilation 
-as described in [Compiling the code](#compiling-the-code) is required. 
+After changing the configuration in `program/cmpclient_config.h` a recompilation
+as described in [Compiling the code](#compiling-the-code) is required.
 
 
 # Running the CMP client
@@ -108,20 +108,20 @@ The `embedded_cmp` executable supports the options below:
 
 # Setting up the EjbCA running in a docker container
 
-* If not already done install and start a docker engine as described at 
+* If not already done install and start a docker engine as described at
 https://docs.docker.com/engine/install/ubuntu/#install-using-the-repository.
 
 * Check docker engine setup and start by executing
 
 ```bash
-docker run hello-world 
+docker run hello-world
 ```
 
 * Go to a writable directory of your choice and execute
 
 ```bash
 wget https://github.com/siemens/gencmpclient/raw/refs/heads/master/test/recipes/80-test_cmp_http_data/EJBCA/ejbca-docker.tar.gz
-tar xvzf ejbca-docker.tar.gz 
+tar xvzf ejbca-docker.tar.gz
 cd ejbca-docker/
 docker compose up -d
 ```

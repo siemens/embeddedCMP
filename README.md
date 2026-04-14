@@ -6,10 +6,10 @@ SPDX-License-Identifier: Apache-2.0 -->
 
 # CMP Client
 
-This project is a proof-of-concept of an embedded CMP client, 
+This project is a proof-of-concept of an embedded CMP client,
 so far based on mbed TLS.
-It implements the mandatory feature set of Certificate Management Protocol 
-(CMP) for end entities according to section 7.1 of the Lightweight CMP Profile 
+It implements the mandatory feature set of Certificate Management Protocol
+(CMP) for end entities according to section 7.1 of the Lightweight CMP Profile
 [RFC9483](https://tools.ietf.org/html/rfc9483)
 for use in embedded systems and the IoT.
 
@@ -55,7 +55,7 @@ mainN .. main
 
 [CMP client] as client
 note as clientN
-implements toplevel CR, IR 
+implements toplevel CR, IR
 and KUR transactions
 file: program/cmp_client.c
 endnote
@@ -63,7 +63,7 @@ clientN .. client
 
 [Credential Storage] as storage
 note as storageN
-implements credential 
+implements credential
 load and store functions
 file: program/credential_storage.c
 endnote
@@ -71,7 +71,7 @@ storageN .. storage
 
 [Mbed-TLS transport] as transport
 note as transportN
-implements HTTP and TLS 
+implements HTTP and TLS
 send and receive support
 file: program/mbedtls_transport.c
 endnote
@@ -79,7 +79,7 @@ transportN .. transport
 
 [Mbed-TLS builtin ASN.1 support] as asn1
 note as asn1N
-implements low level ASN.1 
+implements low level ASN.1
 encoding and decoding
 file: mbedtls/...
 endnote
@@ -87,16 +87,16 @@ asn1N .. asn1
 
 [CMP ctx] as ctx
 note as ctxN
-provides and holds all 
+provides and holds all
 CMP states and parameters
 related to one CMP transaction
 file: library/cmpcl_ctx.c
 endnote
-ctxN .. ctx 
+ctxN .. ctx
 
 [CMP library] as lib
 note as libN
-implements some 
+implements some
 helper functions
 file: library/cmpcl_lib.c
 endnote
@@ -104,7 +104,7 @@ libN .. lib
 
 [CMP write] as write
 note as writeN
-implements CMP specific 
+implements CMP specific
 message encoder functions
 file: library/cmpcl_write.c
 endnote
@@ -112,7 +112,7 @@ writeN .. write
 
 [CMP read] as read
 note as readN
-implements CMP specific 
+implements CMP specific
 message decoder functions
 file: library/cmpcl_read.c
 endnote
@@ -120,7 +120,7 @@ readN .. read
 
 [CMP session mgmt] as ses
 note as sesN
-implements CMP 
+implements CMP
 transaction management
 file: library/cmpcl_ses.c
 endnote
@@ -130,7 +130,7 @@ sesN .. ses
 main .> transport: creates
 main -d--> client: invokes
 
-client .> ctx: creates 
+client .> ctx: creates
 client -l-> storage: uses
 client -d--> ses: invokes
 
