@@ -1,4 +1,4 @@
-<!-- Copyright (c) 2019-2025 Siemens AG
+<!-- Copyright (c) 2019-2026 Siemens AG
 
 Licensed under the Apache License, Version 2.0
 
@@ -7,13 +7,13 @@ SPDX-License-Identifier: Apache-2.0 -->
 # CMP Client
 
 This project is a proof-of-concept of an embedded CMP client,
-so far based on mbed TLS.
+so far based on Mbed TLS.
 It implements the mandatory feature set of Certificate Management Protocol
 (CMP) for end entities according to section 7.1 of the Lightweight CMP Profile
 [RFC9483](https://tools.ietf.org/html/rfc9483)
 for use in embedded systems and the IoT.
 
-It essentially uses just the cryptography support provided by mbedTLS
+It essentially uses just the cryptography support provided by Mbed TLS
 and some basic I/O functionality including a bare-bone HTTPS client.
 Tests so far focus on using the [PPKI CM Playground](https://wiki.siemens.com/spaces/ProductPKI/pages/497324136/Certificate+Management+Playground) as a CMP test/demo server.
 

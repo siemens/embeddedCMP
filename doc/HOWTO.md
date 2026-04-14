@@ -1,4 +1,4 @@
-<!--Copyright (c) 2019 Siemens AG
+<!-- Copyright (c) 2019-2026 Siemens AG
 
 Licensed under the Apache License, Version 2.0
 
@@ -16,10 +16,13 @@ the Siemens Intranet.
 
 ## Required Tools
 
-The following tools need to be installed:
-* cmake
+The following build tools need to be installed:
+* cmake (currently at least version 3.14 is required)
 * gcc
 * make
+
+CMake will take care of the dependency on Mbed TLS;
+currently at least version 3.6.4 is supported.
 
 ## Getting all the code
 
@@ -32,6 +35,8 @@ git clone git@code.siemens.com:product-pki/playground/embeddedCMP.git
 ```
 
 # Compiling the code
+
+Using CMake is recommended.
 
 Optionally create a build directory and compile the code like this:
 ```bash
