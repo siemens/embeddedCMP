@@ -65,29 +65,6 @@ static int gen_ec_key(mbedtls_pk_context *key, mbedtls_ctr_drbg_context *ctr_drb
 }
 
 /* ************************************************************************** */
-static int print_certinfo(mbedtls_x509_crt *crt, const char *prefix)
-{
-    int ret = -1;
-    char certbuf[1024];
-    ret = mbedtls_x509_crt_info(certbuf, 1024, prefix, crt);
-    if (ret < 0) {
-        CMPERRV("Failed to print cert info 0x%04x", -ret);
-        return -1;
-    }
-    /* workaround for dangling spaces produced by mbedtls_x509_crt_info(): */
-    char *p = certbuf+strlen(certbuf);
-    while (p != certbuf && p[-1] == ' ') {
-        p--;
-    }
-    while (p != certbuf && (p[-1] == '\r' || p[-1] == '\n')) {
-        p--;
-    }
-    *p = '\0';
-    CMPINFOV("%s", certbuf);
-    return 0;
-}
-
-/* ************************************************************************** */
 static
 int invoke_cert_request(const int body_type,
                         const char *subject_name,
@@ -336,7 +313,7 @@ int invoke_cert_request(const int body_type,
     if ((ret = cmpcl_do_transaction(ctx, body_type)) != 0) {
         CMPERRS("Certificate enrollment failed :-/");
     } else {
-        print_certinfo(cmp_ctx_get_new_cert(ctx), "\rrecvd: "); /* TODO: find more elegant way to deal with Eclipse terminal */
+        print_certinfo("new cert received:\n", "  ", cmp_ctx_get_new_cert(ctx)); /* TODO: find more elegant way to deal with Eclipse terminal */
 
         if (write_private_key_pem(&enrol_key, path_to_new_key) != 0) {
             CMPERRV("Failed to write new key to file %s", path_to_new_key);

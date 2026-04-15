@@ -111,6 +111,40 @@ int write_to_file(char *output_file, const unsigned char *data, size_t len)
 #endif
 
 
+/* ************************************************************************** */
+int print_certinfo(const char *cert_prefix, const char *line_prefix, const mbedtls_x509_crt *crt)
+{
+    char certbuf[1024];
+    int ret = mbedtls_x509_crt_info(certbuf, sizeof(certbuf), line_prefix, crt);
+
+    if (ret < 0) {
+        CMPERRV("Failed to print cert info 0x%04x", -ret);
+        return -1;
+    }
+    /* workaround for dangling spaces produced by mbedtls_x509_crt_info(): */
+    char *p = certbuf + strlen(certbuf);
+    while (p != certbuf && p[-1] == ' ') {
+        p--;
+    }
+    while (p != certbuf && (p[-1] == '\r' || p[-1] == '\n')) {
+        p--;
+    }
+    *p = '\0';
+    CMPINFOV("%s%s", cert_prefix, certbuf);
+    return 0;
+}
+
+static int print_certinfos(const char *cert_prefix, const char *line_prefix, const mbedtls_x509_crt *crt)
+{
+    int ret = 0;
+
+    while (crt != NULL && ret == 0) {
+        ret = print_certinfo(cert_prefix, line_prefix, crt);
+        crt = crt->next;
+    }
+    return ret;
+}
+
 /*
  * extracts CN from mbedtls_x509_name and stores it in a string
  * free memory from caller!
@@ -145,7 +179,7 @@ char *cmp_x509_cn_gets(mbedtls_x509_name *dn)
  *  - builds and verifies the chain
  */
 int cmp_x509_crt_verify(mbedtls_x509_crt *crt,
-                        mbedtls_x509_crt *trust_ca,
+                        mbedtls_x509_crt *trusted,
                         mbedtls_x509_crl *ca_crl,
                         mbedtls_x509_name *exp_name)
 {
@@ -154,7 +188,7 @@ int cmp_x509_crt_verify(mbedtls_x509_crt *crt,
     unsigned int failure_bits = 0;
     char *expected_cn = NULL;
 
-    if (trust_ca == NULL) {
+    if (trusted == NULL) {
         CMPDBGS("Empty trusted certs chain. Abort verification.");
         return CMPCL_ERR_EMPTY_TRUST_CA;
     }
@@ -177,17 +211,30 @@ int cmp_x509_crt_verify(mbedtls_x509_crt *crt,
 
 
     ret = mbedtls_x509_crt_verify_with_profile(crt, /* treat ret appropriately in caller */
-                                               trust_ca, ca_crl, &ver_prof,
+                                               trusted, ca_crl, &ver_prof,
                                                expected_cn,
                                                &failure_bits,
                                                NULL,
                                                NULL);
-    if (ret == 0) {
-        CMPINFOV("Enrollment certificate chain verified successfully");
+    if (ret == 0 && failure_bits == 0) {
+        CMPINFOV("certificate chain verified successfully");
     } else {
-        CMPERRV("Enrollment certificate chain validation FAILED");
-        CMPERRV("mbedtls_x509_crt_verify() returned: 0x%04x", -ret);
-        CMPERRV("verification failure bits: 0x%08x", failure_bits);
+        CMPERRV("certificate chain validation FAILED");
+        if (ret < 0) {
+            char error_text[256];
+            mbedtls_strerror(ret, error_text, sizeof(error_text));
+            CMPERRV("mbedtls_x509_crt_verify() returned -0x%04x - %s", -ret, error_text);
+        }
+        char failure_text[256];
+        mbedtls_x509_crt_verify_info(failure_text, sizeof(failure_text), "", failure_bits);
+        CMPERRV_NL("verification failure bits: 0x%08x - %s", failure_bits, failure_text);
+        if (failure_bits == 0x00000008) {
+            CMPINFOV("likely a suitable root or intermediate CA certificate is missing");
+        }
+
+        print_certinfo("target cert:\n", "  ", crt);
+        print_certinfos("intermediate cert:\n", "  ", crt->next);
+        print_certinfos("trusted cert:\n", "  ", trusted);
         ret = 0; // TODO remove
     }
 

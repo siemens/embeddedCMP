@@ -44,11 +44,11 @@ extern "C" {
         PRINTF("ERROR: %s:%d %s " str NEWLINE, __FILE__, (int) __LINE__, __func__); \
     } while (0)
 
-#define CMPERRV(fmt, ...) \
+#define CMPERRV_NL(fmt, ...) \
     do { \
-        PRINTF("ERROR: %s:%d %s " fmt NEWLINE, __FILE__, (int) __LINE__, __func__, \
-               ##__VA_ARGS__); \
+        PRINTF("ERROR: %s:%d %s " fmt, __FILE__, (int) __LINE__, __func__, ##__VA_ARGS__); \
     } while (0)
+#define CMPERRV(fmt, ...) CMPERRV_NL(fmt NEWLINE, ##__VA_ARGS__)
 
 #define CMPINFOV(fmt, ...) \
     do { \

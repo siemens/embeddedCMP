@@ -31,6 +31,8 @@
 extern "C" {
 #endif
 
+int print_certinfo(const char *cert_prefix, const char *line_prefix, const mbedtls_x509_crt *crt);
+
 /* API-level PKIBODY TYPES */
 #define MBEDTLS_CMP_PKIBODY_IR                0
 #define MBEDTLS_CMP_PKIBODY_CR                2

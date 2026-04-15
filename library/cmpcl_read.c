@@ -1287,6 +1287,7 @@ int cmp_pkimessage_parse_check_der(cmp_ctx *ctx, int expected_type, cmp_pkimessa
                                   ctx->prot_crls,
                                   &cmp->sender);
         if (ret != 0) {
+            CMPERRV("protection cert chain validation failed with return code %d", ret);
             cmp_ctx_set_failinfo(ctx, CMP_PKIFAILINFO_NOTAUTHORIZED);
             goto cleanup;
         }
