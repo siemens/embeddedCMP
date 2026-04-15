@@ -76,7 +76,7 @@ static const char * const HARDCODED_TLS_CLIENT_CERT =
     "qDoYLqecHArxc8gGuJ+eLcaDPoAfhmivIXXyorNgtaDAABXRi4zOtnmhb23eVxGr\n"
     "ErD55BlX\n"
     "-----END CERTIFICATE-----\n"; // Compiler implicitly adds final null terminator here.
-    
+
 static const char * const HARDCODED_TLS_CLIENT_KEY =
     "-----BEGIN PRIVATE KEY-----\n"
     "MIHuAgEAMBAGByqGSM49AgEGBSuBBAAjBIHWMIHTAgEBBEIBtz0ajwX1cNNZydU9\n"
@@ -123,7 +123,7 @@ static const char * const HARDCODED_TLS_SERVER_ROOT =
     "R9WDUFkUaYVzKiZKdMLonm7je2MkZbX6+evg6flP7E47CFRKdMEkdzS3Kdw+LzdA\n"
     "1J+h4YEYahG7u1to5uItgkjSrjMgiXBlfEMk2xSKObIfFfxOLrklMv0MKAdhShtV\n"
     "cli9ACs=\n"
-    "-----END CERTIFICATE-----\n"; // Compiler implicitly adds final null terminator here.    
+    "-----END CERTIFICATE-----\n"; // Compiler implicitly adds final null terminator here.
 
 static const char * const HARDCODED_PROTECTION_CERT =
     "-----BEGIN CERTIFICATE-----\n"
@@ -396,36 +396,36 @@ int append_certs_from_pem(mbedtls_x509_crt *crt, const char *path_to_pem)
         pem_str = (unsigned char *)HARDCODED_PROTECTION_CERT;
         len = strlen(HARDCODED_PROTECTION_CERT);
         // is_dynamic_alloc remains false, as we are using a static string literal
-    } 
+    }
     else if (strcmp(path_to_pem, PATH_TO_PROTECTION_CHAIN) == 0) {
         CMPDBGV("Using hardcoded protection certificate for path: %s", path_to_pem);
         pem_str = (unsigned char *)HARDCODED_PROTECTION_CHAIN;
         len = strlen(HARDCODED_PROTECTION_CHAIN);
-        // is_dynamic_alloc remains false, as we are using a static string literal        
+        // is_dynamic_alloc remains false, as we are using a static string literal
     }
     else if (strcmp(path_to_pem, PATH_TO_PROTECTION_TRUST_ANCHOR_PEM) == 0) {
         CMPDBGV("Using hardcoded protection certificate for path: %s", path_to_pem);
         pem_str = (unsigned char *)HARDCODED_PROTECTION_TRUST_ANCHOR;
         len = strlen(HARDCODED_PROTECTION_TRUST_ANCHOR);
-        // is_dynamic_alloc remains false, as we are using a static string literal        
+        // is_dynamic_alloc remains false, as we are using a static string literal
     }
     else if (strcmp(path_to_pem, PATH_TO_ENROLLMENT_TRUST_ANCHOR_PEM) == 0) {
         CMPDBGV("Using hardcoded enrollment certificate for path: %s", path_to_pem);
         pem_str = (unsigned char *)HARDCODED_ENROLLMENT_TRUST_ANCHOR;
         len = strlen(HARDCODED_ENROLLMENT_TRUST_ANCHOR);
-        // is_dynamic_alloc remains false, as we are using a static string literal        
+        // is_dynamic_alloc remains false, as we are using a static string literal
     }
     else if (strcmp(path_to_pem, TLS_CLIENT_CERT) == 0) {
         CMPDBGV("Using hardcoded enrollment certificate for path: %s", path_to_pem);
         pem_str = (unsigned char *)HARDCODED_TLS_CLIENT_CERT;
         len = strlen(HARDCODED_TLS_CLIENT_CERT);
-        // is_dynamic_alloc remains false, as we are using a static string literal        
+        // is_dynamic_alloc remains false, as we are using a static string literal
     }
     else if (strcmp(path_to_pem, TLS_SERVER_ROOT) == 0) {
         CMPDBGV("Using hardcoded enrollment certificate for path: %s", path_to_pem);
         pem_str = (unsigned char *)HARDCODED_TLS_SERVER_ROOT;
         len = strlen(HARDCODED_TLS_SERVER_ROOT);
-        // is_dynamic_alloc remains false, as we are using a static string literal        
+        // is_dynamic_alloc remains false, as we are using a static string literal
     }
     else {
         len = read_file(&pem_str, path_to_pem);
@@ -496,7 +496,7 @@ int parse_key_from_pem(mbedtls_pk_context *pk_ctx,
     int ret = 0;
 
     mbedtls_pk_init(pk_ctx);
-  
+
     if (strcmp(path_to_pem, PATH_TO_PROTECTION_KEY) == 0) {
         CMPDBGV("Using hardcoded protection key for path: %s", path_to_pem);
         pem_str = (unsigned char *)HARDCODED_PROTECTION_KEY;
@@ -508,8 +508,7 @@ int parse_key_from_pem(mbedtls_pk_context *pk_ctx,
         pem_str = (unsigned char *)HARDCODED_TLS_CLIENT_KEY;
         len = strlen(HARDCODED_TLS_CLIENT_KEY);
         // is_dynamic_alloc remains false, as we are using a static string literal
-    }    
-    else {
+    } else {
         len = read_file(&pem_str, path_to_pem);
         if (len <= 0) {
             CMPERRV("Loading KEY from %s FAILED", path_to_pem);
