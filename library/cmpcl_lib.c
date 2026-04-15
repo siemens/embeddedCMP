@@ -233,7 +233,6 @@ int cmp_x509_crt_verify(const char *desc,
         print_certinfo("target cert:\n", "  ", crt);
         print_certinfos("intermediate cert:\n", "  ", crt->next);
         print_certinfos("trusted cert:\n", "  ", trusted);
-        ret = 0; // TODO remove
     }
 
 err:
