@@ -35,25 +35,15 @@ extern "C" {
 // TODO redirect to mbedtls_debug_print_msg or similar
 #define PRINTF printf
 
-#define CMPWARNS(str) \
+#define CMP_MSG(prefix, fmt, ...) \
     do { \
-        PRINTF("WARNING: %s:%d %s " str NEWLINE, __FILE__, (int) __LINE__, __func__); \
+        PRINTF(prefix "%s:%d %s(): " fmt, __FILE__, (int)__LINE__, __func__, ##__VA_ARGS__); \
     } while (0)
-#define CMPERRS(str)                            \
-    do { \
-        PRINTF("ERROR: %s:%d %s " str NEWLINE, __FILE__, (int) __LINE__, __func__); \
-    } while (0)
-
-#define CMPERRV_NL(fmt, ...) \
-    do { \
-        PRINTF("ERROR: %s:%d %s " fmt, __FILE__, (int) __LINE__, __func__, ##__VA_ARGS__); \
-    } while (0)
+#define CMPWARNS(str) CMP_MSG("WARNING: ", "%s" NEWLINE, str);
+#define CMPERRS(str) CMP_MSG("ERROR: ", "%s" NEWLINE, str);
+#define CMPERRV_NL(fmt, ...) CMP_MSG("ERROR: ", fmt, ##__VA_ARGS__)
 #define CMPERRV(fmt, ...) CMPERRV_NL(fmt NEWLINE, ##__VA_ARGS__)
-
-#define CMPINFOV(fmt, ...) \
-    do { \
-        PRINTF("INFO: " fmt NEWLINE, ##__VA_ARGS__); \
-    } while (0)
+#define CMPINFOV(fmt, ...) CMP_MSG("INFO: ", fmt NEWLINE, ##__VA_ARGS__)
 
 #ifdef __cplusplus
 }
