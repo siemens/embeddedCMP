@@ -186,7 +186,7 @@ int mbed_tls_send_receive(void *cb_context, const unsigned char *outbuf,
     *inlen = 0;
     int ret = 1;
 
-    CMPINFOV("contacting server '%s:%s' endpoint '%s'",
+    CMPINFOV("contacting server '%s:%s' path '%s'",
              ctx->server_fqdn, ctx->server_port, ctx->server_path);
 
     if ((ret = mbedtls_net_connect(&ctx->server_fd,
@@ -213,7 +213,7 @@ int mbed_tls_send_receive(void *cb_context, const unsigned char *outbuf,
         uint32_t flags;
         if ((flags = mbedtls_ssl_get_verify_result(&ctx->ssl)) != 0) {
             char vrfy_buf[512];
-            mbedtls_x509_crt_verify_info(vrfy_buf, sizeof(vrfy_buf), "  ! ", flags);
+            mbedtls_x509_crt_verify_info(vrfy_buf, sizeof(vrfy_buf), " failed validating server certificate\n  ! ", flags);
             PRINTF("%s\n", vrfy_buf);
             return -1;
         }
@@ -298,6 +298,7 @@ int mbed_tls_send_receive(void *cb_context, const unsigned char *outbuf,
         } while (1);
     }
     mbedtls_net_close(&ctx->server_fd);
+
     // terminate input buffer
     input_buf[read_len] = '\0';
     /*
@@ -334,6 +335,8 @@ int mbed_tls_send_receive(void *cb_context, const unsigned char *outbuf,
     }
     // terminate status line
     *remaining_header = '\0';
+    CMPINFOV("received response with HTTP status %s", code_and_text);
+
     // parse status code
     switch (*code_and_text) {
         case '2':
