@@ -392,37 +392,37 @@ int append_certs_from_pem(mbedtls_x509_crt *crt, const char *path_to_pem)
 
     // Check if the path matches the special protection certificate path
     if (strcmp(path_to_pem, PATH_TO_PROTECTION_CERT) == 0) {
-        CMPDBGV("Using hardcoded protection certificate for path: %s", path_to_pem);
+        CMPWARNV("Using hardcoded protection certificate for path: %s", path_to_pem);
         pem_str = (unsigned char *)HARDCODED_PROTECTION_CERT;
         len = strlen(HARDCODED_PROTECTION_CERT);
         // is_dynamic_alloc remains false, as we are using a static string literal
     }
     else if (strcmp(path_to_pem, PATH_TO_PROTECTION_CHAIN) == 0) {
-        CMPDBGV("Using hardcoded protection certificate for path: %s", path_to_pem);
+        CMPWARNV("Using hardcoded protection certificate for path: %s", path_to_pem);
         pem_str = (unsigned char *)HARDCODED_PROTECTION_CHAIN;
         len = strlen(HARDCODED_PROTECTION_CHAIN);
         // is_dynamic_alloc remains false, as we are using a static string literal
     }
     else if (strcmp(path_to_pem, PATH_TO_PROTECTION_TRUST_ANCHOR_PEM) == 0) {
-        CMPDBGV("Using hardcoded protection certificate for path: %s", path_to_pem);
+        CMPWARNV("Using hardcoded protection certificate for path: %s", path_to_pem);
         pem_str = (unsigned char *)HARDCODED_PROTECTION_TRUST_ANCHOR;
         len = strlen(HARDCODED_PROTECTION_TRUST_ANCHOR);
         // is_dynamic_alloc remains false, as we are using a static string literal
     }
     else if (strcmp(path_to_pem, PATH_TO_ENROLLMENT_TRUST_ANCHOR_PEM) == 0) {
-        CMPDBGV("Using hardcoded enrollment certificate for path: %s", path_to_pem);
+        CMPWARNV("Using hardcoded enrollment certificate for path: %s", path_to_pem);
         pem_str = (unsigned char *)HARDCODED_ENROLLMENT_TRUST_ANCHOR;
         len = strlen(HARDCODED_ENROLLMENT_TRUST_ANCHOR);
         // is_dynamic_alloc remains false, as we are using a static string literal
     }
     else if (strcmp(path_to_pem, TLS_CLIENT_CERT) == 0) {
-        CMPDBGV("Using hardcoded enrollment certificate for path: %s", path_to_pem);
+        CMPWARNV("Using hardcoded enrollment certificate for path: %s", path_to_pem);
         pem_str = (unsigned char *)HARDCODED_TLS_CLIENT_CERT;
         len = strlen(HARDCODED_TLS_CLIENT_CERT);
         // is_dynamic_alloc remains false, as we are using a static string literal
     }
     else if (strcmp(path_to_pem, TLS_SERVER_ROOT) == 0) {
-        CMPDBGV("Using hardcoded enrollment certificate for path: %s", path_to_pem);
+        CMPWARNV("Using hardcoded enrollment certificate for path: %s", path_to_pem);
         pem_str = (unsigned char *)HARDCODED_TLS_SERVER_ROOT;
         len = strlen(HARDCODED_TLS_SERVER_ROOT);
         // is_dynamic_alloc remains false, as we are using a static string literal
@@ -437,7 +437,7 @@ int append_certs_from_pem(mbedtls_x509_crt *crt, const char *path_to_pem)
     }
 
     if (len == 0) {
-        CMPDBGV("Empty certs data for %s", path_to_pem);
+        CMPWARNV("Empty certs data for %s", path_to_pem);
         // The original logic passed empty data to mbedtls_x509_crt_parse,
         // which would likely result in an error from mbedTLS.
         // We maintain this behavior for consistency.
@@ -473,7 +473,7 @@ int append_crls_from_pem(mbedtls_x509_crl *crl, const char *path_to_pem)
     }
 
     if (len == 0) {
-        CMPDBGV("Empty CRLs file %s", path_to_pem);
+        CMPWARNV("Skipping empty CRLs file %s", path_to_pem);
     } else {
         ret = mbedtls_x509_crl_parse(crl, pem_str, len + 1);
     }
@@ -498,13 +498,13 @@ int parse_key_from_pem(mbedtls_pk_context *pk_ctx,
     mbedtls_pk_init(pk_ctx);
 
     if (strcmp(path_to_pem, PATH_TO_PROTECTION_KEY) == 0) {
-        CMPDBGV("Using hardcoded protection key for path: %s", path_to_pem);
+        CMPWARNV("Using hardcoded protection key for path: %s", path_to_pem);
         pem_str = (unsigned char *)HARDCODED_PROTECTION_KEY;
         len = strlen(HARDCODED_PROTECTION_KEY);
         // is_dynamic_alloc remains false, as we are using a static string literal
     }
     else if (strcmp(path_to_pem, TLS_CLIENT_KEY) == 0) {
-        CMPDBGV("Using hardcoded protection key for path: %s", path_to_pem);
+        CMPWARNV("Using hardcoded protection key for path: %s", path_to_pem);
         pem_str = (unsigned char *)HARDCODED_TLS_CLIENT_KEY;
         len = strlen(HARDCODED_TLS_CLIENT_KEY);
         // is_dynamic_alloc remains false, as we are using a static string literal
@@ -549,9 +549,7 @@ int write_private_key_pem(mbedtls_pk_context *key, const char *output_file)
 
     int ret = mbedtls_pk_write_key_pem(key, content_buffer, MAX_FILE_SIZE - 1);
     if (ret != 0) {
-        CMPDBGV(
-            "Writing key to pem FAILED, mbedtls_pk_write_key_pem() returned %d",
-            ret);
+        CMPERRV("Writing key to pem FAILED, mbedtls_pk_write_key_pem() returned %d", ret);
         return ret;
     }
     content_buffer[MAX_FILE_SIZE - 1] = '\0';
@@ -578,9 +576,7 @@ int write_cert_pem(mbedtls_x509_crt *cert, const char *output_file)
                                             "-----END CERTIFICATE-----\n", cert->raw.p,
                                             cert->raw.len,
                                             content_buffer, MAX_FILE_SIZE, &olen)) != 0) {
-            CMPDBGV(
-                "Writing certificate to pem FAILED, mbedtls_pem_write_buffer() returned %d",
-                ret);
+            CMPERRV("Writing certificate to pem FAILED, mbedtls_pem_write_buffer() returned %d", ret);
             return ret;
         }
         write_len = olen;

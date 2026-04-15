@@ -39,7 +39,8 @@ extern "C" {
     do { \
         PRINTF(prefix "%s:%d %s(): " fmt, __FILE__, (int)__LINE__, __func__, ##__VA_ARGS__); \
     } while (0)
-#define CMPWARNS(str) CMP_MSG("WARNING: ", "%s" NEWLINE, str);
+#define CMPWARNV(fmt, ...) CMP_MSG("WARNING: ", fmt NEWLINE, ##__VA_ARGS__)
+#define CMPWARNS(str) CMPWARNV("%s", str)
 #define CMPERRS(str) CMP_MSG("ERROR: ", "%s" NEWLINE, str);
 #define CMPERRV_NL(fmt, ...) CMP_MSG("ERROR: ", fmt, ##__VA_ARGS__)
 #define CMPERRV(fmt, ...) CMPERRV_NL(fmt NEWLINE, ##__VA_ARGS__)
