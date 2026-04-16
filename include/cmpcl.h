@@ -379,11 +379,12 @@ int cmp_ctx_set_rndm_str(unsigned char **str, size_t *str_len,
  * Verify the certificate validity, with built-in custom profile
  *
  * This function:
- *  - checks the requested CN (if any)
+ *  - checks the expected CommonName (if subject DN is given)
  *  - checks the type and size of the EE cert's key,
  *    as that isn't done as part of chain building/verification currently
  *  - builds and verifies the chain
  *
+ *  \param desc name of the certificate validation use case, for diagnostics
  *  \param crt certificate to verify
  *  \param trust_ca truted certificates
  *  \param ca_crl CRLs to use
@@ -391,10 +392,11 @@ int cmp_ctx_set_rndm_str(unsigned char **str, size_t *str_len,
  *  \return negative value in case of error
  */
 
-int cmp_x509_crt_verify(mbedtls_x509_crt *crt,
+int cmp_x509_crt_verify(const char *desc,
+                        mbedtls_x509_crt *crt,
                         mbedtls_x509_crt *trust_ca,
                         mbedtls_x509_crl *ca_crl,
-                        mbedtls_x509_name *exp_name);
+                        mbedtls_x509_name *expected_subject);
 
 
 

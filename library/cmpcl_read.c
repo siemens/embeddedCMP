@@ -1282,12 +1282,11 @@ int cmp_pkimessage_parse_check_der(cmp_ctx *ctx, int expected_type, cmp_pkimessa
             ret = -1;
             goto cleanup;
         }
-        ret = cmp_x509_crt_verify(ctx->extraCerts,
+        ret = cmp_x509_crt_verify("protection", ctx->extraCerts,
                                   ctx->prot_trust_anchor,
                                   ctx->prot_crls,
                                   &cmp->sender);
         if (ret != 0) {
-            CMPERRV("protection cert chain validation failed with return code %d", ret);
             cmp_ctx_set_failinfo(ctx, CMP_PKIFAILINFO_NOTAUTHORIZED);
             goto cleanup;
         }

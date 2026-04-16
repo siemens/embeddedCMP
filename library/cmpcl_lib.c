@@ -158,7 +158,6 @@ char *cmp_x509_cn_gets(mbedtls_x509_name *dn)
     cn_start = mbedtls_asn1_find_named_data(dn, MBEDTLS_OID_AT_CN, sizeof(MBEDTLS_OID_AT_CN) - 1);
 
     if (cn_start == NULL) {
-        CMPDBGS("Failed to find CN in given DN");
         return NULL;
     }
 
@@ -176,12 +175,13 @@ char *cmp_x509_cn_gets(mbedtls_x509_name *dn)
  *  - checks the requested CN (if any)
  *  - checks the type and size of the EE cert's key,
  *    as that isn't done as part of chain building/verification currently
- *  - builds and verifies the chain
+ *  - builds and validates the chain
  */
-int cmp_x509_crt_verify(mbedtls_x509_crt *crt,
+int cmp_x509_crt_verify(const char *desc,
+                        mbedtls_x509_crt *crt,
                         mbedtls_x509_crt *trusted,
                         mbedtls_x509_crl *ca_crl,
-                        mbedtls_x509_name *exp_name)
+                        mbedtls_x509_name *expected_subject)
 {
 
     int ret;
@@ -189,15 +189,13 @@ int cmp_x509_crt_verify(mbedtls_x509_crt *crt,
     char *expected_cn = NULL;
 
     if (trusted == NULL) {
-        CMPDBGS("Empty trusted certs chain. Abort verification.");
+        CMPDBGV("No trusted certs given - aborting %s chain validation", desc);
         return CMPCL_ERR_EMPTY_TRUST_CA;
     }
-    if (exp_name != NULL) {
-
-        expected_cn = cmp_x509_cn_gets(exp_name);
-
-        if (expected_cn == NULL) {      /*CN extraction failed */
-            CMPERRS("Failed to extract CN name");
+    if (expected_subject != NULL) {
+        expected_cn = cmp_x509_cn_gets(expected_subject);
+        if (expected_cn == NULL) { /* CN extraction failed */
+            CMPERRV("Failed to extract subject CommonName for %s chain validation", desc);
             ret = CMPCL_ERR_EXTRACT_CN;
             goto err;
         }
@@ -217,9 +215,9 @@ int cmp_x509_crt_verify(mbedtls_x509_crt *crt,
                                                NULL,
                                                NULL);
     if (ret == 0 && failure_bits == 0) {
-        CMPINFOV("certificate chain verified successfully");
+        CMPINFOV("%s certificate chain validated successfully", desc);
     } else {
-        CMPERRV("certificate chain validation FAILED");
+        CMPERRV("%s certificate chain validation FAILED", desc);
         if (ret < 0) {
             char error_text[256];
             mbedtls_strerror(ret, error_text, sizeof(error_text));

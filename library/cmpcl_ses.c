@@ -188,11 +188,10 @@ int cmpcl_do_transaction(cmp_ctx *ctx, const int body_type)
         new_cert->next = ctx->extraCerts;
 
         if (ctx->enrol_trust_anchor != NULL) {
-            if ((ret = cmp_x509_crt_verify(new_cert,
+            if ((ret = cmp_x509_crt_verify("enrollment", new_cert,
                                            ctx->enrol_trust_anchor,
                                            ctx->enrol_crls,
                                            ctx->subject)) != 0) {
-                CMPERRV("enrollment chain validation for new certificate failed with return code %d", ret);
                 cmp_ctx_set_failinfo(ctx, CMP_PKIFAILINFO_INCORECTDATA);
             }
         } else {
