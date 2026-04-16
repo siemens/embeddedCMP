@@ -42,6 +42,7 @@
 
 static unsigned char content_buffer[MAX_FILE_SIZE];
 
+#ifdef USE_HARDCODED_CREDS
 // Hardcoded certificate string
 // Note: Backslashes are used to continue the string literal on new lines.
 // The final '\n' after -----END CERTIFICATE----- is important for PEM format.
@@ -291,6 +292,7 @@ static const char * const HARDCODED_ENROLLMENT_TRUST_ANCHOR =
 
 #define HARDCODED_PROTECTION_TRUST_ANCHOR HARDCODED_ENROLLMENT_TRUST_ANCHOR
 
+#endif // USE_HARDCODED_CREDS
 
 /* Read file to (binary) string */
 static int read_file(unsigned char **contents, const char *filename)
@@ -390,6 +392,7 @@ int append_certs_from_pem(mbedtls_x509_crt *crt, const char *path_to_pem)
     int len = 0;
     int is_dynamic_alloc = 0;
 
+#ifdef USE_HARDCODED_CREDS
     // Check if the path matches the special protection certificate path
     if (strcmp(path_to_pem, PATH_TO_PROTECTION_CERT) == 0) {
         CMPWARNV("Using hardcoded protection certificate for path: %s", path_to_pem);
@@ -427,7 +430,9 @@ int append_certs_from_pem(mbedtls_x509_crt *crt, const char *path_to_pem)
         len = strlen(HARDCODED_TLS_SERVER_ROOT);
         // is_dynamic_alloc remains false, as we are using a static string literal
     }
-    else {
+    else
+#endif
+    {
         len = read_file(&pem_str, path_to_pem);
         if (len < 0) {
             CMPERRV("Loading certs from %s FAILED", path_to_pem);
@@ -497,6 +502,7 @@ int parse_key_from_pem(mbedtls_pk_context *pk_ctx,
 
     mbedtls_pk_init(pk_ctx);
 
+#ifdef USE_HARDCODED_CREDS
     if (strcmp(path_to_pem, PATH_TO_PROTECTION_KEY) == 0) {
         CMPWARNV("Using hardcoded protection key for path: %s", path_to_pem);
         pem_str = (unsigned char *)HARDCODED_PROTECTION_KEY;
@@ -508,7 +514,10 @@ int parse_key_from_pem(mbedtls_pk_context *pk_ctx,
         pem_str = (unsigned char *)HARDCODED_TLS_CLIENT_KEY;
         len = strlen(HARDCODED_TLS_CLIENT_KEY);
         // is_dynamic_alloc remains false, as we are using a static string literal
-    } else {
+    }
+    else
+#endif
+    {
         len = read_file(&pem_str, path_to_pem);
         if (len <= 0) {
             CMPERRV("Loading KEY from %s FAILED", path_to_pem);
