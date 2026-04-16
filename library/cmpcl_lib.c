@@ -222,6 +222,8 @@ int cmp_x509_crt_verify(const char *desc,
             char error_text[256];
             mbedtls_strerror(ret, error_text, sizeof(error_text));
             CMPERRV("mbedtls_x509_crt_verify() returned -0x%04x - %s", -ret, error_text);
+        } else { /* the failure_bits indicate a verification-specific error */
+            ret = -1;
         }
         char failure_text[256];
         mbedtls_x509_crt_verify_info(failure_text, sizeof(failure_text), "", failure_bits);
