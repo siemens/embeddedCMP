@@ -23,12 +23,44 @@
 
 #include "cmpcl_high.h"
 #include "cmpcl_int.h"
+#include "mbedtls/rsa.h"
+#include "mbedtls_transport.h"
+#include "credential_storage.h"
 
-cmp_ctx *cmp_client_init(const char *server, OPTIONAL const char *port,
-                         const char *path,
-                         OPTIONAL const char *tls_key, OPTIONAL const char *tls_cert,
-                         OPTIONAL const char *tls_trusted,
-                         OPTIONAL const char *sender_name,
+void cmp_client_set_transport(cmp_ctx *ctx,
+                              void *cb_context,
+                              cmp_send_receive_cb send_receive_func)
+{
+    ctx->cb_context = cb_context;
+    ctx->send_receive_func = send_receive_func;
+}
+
+int cmp_client_set_http(cmp_ctx *ctx,
+                        const char *server, OPTIONAL const char *port,
+                        const char *path,
+                        OPTIONAL const char *tls_key, OPTIONAL const char *tls_cert,
+                        OPTIONAL const char *tls_trusted)
+{
+    ctx->cb_context = mbedtls_calloc(1, sizeof(mbed_tls_transport_ctx));
+    if (ctx->cb_context == NULL) {
+        CMPERRS("Out of memory\n");
+        return CMPCL_ERR_MEMORY_ALLOCATION;
+    }
+    int use_plain_http = tls_key == NULL;
+    if (port == NULL) {
+        port = use_plain_http?"80":"443";
+    }
+    int ret = mbed_tls_transport_init(ctx->cb_context, use_plain_http, ctx->ctr_drbg,
+            tls_cert, tls_key, tls_trusted, server, port, path);
+    if (ret != 0) {
+        CMPERRV(" failed\n  ! mbed_tls_transport_init returned %d\n", ret);
+        return ret;
+    }
+    cmp_client_set_transport(ctx, ctx->cb_context, mbed_tls_send_receive);
+    return 0;
+}
+
+cmp_ctx *cmp_client_init(OPTIONAL const char *sender_name,
                          OPTIONAL const char *recipient_name,
                          int allow_unprotected_errors)
 {
@@ -45,7 +77,6 @@ cmp_ctx *cmp_client_init(const char *server, OPTIONAL const char *port,
         cmp_ctx_free(ctx);
         return NULL;
     }
-
     mbedtls_entropy_init(ctx->entropy);
     mbedtls_ctr_drbg_init(ctx->ctr_drbg);
     const char *pers = "cmp_client";
@@ -56,39 +87,160 @@ cmp_ctx *cmp_client_init(const char *server, OPTIONAL const char *port,
         cmp_ctx_free(ctx);
         return NULL;
     }
-
-    // TODO complete the function body
+    if (cmp_ctx_set_transactionID(ctx, 16) != 0) {
+        CMPERRS("Failed to set transaction ID!");
+        cmp_ctx_free(ctx);
+        return NULL;
+    }
+    if (cmp_ctx_set_senderNonce(ctx, 16) != 0) {
+        CMPERRS("Failed to set sender nonce!");
+        cmp_ctx_free(ctx);
+        return NULL;
+    }
+    if (sender_name) {
+        ret = cmp_ctx_set_sender_name(ctx, sender_name);
+        if (ret != 0) {
+            CMPERRV(" failed\n  ! cmp_ctx_set_sender_name returned %d\n", ret);
+            cmp_ctx_free(ctx);
+            return NULL;
+        }
+    }
+    if (recipient_name) {
+        ret = cmp_ctx_set_recipient_name(ctx, recipient_name);
+        if (ret != 0) {
+            CMPERRV(" failed\n  ! cmp_ctx_set_recipient_name returned %d\n", ret);
+            cmp_ctx_free(ctx);
+            return NULL;
+        }
+    }
+    cmp_ctx_set_unprotected_errors(ctx, allow_unprotected_errors);
     return ctx;
 }
 
 
-int cmp_client_set_signature_protection(cmp_ctx *ctx, int md_alg,
-                                        OPTIONAL const mbedtls_pk_context *key,
-                                        OPTIONAL const char *crt,
-                                        OPTIONAL const char *crt_chain,
-                                        OPTIONAL const char *trusted,
-                                        OPTIONAL const char *crls)
-                                        /*
-                                        OPTIONAL const mbedtls_x509_crt *crt,
-                                        OPTIONAL const mbedtls_x509_crt *crt_chain,
-                                        OPTIONAL const mbedtls_x509_crt *trusted,
-                                        OPTIONAL const mbedtls_x509_crl *crls)
-                                         */
-{
-    /* either key and crt, and crt_chain must be NULL (unprotected_requests) or key and crt must be given */
-   /* if trusted is NULL, also crls must be NULL */
-
-    // TODO implement the function body
-    return 0;
+static mbedtls_x509_crt* new_crt_from_pem(const char *path_to_pem) {
+    mbedtls_x509_crt *crt = mbedtls_calloc(1, sizeof(mbedtls_x509_crt));
+    if (crt == NULL) {
+        CMPERRS("Out of memory\n");
+        return NULL;
+    }
+    mbedtls_x509_crt_init(crt);
+    if ((append_certs_from_pem(crt, path_to_pem)) == 0) {
+        CMPDBGV("Parsed cert from ", path_to_pem);
+        return crt;
+    } else {
+        CMPERRV("Parsing cert from %s failed", path_to_pem);
+        mbedtls_x509_crt_free(crt);
+        return NULL;
+    }
 }
+
+static mbedtls_x509_crl* new_crl_from_pem(const char *path_to_pem) {
+    mbedtls_x509_crl *crl = mbedtls_calloc(1, sizeof(mbedtls_x509_crl));
+    if (crl == NULL) {
+        CMPERRS("Out of memory\n");
+        return NULL;
+    }
+    mbedtls_x509_crl_init(crl);
+    if ((append_crls_from_pem(crl, path_to_pem)) == 0) {
+        CMPDBGV("Parsed crl from ", path_to_pem);
+        return crl;
+    } else {
+        CMPERRV("Parsing crl from %s failed", path_to_pem);
+        mbedtls_x509_crl_free(crl);
+        return NULL;
+    }
+}
+
+
+int cmp_client_enable_signature_protection(cmp_ctx *ctx, int md_alg,
+                                           OPTIONAL const mbedtls_pk_context *key,
+                                           OPTIONAL const char *crt,
+                                           OPTIONAL const char *crt_chain,
+                                           OPTIONAL const char *trusted,
+                                           OPTIONAL const char *crls)
+{
+    int ret = -1;
+
+    if (ctx == NULL) {
+        CMPERRS("Invalid context");
+        return ret;
+    }
+
+    /* if trusted is NULL, also crls must be NULL */
+     if (trusted == NULL && crls != NULL) {
+             CMPERRS("if trusted is NULL, also crls must be NULL");
+             return ret;
+         }
+
+    /* either key and crt, and crt_chain must be NULL (unprotected_requests) or key and crt must be given */
+
+    if (key == NULL && crt == NULL && crt_chain == NULL) {
+        cmp_ctx_set_prot_key(ctx, NULL);
+        cmp_ctx_set_prot_crt(ctx, NULL);
+        cmp_ctx_set_prot_crt_chain(ctx, NULL);
+        cmp_ctx_set_sig_prot_md_alg(ctx, -1);
+    } else if (key == NULL || crt == NULL) {
+        CMPERRS("key and crt must be given");
+        return ret;
+    }  else {
+        cmp_ctx_set_sig_prot_md_alg(ctx, md_alg);
+        cmp_ctx_set_prot_key(ctx, key);
+        mbedtls_x509_crt *mcrt = new_crt_from_pem(crt);
+        if (mcrt == NULL) {
+            goto err;
+        }
+        cmp_ctx_set_prot_crt(ctx, mcrt);
+        if (crt_chain != NULL) {
+            mbedtls_x509_crt *mcrt_chain = new_crt_from_pem(crt_chain);
+            if (mcrt_chain == NULL) {
+                goto err;
+            }
+            cmp_ctx_set_prot_crt_chain(ctx, mcrt_chain);
+        } else {
+            cmp_ctx_set_prot_crt_chain(ctx, NULL);
+        }
+    }
+    if (trusted == NULL) {
+        if (crls != NULL) {
+            CMPERRS("if trusted is NULL, also crls must be NULL");
+            goto err;
+        }
+        cmp_ctx_set_prot_trust_anchor(ctx, NULL);
+    } else {
+        mbedtls_x509_crt *mtrusted = new_crt_from_pem(trusted);
+        if (mtrusted == NULL) {
+            goto err;
+        }
+        cmp_ctx_set_prot_trust_anchor(ctx, mtrusted);
+    }
+    if (crls != NULL) {
+        mbedtls_x509_crl *mcrls = new_crl_from_pem(crls);
+        if (mcrls == NULL) {
+            goto err;
+        }
+        cmp_ctx_set_prot_crls(ctx, mcrls);
+    } else {
+        cmp_ctx_set_prot_crls(ctx, NULL);
+    }
+    return 0;
+  err:
+    cmp_ctx_set_sig_prot_md_alg(ctx, -1);
+    cmp_ctx_set_prot_trust_anchor(ctx, NULL);
+    cmp_ctx_set_prot_crls(ctx, NULL);
+    cmp_ctx_set_prot_key(ctx, NULL);
+    cmp_ctx_set_prot_crt(ctx, NULL);
+    cmp_ctx_set_prot_crt_chain(ctx, NULL);
+    return ret;
+}
+
 int cmp_client_set_pbm_protection(cmp_ctx *ctx,
-                                  size_t salt_len, /* mbedtls_md_type_t */ int owf,
-                                  /* mbedtls_md_type_t */ int mac, int iterationCount,
                                   const unsigned char *secret, size_t len,
-                                  OPTIONAL const unsigned char *ref, size_t ref_len)
+                                  OPTIONAL const unsigned char *ref, size_t ref_len,
+                                  size_t salt_len, /* mbedtls_md_type_t */ int owf,
+                                  /* mbedtls_md_type_t */ int mac, int iterationCount)
 {
     int ret = 0;
-
     cmp_PBMParameter *pbmp = (cmp_PBMParameter *) mbedtls_calloc(1, sizeof(cmp_PBMParameter));
     if (pbmp == NULL) {
         CMPERRS("Out of memory\n");
@@ -102,9 +254,9 @@ int cmp_client_set_pbm_protection(cmp_ctx *ctx,
     }
     cmp_ctx_set_pbmp(ctx, pbmp); /* consumes pbmp */
 
-    if (setStr(&ctx->prot_secret, secret, len) != 0) {
+    if ((ret = setStr(&ctx->prot_secret, secret, len)) != 0) {
         CMPERRS("Failed to set PBM secret\n");
-        return CMPCL_ERR_MEMORY_ALLOCATION;
+        return ret;
     }
     ctx->secret_len = len;
 
@@ -112,30 +264,229 @@ int cmp_client_set_pbm_protection(cmp_ctx *ctx,
         if ((ret = cmp_ctx_set_senderKID(ctx, ref, ref_len)) != 0)
             return ret;
     }
-
-    // TODO complete the function body
     return 0;
+}
+
+int generate_key(const char *key_type,
+                 mbedtls_ctr_drbg_context *ctr_drbg,
+                 mbedtls_pk_context **pkey)
+{
+    int ret;
+    const char *param;
+
+    *pkey = NULL;
+
+    mbedtls_pk_context *key = mbedtls_calloc(1, sizeof(mbedtls_pk_context));
+    if (key == NULL) {
+        CMPERRS("Out of memory\n");
+        return CMPCL_ERR_MEMORY_ALLOCATION;
+    }
+    mbedtls_pk_init(key);
+
+    if (strncmp(key_type, "RSA:", 4) == 0) {
+        param = key_type + 4;
+        unsigned int nbits = (unsigned int) atoi(param);
+        if (nbits == 0) {
+            CMPERRV("Invalid RSA key size: %s", param);
+            ret = -1;
+            goto end;
+        }
+        ret = mbedtls_pk_setup(key, mbedtls_pk_info_from_type(MBEDTLS_PK_RSA));
+        if (ret != 0) {
+            CMPERRV("Key setup failed, mbedtls_pk_setup returned 0x%04x", -ret);
+            goto end;
+        }
+        ret = mbedtls_rsa_gen_key(mbedtls_pk_rsa(*key),
+                                  mbedtls_ctr_drbg_random, ctr_drbg,
+                                  nbits, 65537);
+        if (ret != 0) {
+            CMPERRV("RSA key generation failed, returned 0x%04x", -ret);
+            goto end;
+        }
+    } else {
+        /* EC key: accept "EC:<curve>" or bare "<curve>" for backward compat */
+        if (strncmp(key_type, "EC:", 3) == 0) {
+            param = key_type + 3;
+        } else {
+            param = key_type;
+        }
+        const mbedtls_ecp_curve_info *curve_info =
+            mbedtls_ecp_curve_info_from_name(param);
+        if (curve_info == NULL) {
+            CMPERRV("Unknown EC curve name: %s", param);
+            ret = -1;
+            goto end;
+        }
+        ret = mbedtls_pk_setup(key, mbedtls_pk_info_from_type(MBEDTLS_PK_ECKEY));
+        if (ret != 0) {
+            CMPERRV("Key setup failed, mbedtls_pk_setup returned 0x%04x", -ret);
+            goto end;
+        }
+        ret = mbedtls_ecp_gen_key(curve_info->grp_id, mbedtls_pk_ec(*key),
+                                  mbedtls_ctr_drbg_random, ctr_drbg);
+        if (ret != 0) {
+            CMPERRV("EC key generation failed, returned 0x%04x", -ret);
+            goto end;
+        }
+    }
+
+    *pkey = key;
+    return 0;
+
+  end:
+    mbedtls_pk_free(key);
+    mbedtls_free(key);
+    return ret;
 }
 
 int cmp_client_enroll_cert(cmp_ctx *ctx, int request_body_type,
                            const char *subject,
-                           const mbedtls_pk_context *key,
+                           OPTIONAL const char *new_key_type,
+                           OPTIONAL mbedtls_pk_context **pkey,
+                           OPTIONAL const char *key_file,
                            // TODO OPTIONAL const ... extensions,
                            int popo_md_alg,
                            OPTIONAL const char *enrol_trusted,
                            OPTIONAL const char *enrol_CRLs,
                            int implicit_confirm,
-                           char *new_cert, char *extraCerts
+                           const char *new_cert, const char *extraCerts
                            /*mbedtls_x509_crt **new_cert, mbedtls_x509_crt **extraCerts*/)
 {
-    /* use CMP_CTX_POPO_RAVERIFIED if popo_md_alg == -1 */
+    mbedtls_pk_context *key = NULL;
+    int generated = 0;
+    int ret;
 
-    // TODO complete the function body
+    if (new_key_type != NULL) {
+        ret = generate_key(new_key_type, ctx->ctr_drbg, &key);
+        if (ret != 0) {
+            return ret;
+        }
+        generated = 1;
+    } else if (pkey != NULL) {
+        key = *pkey;
+    }
+
+    cmp_ctx_set_subject_name(ctx, subject);
+    cmp_ctx_set_new_key(ctx, key);
+    /* use CMP_CTX_POPO_RAVERIFIED if popo_md_alg == -1 */
+    cmp_ctx_set_popo_method(ctx, popo_md_alg == -1 ?
+    CMP_CTX_POPO_RAVERIFIED : CMP_CTX_POPO_SIGNATURE);
+    cmp_ctx_set_popo_md_alg(ctx, popo_md_alg);
+    ret = -1;
+    if (enrol_trusted) {
+        mbedtls_x509_crt *menrol_trusted = new_crt_from_pem(enrol_trusted);
+        if (menrol_trusted == NULL) {
+            goto err;
+        }
+        cmp_ctx_set_enrol_trust_anchor(ctx, menrol_trusted);
+    }
+    if (enrol_CRLs) {
+        mbedtls_x509_crl *menrol_CRLs = new_crl_from_pem(enrol_CRLs);
+        if (menrol_CRLs == NULL) {
+            goto err;
+        }
+        cmp_ctx_set_enrol_crls(ctx, menrol_CRLs);
+    }
+    cmp_ctx_set_implicit_confirm(ctx, implicit_confirm);
+
+
+    if ((ret = cmpcl_do_transaction(ctx, request_body_type)) != 0) {
+        goto err;
+    }
+    print_certinfo("new cert received:\n", "  ", cmp_ctx_get_new_cert(ctx)); /* TODO: find more elegant way to deal with Eclipse terminal */
+
+    if ((ret = write_cert_pem(cmp_ctx_get_new_cert(ctx), new_cert)) != 0) {
+        CMPERRV("Failed to write new cert to file %s", new_cert);
+        goto err;
+    }
+    if ((ret = write_cert_pem(cmp_ctx_get_extraCerts(ctx), extraCerts)) != 0) {
+        CMPERRV("Failed to write new chain to file %s", extraCerts);
+        goto err;
+    }
+    if (key_file != NULL && (ret = write_private_key_pem(key, key_file)) != 0) {
+        CMPERRV("Failed to write key to file %s", key_file);
+        goto err;
+    }
+    if (pkey != NULL) {
+        *pkey = key;
+    }
     return 0;
+
+  err:
+    if (generated) {
+        mbedtls_pk_free(key);
+        mbedtls_free(key);
+        if (pkey != NULL)
+            *pkey = NULL;
+    }
+    return ret != 0 ? ret : -1;
 }
+
+int cmp_client_enroll_p10(cmp_ctx *ctx,
+                          const unsigned char *p10, size_t p10_len,
+                          OPTIONAL const char *enrol_trusted,
+                          OPTIONAL const char *enrol_CRLs,
+                          int implicit_confirm,
+                          char *new_cert, char *extraCerts) {
+    int ret = -1;
+    if (p10 == NULL || p10_len == 0) {
+        CMPERRS("invalid p10 ");
+        return -1;
+    }
+    ctx->p10 = p10;
+    ctx->p10_len = p10_len;
+    if (enrol_CRLs) {
+        mbedtls_x509_crl *menrol_CRLs = new_crl_from_pem(enrol_CRLs);
+        if (menrol_CRLs == NULL) {
+            goto err;
+        }
+        cmp_ctx_set_enrol_crls(ctx, menrol_CRLs);
+    }
+    cmp_ctx_set_implicit_confirm(ctx, implicit_confirm);
+
+
+    if ((ret = cmpcl_do_transaction(ctx, MBEDTLS_CMP_PKIBODY_P10CR)) != 0) {
+        goto err;
+    }
+    print_certinfo("new cert received:\n", "  ", cmp_ctx_get_new_cert(ctx)); /* TODO: find more elegant way to deal with Eclipse terminal */
+
+    if ((ret = write_cert_pem(cmp_ctx_get_new_cert(ctx), new_cert)) != 0) {
+        CMPERRV("Failed to write new cert to file %s", new_cert);
+        goto err;
+    }
+    if ((ret = write_cert_pem(cmp_ctx_get_extraCerts(ctx), extraCerts)) != 0) {
+        CMPERRV("Failed to write new chain to file %s", extraCerts);
+        goto err;
+    }
+    return 0;
+
+  err:
+    return ret != 0 ? ret : -1;
+}
+
 
 void cmp_client_free(cmp_ctx *ctx)
 {
+    crt_free(ctx->prot_trust_anchor);
+    crl_free(ctx->prot_crls);
+    key_free(ctx->prot_key);
+    crt_free(ctx->prot_cert);
+    crt_free(ctx->prot_chain);
+    crt_free(ctx->enrol_trust_anchor);
+    crl_free(ctx->enrol_crls);
+    key_free(ctx->new_key);
+    if (ctx->cb_context != NULL) {
+        mbed_tls_transport_free(ctx->cb_context);
+        mbedtls_free(ctx->cb_context);
+    }
+    mbedtls_ctr_drbg_context *ctr_drbg = ctx->ctr_drbg;
+    mbedtls_entropy_context *entropy = ctx->entropy;
     cmp_ctx_free(ctx);
+    if (ctr_drbg) {
+        mbedtls_free(ctr_drbg);
+    }
+    if (entropy) {
+        mbedtls_free(entropy);
+    }
 }
 

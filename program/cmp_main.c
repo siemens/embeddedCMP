@@ -27,97 +27,148 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include "mbedtls_transport.h"
-#include "cmpclient.h"
+#include "cmpcl_high.h"
 #include "cmpclient_config.h"
+#include "credential_storage.h"
 #include "debug_macros.h"
+#include "mbedtls/ctr_drbg.h"
+#include "mbedtls/platform.h"
 
 #define STRINGIFY(x) #x
 #define TOSTRING(x) STRINGIFY(x)
 
-static int run_ir(mbedtls_ctr_drbg_context *ctr_drbg)
-{
-    /*
-     * call invoke_ir_transaction
-     */
-    /*
-     * init mbedtls transport
-     */
-    int ret = -1;
-    mbed_tls_transport_ctx ctx;
-    if ((ret =
-             mbed_tls_transport_init(&ctx, USE_PLAIN_HTTP,  ctr_drbg, TLS_CLIENT_CERT,
-                                     TLS_CLIENT_KEY,
-                                     TLS_SERVER_ROOT,
-                                     SERVER_HOST, TOSTRING(SERVER_PORT), SERVER_PATH_IR)) != 0) {
-        PRINTF("failed to initialize ir transport context\n");
-        mbed_tls_transport_free(&ctx);
-        return ret;
-    }
 
-    if ((ret = invoke_ir_transaction(mbed_tls_send_receive, (void *) &ctx, ctr_drbg)) != 0) {
-        PRINTF("failed to execute ir transaction\n");
-        mbed_tls_transport_free(&ctx);
+#ifdef IMPLICIT_CONFIRM
+static int implicit_confirm = 1;
+#else
+static int implicit_confirm = 0;
+#endif
+
+static int run_enroll(int body_type, const char *server_path,
+                      const char *subject,
+                      /* signature-based protection (NULL for PBM-only): */
+                      const char *prot_key_path,
+                      const char *prot_cert_path,
+                      const char *prot_chain_path,
+                      /* output paths: */
+                      const char *out_key_path,
+                      const char *out_cert_path,
+                      const char *out_chain_path,
+                      mbedtls_ctr_drbg_context *ctr_drbg)
+{
+    int ret = -1;
+    cmp_ctx *ctx = cmp_client_init(subject, RECIPIENT_NAME, 1);
+    if (ctx == NULL) {
+        PRINTF("failed to initialize CMP context\n");
         return ret;
     }
-    mbed_tls_transport_free(&ctx);
+    if ((ret = cmp_client_set_http(ctx, SERVER_HOST, TOSTRING(SERVER_PORT),
+                                   server_path, TLS_CLIENT_KEY,
+                                   TLS_CLIENT_CERT, TLS_SERVER_ROOT)) != 0) {
+        goto end;
+    }
+    if (prot_key_path != NULL) {
+        /* signature-based protection using existing credentials */
+        mbedtls_pk_context *protkey = mbedtls_calloc(1, sizeof(mbedtls_pk_context));
+        if (protkey == NULL) {
+            CMPERRS("Out of memory\n");
+            goto end;
+        }
+        if ((ret = parse_key_from_pem(protkey, prot_key_path, ctr_drbg)) < 0) {
+            goto end;
+        }
+        if ((ret = cmp_client_enable_signature_protection(ctx, SIG_PROT_MD_ALG,
+                                                          protkey, prot_cert_path,
+                                                          prot_chain_path,
+                                                          PATH_TO_PROTECTION_TRUST_ANCHOR_PEM,
+                                                          PATH_TO_PROTECTION_CRLS)) < 0) {
+            goto end;
+        }
+    } else {
+        /* PBM-based protection (e.g., initial enrollment) */
+        if ((ret = cmp_client_enable_signature_protection(ctx, -1, NULL, NULL, NULL,
+                                                          PATH_TO_PROTECTION_TRUST_ANCHOR_PEM,
+                                                          PATH_TO_PROTECTION_CRLS)) < 0) {
+            goto end;
+        }
+        if ((ret = cmp_client_set_pbm_protection(ctx,
+                                                 (unsigned char *) PBM_SECRET,
+                                                 strlen(PBM_SECRET),
+                                                 (unsigned char *) PBM_KID,
+                                                 strlen(PBM_KID),
+                                                 16, PBM_OWF, PBM_MAC, 1000)) < 0) {
+            goto end;
+        }
+    }
+    mbedtls_pk_context *newkey = NULL;
+    if ((ret = cmp_client_enroll_cert(ctx, body_type, subject,
+                                      NEW_KEY_ECCURVE, &newkey, out_key_path,
+                                      POPO_MD_ALG,
+                                      PATH_TO_ENROLLMENT_TRUST_ANCHOR_PEM,
+                                      PATH_TO_ENROLLMENT_CRLS,
+                                      implicit_confirm,
+                                      out_cert_path, out_chain_path)) < 0) {
+        goto end;
+    }
+    ret = 0;
+  end:
+    cmp_client_free(ctx);
     return ret;
 }
 
-
-static int run_cr(mbedtls_ctr_drbg_context *ctr_drbg)
+static int run_p10(mbedtls_ctr_drbg_context *ctr_drbg)
 {
-    mbed_tls_transport_ctx ctx;
+    unsigned char* p10 = NULL;
+    size_t p10_len = 0;
     int ret = -1;
-    if ((ret =
-             mbed_tls_transport_init(&ctx, USE_PLAIN_HTTP, ctr_drbg, TLS_CLIENT_CERT,
-                                     TLS_CLIENT_KEY,
-                                     TLS_SERVER_ROOT,
-                                     SERVER_HOST, TOSTRING(SERVER_PORT), SERVER_PATH_CR)) != 0) {
-        PRINTF("failed to initialize cr transport context\n");
-        mbed_tls_transport_free(&ctx);
+    cmp_ctx *ctx = cmp_client_init(BOOTSTRAPPING_SUBJECT_NAME, RECIPIENT_NAME, 1);
+    if (ctx == NULL) {
+        PRINTF("failed to initialize p10 context\n");
         return ret;
     }
-    /*
-     * call invoke_cr_transaction
-     */
-    if ((ret = invoke_cr_transaction(mbed_tls_send_receive, (void *) &ctx, ctr_drbg)) != 0) {
-        PRINTF("failed to execute cr transaction\n");
-        mbed_tls_transport_free(&ctx);
-        return ret;
+    if ((ret = cmp_client_set_http(ctx, SERVER_HOST, TOSTRING(SERVER_PORT),
+                                   SERVER_PATH_CR, TLS_CLIENT_KEY,
+                                   TLS_CLIENT_CERT, TLS_SERVER_ROOT)) != 0) {
+        goto end;
     }
-    mbed_tls_transport_free(&ctx);
+    mbedtls_pk_context* protkey = mbedtls_calloc(1, sizeof(mbedtls_pk_context));
+    if (protkey == NULL) {
+        CMPERRS("Out of memory\n");
+        goto end;
+    }
+    if ((ret =  parse_key_from_pem(protkey, PATH_TO_PROTECTION_KEY, ctr_drbg)) < 0) {
+        goto end;
+    }
+    if ((ret = cmp_client_enable_signature_protection(ctx, SIG_PROT_MD_ALG,
+                                                      protkey, PATH_TO_PROTECTION_CERT,
+                                                      PATH_TO_PROTECTION_CHAIN,
+                                                      PATH_TO_PROTECTION_TRUST_ANCHOR_PEM,
+                                                      PATH_TO_PROTECTION_CRLS)) < 0) {
+        goto end;
+    };
+    if ((ret = read_file(&p10, PATH_TO_VENDOR_P10_DER))<0) {
+        goto end;
+    }
+    p10_len = ret;
+    if ((ret = cmp_client_enroll_p10(ctx, p10, p10_len,
+                                     PATH_TO_ENROLLMENT_TRUST_ANCHOR_PEM,
+                                     PATH_TO_ENROLLMENT_CRLS,
+                                     implicit_confirm,
+                                     PATH_TO_OPERATIONAL_CERT_PEM,
+                                     PATH_TO_OPERATIONAL_CHAIN_PEM)) < 0) {
+        goto end;
+    };
+    ret = 0;
+    end:
+    mbedtls_free(p10);
+    cmp_client_free(ctx);
     return ret;
 }
 
-static int run_kur(mbedtls_ctr_drbg_context *ctr_drbg)
-{
-    mbed_tls_transport_ctx ctx;
-    int ret = -1;
-    /*
-     * invoke_kur_transaction
-     */
-    if ((ret =
-             mbed_tls_transport_init(&ctx, USE_PLAIN_HTTP, ctr_drbg, TLS_CLIENT_CERT,
-                                     TLS_CLIENT_KEY,
-                                     TLS_SERVER_ROOT,
-                                     SERVER_HOST, TOSTRING(SERVER_PORT), SERVER_PATH_KUR)) != 0) {
-        PRINTF("failed to initialize kur transport context\n");
-        mbed_tls_transport_free(&ctx);
-        return ret;
-    }
-    if ((ret = invoke_kur_transaction(mbed_tls_send_receive, (void *) &ctx, ctr_drbg)) != 0) {
-        PRINTF("failed to execute kur transaction\n");
-        mbed_tls_transport_free(&ctx);
-        return ret;
-    }
-    mbed_tls_transport_free(&ctx);
-    return ret;
-}
 
 void usage(char *argv[])
 {
-    PRINTF("Usage: %s [-i][-c][-k]\n", argv[0]);
+    PRINTF("Usage: %s [-i][-c][-k][-p]\n", argv[0]);
 }
 
 int main(int argc, char *argv[])
@@ -150,26 +201,50 @@ int main(int argc, char *argv[])
         goto end;
     }
     int opt;
-    while ((opt = getopt(argc, argv, "ick")) != -1) {
+    while ((opt = getopt(argc, argv, "icpk")) != -1) {
         switch (opt) {
             case 'i':
-                if ((ret = run_ir(&ctr_drbg)) != 0) {
-                    goto end;
-                }
+                ret = run_enroll(MBEDTLS_CMP_PKIBODY_IR, SERVER_PATH_IR,
+                                 IMPRINTING_SUBJECT_NAME,
+                                 NULL, NULL, NULL,
+                                 PATH_TO_VENDOR_KEY_PEM,
+                                 PATH_TO_VENDOR_CERT_PEM,
+                                 PATH_TO_VENDOR_CHAIN_PEM,
+                                 &ctr_drbg);
                 break;
             case 'c':
-                if ((ret = run_cr(&ctr_drbg)) != 0) {
+                ret = run_enroll(MBEDTLS_CMP_PKIBODY_CR, SERVER_PATH_CR,
+                                 BOOTSTRAPPING_SUBJECT_NAME,
+                                 PATH_TO_PROTECTION_KEY,
+                                 PATH_TO_PROTECTION_CERT,
+                                 PATH_TO_PROTECTION_CHAIN,
+                                 PATH_TO_OPERATIONAL_KEY_PEM,
+                                 PATH_TO_OPERATIONAL_CERT_PEM,
+                                 PATH_TO_OPERATIONAL_CHAIN_PEM,
+                                 &ctr_drbg);
+                break;
+            case 'p':
+                if ((ret = run_p10(&ctr_drbg)) != 0) {
                     goto end;
                 }
                 break;
             case 'k':
-                if ((ret = run_kur(&ctr_drbg)) != 0) {
-                    goto end;
-                }
+                ret = run_enroll(MBEDTLS_CMP_PKIBODY_KUR, SERVER_PATH_KUR,
+                                 BOOTSTRAPPING_SUBJECT_NAME,
+                                 PATH_TO_OPERATIONAL_KEY_PEM,
+                                 PATH_TO_OPERATIONAL_CERT_PEM,
+                                 PATH_TO_OPERATIONAL_CHAIN_PEM,
+                                 PATH_TO_OPERATIONAL_KEY_PEM,
+                                 PATH_TO_OPERATIONAL_CERT_PEM,
+                                 PATH_TO_OPERATIONAL_CHAIN_PEM,
+                                 &ctr_drbg);
                 break;
             default:
                 usage(argv);
                 goto end;
+        }
+        if (ret != 0) {
+            goto end;
         }
     }
 end:

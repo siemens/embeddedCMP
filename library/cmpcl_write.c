@@ -195,6 +195,16 @@ err:
     return (int) len;
 }
 
+int cmpcl_CMPwrite_P10_der(unsigned char **p, unsigned char *start,
+                       cmp_ctx *ctx)
+{
+    int ret = 0;
+    size_t len = 0;
+    CMPCL_ASN1_CHK_ADD(len, mbedtls_asn1_write_raw_buffer(p, start, ctx->p10, ctx->p10_len));
+err:
+    return (int) len;
+}
+
 
 /* **************************************************************** */
 int cmpcl_CRMFwrite_CertReqMessages_der(unsigned char **p, unsigned char *start,
@@ -620,6 +630,7 @@ static size_t cmpcl_CMPwrite_ExtraCerts_der(unsigned char **p,
         ctx->body_type == MBEDTLS_CMP_PKIBODY_IR ||
         ctx->body_type == MBEDTLS_CMP_PKIBODY_CR ||
         ctx->body_type == MBEDTLS_CMP_PKIBODY_KUR ||
+        ctx->body_type == MBEDTLS_CMP_PKIBODY_P10CR ||
         ctx->body_type == MBEDTLS_CMP_PKIBODY_RR) {
         while (crt) {
             if (mbedtls_asn1_buf_cmp((mbedtls_asn1_buf *)&crt->issuer_raw, (mbedtls_asn1_buf *)&crt->subject_raw) != 0 &&
@@ -697,6 +708,9 @@ int cmpcl_CMPwrite_PKIMessage_der(unsigned char **p, unsigned char *start,
         case MBEDTLS_CMP_PKIBODY_KUR:
             /* Adding one *single* CertReqest here */
             MBEDTLS_ASN1_CHK_ADD(body_len, cmpcl_CRMFwrite_CertReqMessages_der(p, start, ctx));
+            break;
+        case MBEDTLS_CMP_PKIBODY_P10CR:
+            MBEDTLS_ASN1_CHK_ADD(body_len, cmpcl_CMPwrite_P10_der(p, start, ctx));
             break;
         case MBEDTLS_CMP_PKIBODY_PKICONF: /* the client does not need to send that - but easiest for first testing ;-) */
             MBEDTLS_ASN1_CHK_ADD(body_len, mbedtls_asn1_write_null(p, start));

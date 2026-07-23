@@ -18,6 +18,8 @@
 #include "mbedtls/x509_crt.h"
 #include "mbedtls/ctr_drbg.h"
 
+int read_file(unsigned char **contents, const char *filename);
+
 int append_certs_from_pem(mbedtls_x509_crt *crt, const char *path_to_pem);
 
 int append_crls_from_pem(mbedtls_x509_crl *crl, const char *path_to_pem);

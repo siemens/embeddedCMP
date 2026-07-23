@@ -116,6 +116,7 @@ if (SELFHOSTED)
     add_test(NAME TestImprinting COMMAND embedded_cmp -i WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
     add_test(NAME TestBootstrapping COMMAND embedded_cmp -c WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
     add_test(NAME TestKeyupdate COMMAND embedded_cmp -k WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+    add_test(NAME TestP10CR COMMAND embedded_cmp -p WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
 else()
     set(SOURCE
 		library/cmpcl_ctx.c

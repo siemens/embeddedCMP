@@ -27,6 +27,29 @@
 /* HELPERS */
 /* **************************************************************** */
 
+void key_free(const mbedtls_pk_context *key) {
+    if (key != NULL) {
+        mbedtls_pk_free((mbedtls_pk_context*) key);
+        mbedtls_free((mbedtls_pk_context*) key);
+    }
+}
+
+void crt_free(const mbedtls_x509_crt *cert) {
+    if (cert != NULL) {
+        mbedtls_x509_crt_free((mbedtls_x509_crt*) cert);
+        mbedtls_free((mbedtls_x509_crt*) cert);
+    }
+}
+
+void crl_free(const mbedtls_x509_crl *crl) {
+    if (crl != NULL) {
+        mbedtls_x509_crl_free((mbedtls_x509_crl*) crl);
+        mbedtls_free((mbedtls_x509_crl*) crl);
+    }
+}
+
+
+
 void cmp_asn1_sequence_free(mbedtls_asn1_sequence *asn1_sequence)
 {
 

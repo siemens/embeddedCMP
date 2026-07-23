@@ -22,6 +22,7 @@
  */
 
 #include "cmpcl_int.h"
+#include "mbedtls_transport.h"
 
 
 /* **************************************************************** */
@@ -155,18 +156,23 @@ int cmp_ctx_set_recipNonce(cmp_ctx *ctx, const unsigned char *nonce, size_t len)
 /* **************************************************************** */
 void cmp_ctx_set_prot_key(cmp_ctx *ctx, const mbedtls_pk_context *key)
 {
+    key_free((mbedtls_pk_context*) ctx->prot_key);
     ctx->prot_key = key;
 }
+
 
 /* **************************************************************** */
 void cmp_ctx_set_prot_crt(cmp_ctx *ctx, const mbedtls_x509_crt *crt)
 {
+    crt_free(ctx->prot_cert);
     ctx->prot_cert = crt;
 }
+
 
 /* **************************************************************** */
 void cmp_ctx_set_prot_crt_chain(cmp_ctx *ctx, const mbedtls_x509_crt *crt_chain)
 {
+    crt_free(ctx->prot_chain);
     ctx->prot_chain = crt_chain;
 }
 
@@ -191,24 +197,28 @@ void cmp_ctx_set_sig_prot_md_alg(cmp_ctx *ctx, mbedtls_md_type_t md_alg)
 /* **************************************************************** */
 void cmp_ctx_set_prot_trust_anchor(cmp_ctx *ctx, const mbedtls_x509_crt *crt)
 {
+    crt_free(ctx->prot_trust_anchor);
     ctx->prot_trust_anchor = crt;
 }
 
 /* **************************************************************** */
 void cmp_ctx_set_prot_crls(cmp_ctx *ctx, const mbedtls_x509_crl *crl)
 {
+    crl_free(ctx->prot_crls);
     ctx->prot_crls = crl;
 }
 
 /* **************************************************************** */
 void cmp_ctx_set_enrol_trust_anchor(cmp_ctx *ctx, const mbedtls_x509_crt *crt)
 {
+    crt_free(ctx->enrol_trust_anchor);
     ctx->enrol_trust_anchor = crt;
 }
 
 /* **************************************************************** */
 void cmp_ctx_set_enrol_crls(cmp_ctx *ctx, const mbedtls_x509_crl *crl)
 {
+    crl_free(ctx->enrol_crls);
     ctx->enrol_crls = crl;
 }
 
@@ -225,6 +235,7 @@ int cmp_ctx_set_subject_name(cmp_ctx *ctx, const char *subject_name)
 /* **************************************************************** */
 void cmp_ctx_set_new_key(cmp_ctx *ctx, const mbedtls_pk_context *new_key)
 {
+    key_free(ctx->new_key);
     ctx->new_key = new_key;
 }
 
@@ -243,6 +254,10 @@ void cmp_ctx_set_popo_md_alg(cmp_ctx *ctx, mbedtls_md_type_t md_alg)
 /* **************************************************************** */
 void cmp_ctx_set_pbmp(cmp_ctx *ctx, cmp_PBMParameter *pbmp)
 {
+    if (ctx->pbmp) {
+        cmp_PBMParameter_free(ctx->pbmp);
+        mbedtls_free(ctx->pbmp);
+    }
     ctx->pbmp = pbmp;
 }
 

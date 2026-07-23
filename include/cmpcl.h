@@ -280,7 +280,7 @@ typedef struct cmp_ctx {
 
     int implicitConfirm;
 
-    /* body */
+    /* CRMF body */
     int certReqId;
     int body_type;
 
@@ -288,6 +288,10 @@ typedef struct cmp_ctx {
 
     int popo_method;
     mbedtls_md_type_t popo_md_alg;
+
+    /* pkcs#10 BODY */
+    const unsigned char *p10;
+    size_t p10_len;
 
     /* footer */
     mbedtls_x509_crt *extraCerts;

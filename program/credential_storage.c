@@ -295,7 +295,7 @@ static const char * const HARDCODED_ENROLLMENT_TRUST_ANCHOR =
 #endif // USE_HARDCODED_CREDS
 
 /* Read file to (binary) string */
-static int read_file(unsigned char **contents, const char *filename)
+int read_file(unsigned char **contents, const char *filename)
 {
     FILE *fileObject = NULL;
     long fileSize = 0;
@@ -460,7 +460,7 @@ int append_certs_from_pem(mbedtls_x509_crt *crt, const char *path_to_pem)
     }
 
     if (is_dynamic_alloc && pem_str != NULL) {
-    	mbedtls_free(pem_str);
+        mbedtls_free(pem_str);
     }
 
     return ret;
@@ -546,7 +546,7 @@ int parse_key_from_pem(mbedtls_pk_context *pk_ctx,
 
 cleanup:
     if (is_dynamic_alloc && pem_str != NULL) {
-    	mbedtls_free(pem_str);
+        mbedtls_free(pem_str);
     }
     return ret;
 }

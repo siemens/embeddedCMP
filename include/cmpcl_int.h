@@ -396,6 +396,12 @@ int cmpcl_CMPwrite_PKIMessage_protection_der(unsigned char **p,
 int cmpcl_CMPwrite_PKIHeader_der(unsigned char **p, unsigned char *start,
                                  cmp_ctx *ctx, int unprotected);
 
+
+/* conditional *_free() functions */
+void key_free(const mbedtls_pk_context *key);
+void crt_free(const mbedtls_x509_crt *cert);
+void crl_free(const mbedtls_x509_crl *crl);
+
 #ifdef __cplusplus
 }
 #endif

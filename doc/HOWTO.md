@@ -88,11 +88,11 @@ Create the directories for storing the enrollment results and invoke the client.
 The enrollment result paths must fit the configuration given in `program/cmpclient_config.h`.
 
 ```bash
-./build/embedded_cmp -ick
+./build/embedded_cmp -icpk
 ```
 or when built in the source directory:
 ```bash
-./embedded_cmp -ick
+./embedded_cmp -icpk
 ```
 
 # Running the CMP client tests
@@ -117,6 +117,7 @@ The `embedded_cmp` executable supports the options below:
 
 * `-i` invokes the imprinting (IR) use case
 * `-c` invokes the bootstrapping (CR) use case
+* `-p` invokes the bootstrapping (P10CR) use case
 * `-k` invokes the key update (KUR) use case
 
 # Setting up the EJBCA running in a docker container
@@ -150,6 +151,6 @@ docker compose down
 
 <!--
 LocalWords:  cmake mkdir cd NDEBUG DCMAKE fsanitize fno sudo CR
-LocalWords:  DEMBEDDEDCMP LigtweightCmpRaComponent ick cmp KUR
+LocalWords:  DEMBEDDEDCMP LigtweightCmpRaComponent icpk cmp KUR
 LocalWords:  xvzf ejbca
  -->

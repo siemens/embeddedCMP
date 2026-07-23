@@ -146,6 +146,8 @@
 # define SERVER_PATH_KUR   "/ejbca/publicweb/cmp/PlaygroundCMPSigning"
 
 # define CERTS_ROOT_PATH "./resources/certs/playground/"
+
+#define PATH_TO_VENDOR_P10_DER          CERTS_ROOT_PATH  "trusted/VD_P10.DER"
 // vendor credentials
 #define PATH_TO_VENDOR_CERT_PEM         CERTS_ROOT_PATH  "vendor/VD_CERT.PEM"
 #define PATH_TO_VENDOR_KEY_PEM          CERTS_ROOT_PATH  "vendor/VD_PRIV.PEM"

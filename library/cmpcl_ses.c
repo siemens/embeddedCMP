@@ -154,7 +154,10 @@ int cmpcl_do_transaction(cmp_ctx *ctx, const int body_type)
     }
     cmp_pkimessage_init(cmp_response);
 
-    if ((ret = cmp_pkimessage_parse_check_der(ctx, body_type + 1 /* ip, cp, or kup */, cmp_response,
+    int expected_response_type = body_type == MBEDTLS_CMP_PKIBODY_P10CR
+        ? MBEDTLS_CMP_PKIBODY_CP : body_type + 1;
+    if ((ret = cmp_pkimessage_parse_check_der(ctx, expected_response_type,
+                                              cmp_response,
                                               input, inputlen)) < 0) {
         if (ret == CMPCL_ERR_SERVER_ERROR) {
             cmp_log_server_error(ctx, cmp_response);
