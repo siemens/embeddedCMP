@@ -352,6 +352,7 @@ int cmpcl_CRMFwrite_CertRequest_der(unsigned char **p, unsigned char *start,
     size_t len = 0;
     size_t ctrl_len = 0; /* controls */
     size_t subj_len = 0;
+    size_t ext_len = 0;
     size_t pub_len = 0;
     size_t tmpl_len = 0; /* template length */
 
@@ -433,6 +434,20 @@ int cmpcl_CRMFwrite_CertRequest_der(unsigned char **p, unsigned char *start,
      */
 
     /* extensions   [9] Extensions            OPTIONAL */
+
+    if (ctx->crmf_extensions && ctx->crmf_extensions_len > 0) {
+         MBEDTLS_ASN1_CHK_ADD(ext_len, mbedtls_asn1_write_raw_buffer(p, start, ctx->crmf_extensions,
+                              ctx->crmf_extensions_len));
+         ext_len -= 1; /* -1 is as we're intentionally overwriting the SEQUENCE TAG from the buffer for IMPLICIT */
+         *p += 1;
+         MBEDTLS_ASN1_CHK_ADD(ext_len,
+                              mbedtls_asn1_write_tag(p, start,
+                              MBEDTLS_ASN1_CONTEXT_SPECIFIC |
+                              MBEDTLS_ASN1_CONSTRUCTED |
+                              9 /* extensions */));
+                tmpl_len += ext_len;
+    }
+
     /* subjectUID   [8] UniqueIdentifier      OPTIONAL */
     /* issuerUID    [7] UniqueIdentifier      OPTIONAL */
 

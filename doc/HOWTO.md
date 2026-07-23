@@ -154,3 +154,61 @@ LocalWords:  cmake mkdir cd NDEBUG DCMAKE fsanitize fno sudo CR
 LocalWords:  DEMBEDDEDCMP LigtweightCmpRaComponent icpk cmp KUR
 LocalWords:  xvzf ejbca
  -->
+# Add hard-coded X.509 extensions of (ASN.1 type `Extensions`) to the CRMF template
+
+The Java code below gives an example how to write ASN.1 DER-encoded extensions to a file:
+
+```java
+
+import static org.junit.Assert.*;
+
+import java.io.FileOutputStream;
+import java.io.IOException;
+
+import org.bouncycastle.asn1.x509.BasicConstraints;
+import org.bouncycastle.asn1.x509.ExtendedKeyUsage;
+import org.bouncycastle.asn1.x509.Extension;
+import org.bouncycastle.asn1.x509.ExtensionsGenerator;
+import org.bouncycastle.asn1.x509.KeyPurposeId;
+import org.bouncycastle.asn1.x509.KeyUsage;
+import org.junit.Test;
+
+
+public class BuildAndWriteExtensions {
+
+	static public void main(String[] args) throws IOException {
+		ExtensionsGenerator eg=new ExtensionsGenerator();
+		eg.addExtension(Extension.basicConstraints, true, new BasicConstraints(0));
+		eg.addExtension(Extension.keyUsage, true, new KeyUsage(KeyUsage.cRLSign|KeyUsage.keyCertSign));
+		// other extensions are possible too, see below
+		// eg.addExtension(Extension.extendedKeyUsage, false, new ExtendedKeyUsage(new KeyPurposeId[] { KeyPurposeId.id_kp_clientAuth }));
+		// eg.addExtension(Extension.basicConstraints, true, new BasicConstraints(false));
+		eg.generate().encodeTo(new FileOutputStream(args[0]));
+	}
+
+
+	@Test
+	public void testBuilder() throws IOException {
+		main(new String[] {"./extensions.der"});
+	}
+}
+
+```
+
+the `xxd` command allows to convert the binary file to an C array:
+
+```bash
+xxd -i --n crmf_extensions ./extensions.der > extension_declaration.h
+```
+
+Merge the content of `extension_declaration.h` into `program/cmpclient_config.h`
+
+Recompile the code.
+
+# Use of external provided public keys in CRMF template
+
+If the private subject key is not available no signature based proof of possesion (POPO)
+can be used for the CRMF template in the certificate request. So a RAVerified POPO must be
+configured and used. This can be done by setting the POPO_METHOD to CMP_CTX_POPO_RAVERIFIED
+in `program/cmpclient_config.h`. As result of this the public key is loaded from `PATH_TO_xxxxx_KEY_PEM` instead of internal generation of a fresh keypair for the enrollment.
+

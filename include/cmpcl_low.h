@@ -49,7 +49,8 @@ typedef int (*cmp_send_receive_cb)(void *cb_context,
 
 typedef struct cmp_ctx cmp_ctx;
 
-#define CMP_CTX_POPO_SIGNATURE 1
+#define CMP_CTX_POPO_RAVERIFIED       0
+#define CMP_CTX_POPO_SIGNATURE        1
 
 /**
  * \brief           Prepare a fresh CMP context with default values
@@ -57,7 +58,7 @@ typedef struct cmp_ctx cmp_ctx;
  * \param ctr_drbg   CTR_DRBG context structure used for random byte generation
  * \param cb_context application-defined configuration context for send_receive_func
  * \param send_receive_func Layer-4 send/receive function to use
- * \param popo_method Proof of Possession method to use (CMP_CTX_POPO_SIGNATURE)
+ * \param popo_method Proof of Possession method to use (CMP_CTX_POPO_SIGNATURE or CMP_CTX_POPO_RAVERIFIED)
  * \param prot_md_alg protection hash algorithm to use
  * \param popo_md_alg POPO hash algorithm to use
  * \return the new CMP context, NULL on error
@@ -244,6 +245,17 @@ void cmp_ctx_set_cache_extracerts(cmp_ctx *ctx, int cache);
  * \param unprot    0=false, 1=true
  */
 void cmp_ctx_set_unprotected_requests(cmp_ctx *ctx, int unprot);
+
+
+/**
+ * \brief                   Set raw CRMF template extensions
+ * \param ctx               CMP context
+ * \param raw_extension     DER encoded extensions to add
+ * \param raw_extension_len length of raw_extension in bytes
+ *
+ */
+void cmp_ctx_set_crmf_extension(cmp_ctx *ctx,
+                        unsigned char *raw_extensions, size_t len);
 
 /* **************************************************************** */
 /* CMP transactions */

@@ -17,6 +17,7 @@
 
 /* define method to for proof of possession */
 #define POPO_METHOD CMP_CTX_POPO_SIGNATURE
+// #define POPO_METHOD CMP_CTX_POPO_RAVERIFIED
 
 /* authentication method: if PBM_SECRET is set and not KUR, then PBM, else signature unless IR and UNPROTECTED_IR is defined  */
 
@@ -313,7 +314,44 @@
 # define SNI_HOSTNAME SERVER_HOST
 #endif
 
-/* MBED TLS server configuration, unused */
+// #define CRMF_EXTENSIONS
+#ifdef CRMF_EXTENSIONS
+
+static unsigned char crmf_extensions[] = {
+  0x30, 0x24, 0x30, 0x12, 0x06, 0x03, 0x55, 0x1d, 0x13, 0x01, 0x01, 0xff,
+  0x04, 0x08, 0x30, 0x06, 0x01, 0x01, 0xff, 0x02, 0x01, 0x00, 0x30, 0x0e,
+  0x06, 0x03, 0x55, 0x1d, 0x0f, 0x01, 0x01, 0xff, 0x04, 0x04, 0x03, 0x02,
+  0x01, 0x06
+};
+/*
+ this encodes:
+  0  36: SEQUENCE {
+  2  18:   SEQUENCE {
+  4   3:     OBJECT IDENTIFIER basicConstraints (2 5 29 19)
+  9   1:     BOOLEAN TRUE
+ 12   8:     OCTET STRING, encapsulates {
+ 14   6:       SEQUENCE {
+ 16   1:         BOOLEAN TRUE
+ 19   1:         INTEGER 0
+       :         }
+       :       }
+       :     }
+ 22  14:   SEQUENCE {
+ 24   3:     OBJECT IDENTIFIER keyUsage (2 5 29 15)
+ 29   1:     BOOLEAN TRUE
+ 32   4:     OCTET STRING, encapsulates {
+ 34   2:       BIT STRING 1 unused bit
+       :         '1100000'B
+       :       }
+       :     }
+       :   }
+*/
+
+static size_t crmf_extensions_len = sizeof(crmf_extensions);
+#endif
+
+
+/* MBED TLS server configuration */
 #define TLS_CREDENTIAL_ROOT CERTS_ROOT_PATH "tlssrv/"
 #define TLS_SERVER_ROOT TLS_CREDENTIAL_ROOT "srvcrt.crt"
 #define TLS_CLIENT_KEY TLS_CREDENTIAL_ROOT "clientkey.key"

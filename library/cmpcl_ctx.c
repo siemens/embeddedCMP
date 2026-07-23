@@ -209,6 +209,16 @@ void cmp_ctx_set_prot_crls(cmp_ctx *ctx, const mbedtls_x509_crl *crl)
 }
 
 /* **************************************************************** */
+void cmp_ctx_set_crmf_extension(cmp_ctx *ctx,
+                              unsigned char *raw_extensions,
+                              size_t raw_extension_len)
+{
+    ctx->crmf_extensions = raw_extensions;
+    ctx->crmf_extensions_len = raw_extension_len;
+}
+
+
+/* **************************************************************** */
 void cmp_ctx_set_enrol_trust_anchor(cmp_ctx *ctx, const mbedtls_x509_crt *crt)
 {
     crt_free(ctx->enrol_trust_anchor);
