@@ -116,7 +116,7 @@ int cmpcl_do_transaction(cmp_ctx *ctx, const int body_type)
     }
 
     cmp_ctx_set_body_type(ctx, body_type);
-    int unprotected = ctx->unprotected_ir && (ctx->body_type == MBEDTLS_CMP_PKIBODY_IR);
+    int unprotected = ctx->unprotected_requests;
     size_t sender_nonce_len = ctx->senderNonce_len ? ctx->senderNonce_len : 16;
 
     /* Generate a fresh senderNonce for each outgoing CMP message. */

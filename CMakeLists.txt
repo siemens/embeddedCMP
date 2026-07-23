@@ -1,4 +1,7 @@
 cmake_minimum_required(VERSION 3.14)
+
+# set(CMAKE_VERBOSE_MAKEFILE ON)
+
 project(embedded_cmp
         DESCRIPTION "Embedded CMP"
         LANGUAGES C
@@ -19,11 +22,44 @@ include(FetchContent)
 #set(CMAKE_NM ${tools}/bin/arm-none-eabi-nm)
 #set(CMAKE_OBJDUMP ${tools}/bin/arm-none-eabi-objdump)
 
-set(CMAKE_C_FLAGS "-pedantic -Wall -Wno-variadic-macro-arguments-omitted -Wno-gnu-zero-variadic-macro-arguments -O3")
+add_compile_options(-pedantic -Werror)
+add_compile_options(-Wall -Wno-gnu-zero-variadic-macro-arguments) # -Wno-variadic-macro-arguments-omitted
+
+# must do add_compile_options() before add_library() and add_executable() see
+# https://stackoverflow.com/questions/40516794/cmake-not-applying-compile-option-using-add-compile-options
+if(DEFINED ENV{NDEBUG} OR NOT CMAKE_BUILD_TYPE MATCHES Debug)
+  if(DEFINED ENV{NDEBUG})
+    message(STATUS "Setting build type to 'Release' because NDEBUG was set.")
+  elseif(NOT CMAKE_BUILD_TYPE)
+    message(STATUS "Setting build type to 'Release' by default.")
+  endif()
+  set(CMAKE_BUILD_TYPE Release  # automatically leads to CFLAGS += -DNDEBUG -O2
+      CACHE STRING "Choose the type of build." FORCE)
+else()
+  set(CMAKE_BUILD_TYPE Debug  # automatically leads to CFLAGS += -g3
+      CACHE STRING "Choose the type of build." FORCE)
+    if(NOT MSVC)
+      add_compile_options(-O0) # workaround in case not added by default
+    endif()
+  set(SANITIZER_FLAGS -fsanitize=address,undefined -fno-sanitize-recover=all)
+  add_compile_options(${SANITIZER_FLAGS})
+  link_libraries(${SANITIZER_FLAGS})
+
+  if(UNIX AND NOT APPLE)
+    set(COVERAGE_FLAGS --coverage -fprofile-arcs)
+    add_compile_options(${COVERAGE_FLAGS})
+    link_libraries(${COVERAGE_FLAGS})
+  endif()
+endif()
+message(STATUS "build mode: ${CMAKE_BUILD_TYPE}")
+
 
 # -- Logging --
 
 option(EMBEDDEDCMP_DEBUG "Enable CMP Debugging" OFF)
+if(EMBEDDEDCMP_DEBUG)
+  add_compile_options(-DEMBEDDEDCMP_DEBUG=1)
+endif()
 
 # -- MBEDTLS --
 
@@ -66,6 +102,7 @@ if (SELFHOSTED)
 		library/cmpcl_read.c
 		library/cmpcl_ses.c
 		library/cmpcl_write.c
+		library/cmpcl_high.c
 		program/cmp_main.c
 		program/cmpclient.c
 		program/mbedtls_transport.c

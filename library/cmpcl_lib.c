@@ -149,7 +149,7 @@ static int print_certinfos(const char *cert_prefix, const char *line_prefix, con
  * extracts CN from mbedtls_x509_name and stores it in a string
  * free memory from caller!
  */
-char *cmp_x509_cn_gets(mbedtls_x509_name *dn)
+static char *cmp_x509_cn_gets(const mbedtls_x509_name *dn)
 {
 
     const mbedtls_x509_name *cn_start;
@@ -178,10 +178,10 @@ char *cmp_x509_cn_gets(mbedtls_x509_name *dn)
  *  - builds and validates the chain
  */
 int cmp_x509_crt_verify(const char *desc,
-                        mbedtls_x509_crt *crt,
-                        mbedtls_x509_crt *trusted,
-                        mbedtls_x509_crl *ca_crl,
-                        mbedtls_x509_name *expected_subject)
+                        const mbedtls_x509_crt *crt,
+                        const mbedtls_x509_crt *trusted,
+                        const mbedtls_x509_crl *ca_crl,
+                        const mbedtls_x509_name *expected_subject)
 {
 
     int ret;
@@ -208,8 +208,9 @@ int cmp_x509_crt_verify(const char *desc,
 #endif
 
 
-    ret = mbedtls_x509_crt_verify_with_profile(crt, /* treat ret appropriately in caller */
-                                               trusted, ca_crl, &ver_prof,
+    ret = mbedtls_x509_crt_verify_with_profile((mbedtls_x509_crt *)crt,
+                                               (mbedtls_x509_crt *)trusted,
+                                               (mbedtls_x509_crl *)ca_crl, &ver_prof,
                                                expected_cn,
                                                &failure_bits,
                                                NULL,
@@ -299,7 +300,7 @@ int cmp_PBMParameter_init(cmp_PBMParameter *pbmp,
 
 void cmp_PBMParameter_free(cmp_PBMParameter *pbmp)
 {
-    if (pbmp->salt) {
+    if (pbmp != NULL && pbmp->salt != NULL) {
         mbedtls_free(pbmp->salt);
     }
 }

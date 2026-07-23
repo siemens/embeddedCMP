@@ -26,6 +26,7 @@
 
 #include "cmpcl_error.h"
 #include "cmpcl_low.h"
+#include "mbedtls/entropy.h"
 
 #define CMPCL_ASN1_CHK_ADD(g, f) do { if ((ret = f) < 0) \
                                       { CMPERRV("ret=%d\n", ret); \
@@ -205,6 +206,29 @@ typedef struct cmp_PBMParameter {
                               covered by this mbedtls_md_type_t */
 } cmp_PBMParameter;
 
+/**
+ * \brief          Initialize PBMParameter for PBM calculation
+ *
+ * \param pbmp           PBMParameter to initialize
+ * \param ctr_drbg       The CTR_DRBG context used for random salt generation
+ * \param salt_len       length of salt to used for PBM
+ * \param owf            One-way function (OWF) to use
+ * \param iterationCount iteration count for the MAC function to use
+ * \param mac            Message Authentication Code (MAC) function to use
+ * \return               negative value in case of error
+ */
+
+int cmp_PBMParameter_init(cmp_PBMParameter *pbmp,
+                          mbedtls_ctr_drbg_context *ctr_drbg, size_t salt_len,
+                          mbedtls_md_type_t owf, int iterationCount, mbedtls_md_type_t mac);
+
+/**
+ * \brief          Dellocate all PBMParameter data
+ *
+ * \param pbmp      PBMParameter to free, may be NULL
+ */
+void cmp_PBMParameter_free(cmp_PBMParameter *pbmp);
+
 /* **************************************************************** */
 /* Context */
 /* **************************************************************** */
@@ -216,6 +240,7 @@ typedef struct cmp_ctx {
     cmp_send_receive_cb send_receive_func; /*!< transport provider send/receive function */
 
     mbedtls_ctr_drbg_context *ctr_drbg; /*!< RNG context*/
+    mbedtls_entropy_context *entropy; /*!< entropy source for ctr_drbg, non-NULL iff owned */
 
     /**
      *  header
@@ -274,10 +299,9 @@ typedef struct cmp_ctx {
 
     /* protection */
     int unprotected_errors; /* allow negative responses without protection */
-    int unprotected_ir;  /* allow sending of unprotected ir */
-    mbedtls_md_type_t sig_prot_md_alg; /*  hashing algorithm */
+    int unprotected_requests; /* allow sending of unprotected requests */
 
-    /* password based protection */
+    /* password-based protection */
     cmp_PBMParameter *pbmp;
     unsigned char *senderKID; /* shared secret */
     size_t reference_len;
@@ -285,21 +309,31 @@ typedef struct cmp_ctx {
     size_t secret_len;
 
 
-    /* signature based protection */
-    mbedtls_x509_crt *prot_trust_anchor;
-    mbedtls_x509_crl *prot_crls;
-    mbedtls_pk_context *prot_key;
-    mbedtls_x509_crt *prot_cert;
-    mbedtls_x509_crt *prot_chain;
+    /* signature-based protection */
+    const mbedtls_x509_crt *prot_trust_anchor;
+    const mbedtls_x509_crl *prot_crls;
+    const mbedtls_pk_context *prot_key;
+    const mbedtls_x509_crt *prot_cert;
+    const mbedtls_x509_crt *prot_chain;
+    mbedtls_md_type_t sig_prot_md_alg; /* hash algorithm to use for signature-based protection */
 
     /* enrollment */
-    mbedtls_x509_crt *enrol_trust_anchor;
-    mbedtls_x509_crl *enrol_crls;
-    mbedtls_pk_context *new_key;
+    const mbedtls_x509_crt *enrol_trust_anchor;
+    const mbedtls_x509_crl *enrol_crls;
+    const mbedtls_pk_context *new_key;
     mbedtls_x509_crt *new_cert;
 
 } cmp_ctx;
 
+
+/**
+ * \brief           Set the PBM parameter
+ *                  Consumes the pointer
+ *
+ * \param ctx       CMP context
+ * \param pbmp      PBM Parameter to use
+ */
+void cmp_ctx_set_pbmp(cmp_ctx *ctx, cmp_PBMParameter *pbmp);
 
 /**
  * \brief           Set the messageTime
@@ -321,8 +355,7 @@ int cmp_ctx_set_messageTime(cmp_ctx *ctx, const char *msgTime);
  * \param ctx       CMP context
  * \param len       length in bytes (typically 16 bytes)
  */
-int cmp_ctx_set_transactionID(cmp_ctx *ctx,
-                              size_t len);
+int cmp_ctx_set_transactionID(cmp_ctx *ctx, size_t len);
 
 /**
  * \brief           Set the SenderNonce to be included
@@ -330,8 +363,7 @@ int cmp_ctx_set_transactionID(cmp_ctx *ctx,
  * \param ctx       CMP context
  * \param len       length in bytes (typically 16 bytes)
  */
-int cmp_ctx_set_senderNonce(cmp_ctx *ctx,
-                            size_t len);
+int cmp_ctx_set_senderNonce(cmp_ctx *ctx, size_t len);
 
 /**
  * \brief           Set the recipNonce to be included
@@ -340,10 +372,36 @@ int cmp_ctx_set_senderNonce(cmp_ctx *ctx,
  * \param nonce     recip nonce
  * \param len       length in bytes (typically 16 bytes)
  */
-int cmp_ctx_set_recipNonce(cmp_ctx *ctx, unsigned char *nonce, size_t len);
+int cmp_ctx_set_recipNonce(cmp_ctx *ctx, const unsigned char *nonce, size_t len);
 
+#define CMP_CTX_POPO_RAVERIFIED       0
 #define CMP_CTX_POPO_KEYENCIPHERMENT  2
 #define CMP_CTX_POPO_KEYAGREEMENT     3
+
+/**
+ * \brief           Set the POPO Method to use
+ *
+ * \param ctx       CMP context
+ * \param popo_method popo_method to use
+ */
+void cmp_ctx_set_popo_method(cmp_ctx *ctx, int popo_method);
+
+/**
+ * \brief           Set the hash algorithm to use when signing a PKIMessage
+ *
+ * \param ctx       CMP context
+ * \param md_alg    MD algorithm to use for signature-based protection
+ */
+void cmp_ctx_set_sig_prot_md_alg(cmp_ctx *ctx, mbedtls_md_type_t md_alg);
+
+/**
+ * \brief           Set the hash algorithm to use for signature-based proof of possession (POPO)
+ *
+ * \param ctx       CMP context
+ * \param popo_method MD algorithm to used for POPO
+ */
+void cmp_ctx_set_popo_md_alg(cmp_ctx *ctx, mbedtls_md_type_t md_alg);
+
 /**
  * \brief           Set the next bodytype to send (e.g. IR)
  *
@@ -393,10 +451,10 @@ int cmp_ctx_set_rndm_str(unsigned char **str, size_t *str_len,
  */
 
 int cmp_x509_crt_verify(const char *desc,
-                        mbedtls_x509_crt *crt,
-                        mbedtls_x509_crt *trust_ca,
-                        mbedtls_x509_crl *ca_crl,
-                        mbedtls_x509_name *expected_subject);
+                        const mbedtls_x509_crt *crt,
+                        const mbedtls_x509_crt *trust_ca,
+                        const mbedtls_x509_crl *ca_crl,
+                        const mbedtls_x509_name *expected_subject);
 
 
 

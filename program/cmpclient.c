@@ -68,24 +68,27 @@ static int gen_ec_key(mbedtls_pk_context *key, mbedtls_ctr_drbg_context *ctr_drb
 static
 int invoke_cert_request(const int body_type,
                         const char *subject_name,
-                        const char *sender_name,
-                        const char *recipient_name,
-                        const char *reference,
-                        const char *pbm_secret,
+                        OPTIONAL const char *sender_name,
+                        OPTIONAL const char *recipient_name,
+                        OPTIONAL const char *reference,
+                        OPTIONAL const char *pbm_secret,
                         void *cb_context,
                         cmp_send_receive_cb send_receive_func,
                         mbedtls_ctr_drbg_context *ctr_drbg,
-                        const char *path_to_protection_cert,
-                        const char *path_to_protection_key,
-                        const char *path_to_protection_chain,
-                        const char *path_to_protection_trust_anchor,
-                        const char *path_to_protection_crls,
-                        const char *path_to_enrollment_trust_anchor,
-                        const char *path_to_enrollment_crls,
+                        OPTIONAL const char *path_to_protection_cert,
+                        OPTIONAL const char *path_to_protection_key,
+                        OPTIONAL const char *path_to_protection_chain,
+                        OPTIONAL const char *path_to_protection_trust_anchor,
+                        OPTIONAL const char *path_to_protection_crls,
+                        OPTIONAL const char *path_to_enrollment_trust_anchor,
+                        OPTIONAL const char *path_to_enrollment_crls,
                         const char *path_to_new_cert,
                         const char *path_to_new_key,
                         const char *path_to_new_chain)
 {
+    /* TODO use cmp_ctx *cmp_client_init(), cmp_client_set_signature_protection(),
+       cmp_client_set_pbm_protection(), and cmp_client_enroll_cert(),
+       moving repective code portions from there to those functions in cmpcl_high.c */
 
     mbedtls_x509_crt prot_cert;
     mbedtls_x509_crt_init(&prot_cert);
@@ -192,8 +195,8 @@ int invoke_cert_request(const int body_type,
         CMPDBGS("No enrollment trust anchor provided");
     }
 
-    /* enrollment trust anchor CRLs*/
-/*    if (path_to_enrollment_crls != NULL) {
+    /* enrollment trust anchor CRLs */
+    if (path_to_enrollment_crls != NULL) {
         if ((ret = append_crls_from_pem(&enrol_crls, path_to_enrollment_crls) == 0)) {
             CMPDBGS("Parsed enrollment CRL");
             cmp_ctx_set_enrol_crls(ctx, &enrol_crls);
@@ -204,12 +207,11 @@ int invoke_cert_request(const int body_type,
     } else {
         CMPDBGS("No enrollment CRL provided");
     }
-*/
 
 
     /* set basic header info in ctx */
+    char sender_name_aux[MAX_NAME_LENGTH];
     if (sender_name == NULL && path_to_protection_cert != NULL) {
-        char sender_name_aux[MAX_NAME_LENGTH];
         ret = mbedtls_x509_dn_gets(sender_name_aux, MAX_NAME_LENGTH,
                                    &prot_cert.subject);
         if (ret < 0) {
@@ -220,14 +222,15 @@ int invoke_cert_request(const int body_type,
         }
         sender_name = sender_name_aux;
     }
+    printf("### sender_name %s\n", sender_name);  
     ret = cmp_ctx_set_sender_name(ctx, sender_name);
     if (ret != 0) {
         CMPERRS("Error setting sender name");
         goto err;
     }
 
+    char recipient_name_aux[MAX_NAME_LENGTH];
     if (recipient_name == NULL && path_to_protection_cert != NULL) {
-        char recipient_name_aux[MAX_NAME_LENGTH];
         ret = mbedtls_x509_dn_gets(recipient_name_aux, MAX_NAME_LENGTH,
                                    &prot_cert.issuer);
         if (ret < 0) {
@@ -258,8 +261,8 @@ int invoke_cert_request(const int body_type,
     cmp_ctx_set_new_key(ctx, &enrol_key);
 
     /* take given subject name or read from existing cert */
+    char subject_name_aux[MAX_NAME_LENGTH];
     if (subject_name == NULL && path_to_protection_cert != NULL) {
-        char subject_name_aux[MAX_NAME_LENGTH];
         if (mbedtls_x509_dn_gets(subject_name_aux, MAX_NAME_LENGTH,
                                  &prot_cert.subject) < 0) {
             CMPERRS("Error reading subject name from existing cert");

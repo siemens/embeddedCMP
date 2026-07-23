@@ -252,7 +252,7 @@ int cmpcl_CRMFwrite_CertReqMessages_der(unsigned char **p, unsigned char *start,
                                           popo_input_len, hash));
 
             CMPCL_ASN1_CHK_ADD(ret,
-                               mbedtls_pk_sign(ctx->new_key, ctx->popo_md_alg, hash, 
+                               mbedtls_pk_sign((mbedtls_pk_context *)ctx->new_key, ctx->popo_md_alg, hash,
                                                mbedtls_md_get_size(mbedtls_md_info_from_type(ctx->popo_md_alg)), 
                                                sig, MBEDTLS_MPI_MAX_SIZE, &sig_len,
                                                mbedtls_ctr_drbg_random, ctx->ctr_drbg));
@@ -502,7 +502,7 @@ static int msg_sig_alg_prot(cmp_ctx *ctx,
         return ret;
     }
 
-    return mbedtls_pk_sign(ctx->prot_key,
+    return mbedtls_pk_sign((mbedtls_pk_context *)ctx->prot_key,
                        ctx->sig_prot_md_alg,
                        hash,
                        mbedtls_md_get_size(mbedtls_md_info_from_type(ctx->sig_prot_md_alg)),
@@ -595,13 +595,13 @@ static int mbedtls_asn1_buf_cmp(mbedtls_asn1_buf *buf1, mbedtls_asn1_buf *buf2)
     return memcmp(buf1->p, buf2->p, buf1->len);
 }
 
-static int same_cert(mbedtls_x509_crt *crt1, mbedtls_x509_crt *crt2)
+static int same_cert(const mbedtls_x509_crt *crt1, const mbedtls_x509_crt *crt2)
 {
     if (crt1 == NULL || crt2 == NULL) {
         return crt1 == crt2;
     }
-    return mbedtls_asn1_buf_cmp(&crt1->serial, &crt2->serial) == 0 &&
-           mbedtls_asn1_buf_cmp(&crt1->issuer_raw, &crt2->issuer_raw) == 0;
+    return mbedtls_asn1_buf_cmp((mbedtls_asn1_buf *)&crt1->serial, (mbedtls_asn1_buf *)&crt2->serial) == 0 &&
+           mbedtls_asn1_buf_cmp((mbedtls_asn1_buf *)&crt1->issuer_raw, (mbedtls_asn1_buf *)&crt2->issuer_raw) == 0;
 }
 
 static size_t cmpcl_CMPwrite_ExtraCerts_der(unsigned char **p,
@@ -610,7 +610,7 @@ static size_t cmpcl_CMPwrite_ExtraCerts_der(unsigned char **p,
 {
     int ret = 0;
     int len = 0;
-    mbedtls_x509_crt *crt = ctx->prot_chain;
+    const mbedtls_x509_crt *crt = ctx->prot_chain;
     /*
      * ir, cr, kur and rr are posible initial ReqMessages for one transaction.
      * In case of no initial ReqMessage and cache_extracerts flag set,
@@ -622,7 +622,7 @@ static size_t cmpcl_CMPwrite_ExtraCerts_der(unsigned char **p,
         ctx->body_type == MBEDTLS_CMP_PKIBODY_KUR ||
         ctx->body_type == MBEDTLS_CMP_PKIBODY_RR) {
         while (crt) {
-            if (mbedtls_asn1_buf_cmp(&crt->issuer_raw, &crt->subject_raw) != 0 &&
+            if (mbedtls_asn1_buf_cmp((mbedtls_asn1_buf *)&crt->issuer_raw, (mbedtls_asn1_buf *)&crt->subject_raw) != 0 &&
                 !same_cert(crt, ctx->prot_cert)) {
                 MBEDTLS_ASN1_CHK_ADD(len,
                                      mbedtls_asn1_write_raw_buffer(p, start, crt->raw.p,

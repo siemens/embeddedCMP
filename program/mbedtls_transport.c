@@ -222,7 +222,7 @@ int mbed_tls_send_receive(void *cb_context, const unsigned char *outbuf,
      * Write the POST request header
      */
     char header[200];
-    sprintf(header,
+    snprintf(header, sizeof(header),
             "POST %s%s HTTP/1.1" NEWLINE
             "Host: %s" NEWLINE
             "Content-Type: application/pkixcmp" NEWLINE

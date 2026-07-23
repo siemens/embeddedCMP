@@ -24,84 +24,43 @@
 #ifndef CMPCL_LOW_H
 #define CMPCL_LOW_H
 
-#include "mbedtls/x509_crt.h"
 #include "mbedtls/ctr_drbg.h"
+#include "cmpcl_high.h"
 
 #ifdef __cplusplus
 extern "C" {
-#endif
-
-int print_certinfo(const char *cert_prefix, const char *line_prefix, const mbedtls_x509_crt *crt);
-
-/* API-level PKIBODY TYPES */
-#define MBEDTLS_CMP_PKIBODY_IR                0
-#define MBEDTLS_CMP_PKIBODY_CR                2
-#define MBEDTLS_CMP_PKIBODY_KUR               7
-
-
-
-/* **************************************************************** */
-/* PasswordBasedMac PBM */
-/* **************************************************************** */
-
-typedef struct cmp_PBMParameter cmp_PBMParameter;
-
-/**
- * \brief          Initialize PBMParameter for PBM calculation
- *
- * \param pbmp           PBMParameter to initialize
- * \param ctr_drbg       The CTR_DRBG context used for random salt generation
- * \param salt_len       length of salt to used for PBM
- * \param owf            OWF to use
- * \param iterationCount iteration count to use
- * \param mac            MAC to use
- * \return               negative value in case of error
- */
-#if 1
-int cmp_PBMParameter_init(cmp_PBMParameter *pbmp,
-                          mbedtls_ctr_drbg_context *ctr_drbg, size_t salt_len,
-                          mbedtls_md_type_t owf, int iterationCount, mbedtls_md_type_t mac);
-
-/**
- * \brief          Unallocate all PBMParameter data
- *
- * \param pbmp      PBMParameter to free
- */
-void cmp_PBMParameter_free(cmp_PBMParameter *pbmp);
 #endif
 
 /* **************************************************************** */
 /* Transfer */
 /* **************************************************************** */
 /**
- * \brief Layer 4 function used to send and receive DER encoded PKIMessages
- * \param cb_context opaque configuration context for cmp_send_receive_cb
- * \param outbuf DER encoded PKIMessage to send
- * \param outlen length of DER encoded PKIMessage to send
- * \param returned buffer containing a received DER encoded PKIMessage
+ * \brief Layer-4 function used to send and receive DER-encoded PKIMessages
+ * \param cb_context application-defined configuration context for cmp_send_receive_cb
+ * \param outbuf PKIMessage to send
+ * \param outlen length of PKIMessage to send
+ * \param returned buffer containing a received PKIMessage
  * \param inlen length of received message
  * \return negative value in case of error
  */
 typedef int (*cmp_send_receive_cb)(void *cb_context,
                                    const unsigned char *outbuf, const size_t outlen,
-                                   unsigned char **inbuf,
-                                   size_t *inlen);
+                                   unsigned char **inbuf, size_t *inlen);
 
 typedef struct cmp_ctx cmp_ctx;
 
-    /**
- * \brief           Initialize a CMP context to default values
- *                  Must not be have content
+#define CMP_CTX_POPO_SIGNATURE 1
+
+/**
+ * \brief           Prepare a fresh CMP context with default values
  *
- * \param ctx       cmpctx context to initialise
  * \param ctr_drbg   CTR_DRBG context structure used for random byte generation
- * \param cb_context opaque configuration context for send_receive_func
- * \param send_receive_func Layer 4 send/receive function to use
- * \param popo_method Proof of Possession method t use,
- *        CMP_CTX_POPO_RAVERIFIED or CMP_CTX_POPO_SIGNATURE
- * \param prot_md_alg protection algorithm to use
- * \param popo_md_alg POPO algorithm to use
- * \return negative value in case of error
+ * \param cb_context application-defined configuration context for send_receive_func
+ * \param send_receive_func Layer-4 send/receive function to use
+ * \param popo_method Proof of Possession method to use (CMP_CTX_POPO_SIGNATURE)
+ * \param prot_md_alg protection hash algorithm to use
+ * \param popo_md_alg POPO hash algorithm to use
+ * \return the new CMP context, NULL on error
  */
 cmp_ctx *cmp_ctx_init(mbedtls_ctr_drbg_context *ctr_drbg,
                  void *cb_context, cmp_send_receive_cb send_receive_func,
@@ -113,119 +72,82 @@ cmp_ctx *cmp_ctx_init(mbedtls_ctr_drbg_context *ctr_drbg,
  */
 void cmp_ctx_free(cmp_ctx *ctx);
 
-#if 1
-#define CMP_CTX_POPO_RAVERIFIED       0
-#define CMP_CTX_POPO_SIGNATURE        1
-
 /**
- * \brief           Set the POPO Method to use
+ * \brief           Set the key to use to when protection a PKIMessage by a signature
  *
  * \param ctx       CMP context
- * \param popo_method popo_method to use
+ * \param key       key to use for signature-based protection
  */
-void cmp_ctx_set_popo_method(cmp_ctx *ctx, int popo_method);
+void cmp_ctx_set_prot_key(cmp_ctx *ctx, const mbedtls_pk_context *key);
 
 /**
- * \brief           Set the MD algorithm used to protect the PKIMessage
- *
- * \param ctx       CMP context
- * \param md_alg    MD algorithm to use
- */
-void cmp_ctx_set_sig_prot_md_alg(cmp_ctx *ctx, mbedtls_md_type_t md_alg);
-
-/**
- * \brief           Set the hash algorithm for POPO
- *
- * \param ctx       CMP context
- * \param popo_method popo_method to use
- */
-void cmp_ctx_set_popo_md_alg(cmp_ctx *ctx, mbedtls_md_type_t md_alg);
-#endif
-
-/**
- * \brief           Set the key used to protect the PKIMessage
- *
- * \param ctx       CMP context
- * \param key       key to use
- */
-void cmp_ctx_set_prot_key(cmp_ctx *ctx, mbedtls_pk_context *key);
-
-/**
- * \brief           Set the certificate used to protect the PKIMessage,
+ * \brief           Set the certificate used with signature-based protection
  *                  will be included in extraCerts
  *
  * \param ctx       CMP context
- * \param crt       certificate to use
+ * \param crt       certificate to use for signature-based protection
  */
-void cmp_ctx_set_prot_crt(cmp_ctx *ctx, mbedtls_x509_crt *crt);
+void cmp_ctx_set_prot_crt(cmp_ctx *ctx, const mbedtls_x509_crt *crt);
 
 /**
- * \brief           Set the chain of the certificate used to protect the
- *                  PKIMessage, will be included in extraCerts
+ * \brief           Set the certificate and chain used with signature-based protection,
+ *                  which must include the protection cert, will be included in extraCerts
  *
  * \param ctx       CMP context
- * \param crt       certificate (chain) to use
+ * \param crt       certificate chain to use for signature-based protection
  */
-void cmp_ctx_set_prot_crt_chain(cmp_ctx *ctx, mbedtls_x509_crt *crt);
+void cmp_ctx_set_prot_crt_chain(cmp_ctx *ctx, const mbedtls_x509_crt *crt_chain);
 
 /**
- * \brief           Set the PBM parameter
- *                  Consumes the pointer
+ * \brief           Select the use of Password-Based MAC (PBM) with shared secret
  *
  * \param ctx       CMP context
- * \param pbmp      PBM Parameter to use
- */
-void cmp_ctx_set_pbmp(cmp_ctx *ctx, cmp_PBMParameter *pbmp);
-
-/**
- * \brief           Set the shared secret to use for PBM
- *
- * \param ctx       CMP context
- * \param ctr_drbg  The CTR_DRBG context to use
- * \param owf		owf to use
- * \param mac		mac to use (must be MBEDTLS_MD_*)
- * \param sec       secret, gets copied
+ * \param ctr_drbg  The CTR_DRBG context used for random salt generation, length fixed to 16
+ * \param owf       One-way function (OWF) to use, iteration count fixed to 1000
+ * \param mac       Message Authentication Code (MAC) function to use
+ * \param secret    secret to use, gets copied
  * \param len       length of secret in bytes
  */
 int cmp_ctx_set_prot_pbm_secret(cmp_ctx *ctx,
                                 mbedtls_ctr_drbg_context *ctr_drbg,
                                 mbedtls_md_type_t owf, mbedtls_md_type_t mac,
-                                const unsigned char *sec,
+                                const unsigned char *secret,
                                 size_t len);
 
 /**
- * \brief           Set the reference (sender KID) to use for PBM
+ * \brief           Set the reference (sender KID) to use with PBM-based message protection
  *
  * \param ctx       CMP context
- * \param ref       reference, gets copied
- * \param len       length in bytes
+ * \param ref       reference byte string, gets copied
+ * \param len       reference length in bytes
  */
-int cmp_ctx_set_senderKID(cmp_ctx *ctx, const unsigned char *ref,
-                          size_t len);
+int cmp_ctx_set_senderKID(cmp_ctx *ctx, const unsigned char *ref, size_t len);
 
 
 /**
- * \brief           Set the sender name for a PKIMessage
- *                  Subject names should contain a comma-separated list
- *                  of OID types and values:
+ * \brief           Set the sender Distinguished Name (DN) of PKIMessages.
+ *                  DNs should contain a comma-separated list
+ *                  of Relative Distinguished Name (RDN) OID types and values:
  *                  e.g. "C=FI,O=Nokia,CN=IoT Device 1"
+ *                  Due to Mbed TLS limitation, cannot use multi-RDNs.
  *
- * \param ctx           CMP context to use
- * \param subject_name  subject name to set
+ * \param ctx           CMP context
+ * \param sender_name   sender name to set, gets copied
  *
- * \return          0 if subject name was parsed successfully, or
- *                  a specific error code
+ * \return          0 if subject name was parsed successfully,
+ *                  or a specific error code
  */
 int cmp_ctx_set_sender_name(cmp_ctx *ctx, const char *sender_name);
 
 /**
- * \brief           Set the recipient name for a PKIMessage
- *                  Subject names should contain a comma-separated list
- *                  of OID types and values:
+ * \brief           Set the recipient Distinguished Name (DN) of PKIMessages.
+ *                  DNs should contain a comma-separated list
+ *                  of Relative Distinguished Name (RDN) OID types and values:
  *                  e.g. "C=FI,O=Nokia,CN=CMP Server 1"
+ *                  Due to Mbed TLS limitation, cannot use multi-RDNs.
  *
- * \param ctx           CMP context to use
- * \param subject_name  subject name to set
+ * \param ctx             CMP context
+ * \param recipient_name  recipient name to set, gets copied
  *
  * \return          0 if subject name was parsed successfully, or
  *                  a specific error code
@@ -233,13 +155,14 @@ int cmp_ctx_set_sender_name(cmp_ctx *ctx, const char *sender_name);
 int cmp_ctx_set_recipient_name(cmp_ctx *ctx, const char *recipient_name);
 
 /**
- * \brief           Set the subject name for the requested certificate
- *                  Subject names should contain a comma-separated list
- *                  of OID types and values:
+ * \brief           Set the subject Distinguished Name (DN) for the requested certificate.
+ *                  DNs should contain a comma-separated list
+ *                  of Relative Distinguished Name (RDN) OID types and values:
  *                  e.g. "C=FI,O=Nokia,CN=CMP EE"
+ *                  Due to Mbed TLS limitation, cannot use multi-RDNs.
  *
- * \param ctx           CMP context to use
- * \param subject_name  subject name to set
+ * \param ctx           CMP context
+ * \param subject_name  subject name to set, gets copied
  *
  * \return          0 if subject name was parsed successfully, or
  *                  a specific error code
@@ -249,83 +172,78 @@ int cmp_ctx_set_subject_name(cmp_ctx *ctx, const char *subject_name);
  * \brief           Set the key to create a CertReqMsg for
  *
  * \param ctx       CMP context
- * \param key       key to use
+ * \param key       key to use in CSR
  */
-void cmp_ctx_set_new_key(cmp_ctx *ctx, mbedtls_pk_context *new_key);
+void cmp_ctx_set_new_key(cmp_ctx *ctx, const mbedtls_pk_context *new_key);
 
 
 /**
- * \brief           Set the chain of the trusted protection CA certificates
+ * \brief           Set the (typically, root CA) certificates to trust for message protection validation
  *
  * \param ctx       CMP context
- * \param crt       certificate (chain) to use
+ * \param crt       certificates to trust for message protection validation
  */
-void cmp_ctx_set_prot_trust_anchor(cmp_ctx *ctx, mbedtls_x509_crt *crt);
+void cmp_ctx_set_prot_trust_anchor(cmp_ctx *ctx, const mbedtls_x509_crt *crt);
 
 /**
- * \brief           Set the CRL of the trusted protection CA certificates
+ * \brief           Set the Certificate Revocation Lists (CRLs) to use
  *
  * \param ctx       CMP context
- * \param crt       certificate (chain) to use
+ * \param crt       CRLs to use
  */
-#if 1
-void cmp_ctx_set_prot_crls(cmp_ctx *ctx, mbedtls_x509_crl *crl);
-#endif
+
+void cmp_ctx_set_prot_crls(cmp_ctx *ctx, OPTIONAL const mbedtls_x509_crl *crl);
+
 
 /**
- * \brief           Set the chain of the trusted enrollment CA certificates
+ * \brief           Set the (typically, root CA) certificates to trust for validating newly enrolled certificates
  *
  * \param ctx       CMP context
- * \param crt       certificate (chain) to use
+ * \param crt       certificate to trust for checking newly enrolled certificates
  */
-void cmp_ctx_set_enrol_trust_anchor(cmp_ctx *ctx, mbedtls_x509_crt *crt);
+void cmp_ctx_set_enrol_trust_anchor(cmp_ctx *ctx, OPTIONAL const mbedtls_x509_crt *crt);
 
 /**
- * \brief           Set the CRL of the trusted enrollment CA certificates
+ * \brief           Set the CRLs to use when validating newly enrolled certificates
  *
  * \param ctx       CMP context
- * \param crt       certificate (chain) to use
+ * \param crt       CRLs to use
  */
-#if 1
-void cmp_ctx_set_enrol_crls(cmp_ctx *ctx, mbedtls_x509_crl *crl);
+
+void cmp_ctx_set_enrol_crls(cmp_ctx *ctx, OPTIONAL const mbedtls_x509_crl *crl);
 
 /**
- * \brief           Set whether to use implicitConfirm
+ * \brief           Set whether to request implicitConfirm
  *
  * \param ctx       CMP context
  * \param ic        0=false, 1=true
  */
 void cmp_ctx_set_implicit_confirm(cmp_ctx *ctx, int ic);
-#endif
 
 /**
  * \brief           Set whether to allow unprotected negative responses and PKIConf
  *
  * \param ctx       CMP context
- * \param ic        0=false, 1=true
+ * \param allow     0=false, 1=true
  */
 void cmp_ctx_set_unprotected_errors(cmp_ctx *ctx, int allow);
 
 /**
- * \brief           Set whether to cache extra certs during one transaction
+ * \brief           Set whether to cache extra certs during a transaction
  *
  * \param ctx       CMP context
  * \param cache     0=false, 1=true
  */
-#if 1
+
 void cmp_ctx_set_cache_extracerts(cmp_ctx *ctx, int cache);
 
 /**
- * \brief           Set whether to send unprotected ir or not
+ * \brief           Set whether to send unprotected request messages or not
  *
  * \param ctx       CMP context
  * \param unprot    0=false, 1=true
  */
-void cmp_ctx_set_unprotected_ir(cmp_ctx *ctx, int unprot);
-#endif
-
-mbedtls_x509_crt *cmp_ctx_get_new_cert(const cmp_ctx *ctx);
-mbedtls_x509_crt *cmp_ctx_get_extraCerts(const cmp_ctx *ctx);
+void cmp_ctx_set_unprotected_requests(cmp_ctx *ctx, int unprot);
 
 /* **************************************************************** */
 /* CMP transactions */
@@ -338,7 +256,8 @@ mbedtls_x509_crt *cmp_ctx_get_extraCerts(const cmp_ctx *ctx);
  */
 int cmpcl_do_transaction(cmp_ctx *ctx, const int body_type);
 
-
+mbedtls_x509_crt *cmp_ctx_get_new_cert(const cmp_ctx *ctx);
+mbedtls_x509_crt *cmp_ctx_get_extraCerts(const cmp_ctx *ctx);
 
 #ifdef __cplusplus
 }

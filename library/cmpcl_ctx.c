@@ -67,9 +67,9 @@ cmp_ctx *cmp_ctx_init(mbedtls_ctr_drbg_context *ctr_drbg,
 /* **************************************************************** */
 int cmp_ctx_set_prot_pbm_secret(cmp_ctx *ctx, mbedtls_ctr_drbg_context *ctr_drbg,
                                 mbedtls_md_type_t owf, mbedtls_md_type_t mac,
-                                const unsigned char *sec, size_t len)
+                                const unsigned char *secret, size_t len)
 {
-    setStr(&ctx->prot_secret, sec, len);
+    setStr(&ctx->prot_secret, secret, len);
     ctx->secret_len = len;
 
     cmp_PBMParameter *pbmp;
@@ -78,8 +78,8 @@ int cmp_ctx_set_prot_pbm_secret(cmp_ctx *ctx, mbedtls_ctr_drbg_context *ctr_drbg
         CMPERRS("Out of memory\n");
         return CMPCL_ERR_MEMORY_ALLOCATION;
     }
-    if (cmp_PBMParameter_init(pbmp, ctr_drbg, 16,
-                              owf, 1000, /* TODO HARDCODED */
+    if (cmp_PBMParameter_init(pbmp, ctr_drbg, 16, /* salt_len, TODO remove hard-coded */
+                              owf, 1000, /* iterationCount, TODO remove hard-coded */
                               mac) != 0) {
         CMPERRS("FAILED to set PBM parameter!");
         return CMPCL_ERR_PBM_PARM;
@@ -89,8 +89,7 @@ int cmp_ctx_set_prot_pbm_secret(cmp_ctx *ctx, mbedtls_ctr_drbg_context *ctr_drbg
 }
 
 /* **************************************************************** */
-int cmp_ctx_set_senderKID(cmp_ctx *ctx, const unsigned char *ref,
-                          size_t len)
+int cmp_ctx_set_senderKID(cmp_ctx *ctx, const unsigned char *ref, size_t len)
 {
     if (setStr(&ctx->senderKID, ref, len) != 0) {
         CMPERRS("Failed to set senderKID!");
@@ -122,8 +121,7 @@ int cmp_ctx_set_messageTime(cmp_ctx *ctx, const char *msgTime)
 }
 
 /* **************************************************************** */
-int cmp_ctx_set_transactionID(cmp_ctx *ctx,
-                              size_t len)
+int cmp_ctx_set_transactionID(cmp_ctx *ctx, size_t len)
 {
     if (cmp_ctx_set_rndm_str(&ctx->transactionID, &ctx->transactionID_len, ctx->ctr_drbg,
                              len) != 0) {
@@ -134,8 +132,7 @@ int cmp_ctx_set_transactionID(cmp_ctx *ctx,
 }
 
 /* **************************************************************** */
-int cmp_ctx_set_senderNonce(cmp_ctx *ctx,
-                            size_t len)
+int cmp_ctx_set_senderNonce(cmp_ctx *ctx, size_t len)
 {
     if (cmp_ctx_set_rndm_str(&ctx->senderNonce, &ctx->senderNonce_len, ctx->ctr_drbg,
                              len) != 0) {
@@ -146,7 +143,7 @@ int cmp_ctx_set_senderNonce(cmp_ctx *ctx,
 }
 
 /* **************************************************************** */
-int cmp_ctx_set_recipNonce(cmp_ctx *ctx, unsigned char *nonce, size_t len)
+int cmp_ctx_set_recipNonce(cmp_ctx *ctx, const unsigned char *nonce, size_t len)
 {
     if (setStr(&ctx->recipNonce, nonce, len) != 0) {
         CMPERRS("Failed to set recipient nonce!");
@@ -156,21 +153,21 @@ int cmp_ctx_set_recipNonce(cmp_ctx *ctx, unsigned char *nonce, size_t len)
 }
 
 /* **************************************************************** */
-void cmp_ctx_set_prot_key(cmp_ctx *ctx, mbedtls_pk_context *key)
+void cmp_ctx_set_prot_key(cmp_ctx *ctx, const mbedtls_pk_context *key)
 {
     ctx->prot_key = key;
 }
 
 /* **************************************************************** */
-void cmp_ctx_set_prot_crt(cmp_ctx *ctx, mbedtls_x509_crt *crt)
+void cmp_ctx_set_prot_crt(cmp_ctx *ctx, const mbedtls_x509_crt *crt)
 {
     ctx->prot_cert = crt;
 }
 
 /* **************************************************************** */
-void cmp_ctx_set_prot_crt_chain(cmp_ctx *ctx, mbedtls_x509_crt *chain)
+void cmp_ctx_set_prot_crt_chain(cmp_ctx *ctx, const mbedtls_x509_crt *crt_chain)
 {
-    ctx->prot_chain = chain;
+    ctx->prot_chain = crt_chain;
 }
 
 /* **************************************************************** */
@@ -192,25 +189,25 @@ void cmp_ctx_set_sig_prot_md_alg(cmp_ctx *ctx, mbedtls_md_type_t md_alg)
 }
 
 /* **************************************************************** */
-void cmp_ctx_set_prot_trust_anchor(cmp_ctx *ctx, mbedtls_x509_crt *crt)
+void cmp_ctx_set_prot_trust_anchor(cmp_ctx *ctx, const mbedtls_x509_crt *crt)
 {
     ctx->prot_trust_anchor = crt;
 }
 
 /* **************************************************************** */
-void cmp_ctx_set_prot_crls(cmp_ctx *ctx, mbedtls_x509_crl *crl)
+void cmp_ctx_set_prot_crls(cmp_ctx *ctx, const mbedtls_x509_crl *crl)
 {
     ctx->prot_crls = crl;
 }
 
 /* **************************************************************** */
-void cmp_ctx_set_enrol_trust_anchor(cmp_ctx *ctx, mbedtls_x509_crt *crt)
+void cmp_ctx_set_enrol_trust_anchor(cmp_ctx *ctx, const mbedtls_x509_crt *crt)
 {
     ctx->enrol_trust_anchor = crt;
 }
 
 /* **************************************************************** */
-void cmp_ctx_set_enrol_crls(cmp_ctx *ctx, mbedtls_x509_crl *crl)
+void cmp_ctx_set_enrol_crls(cmp_ctx *ctx, const mbedtls_x509_crl *crl)
 {
     ctx->enrol_crls = crl;
 }
@@ -226,7 +223,7 @@ int cmp_ctx_set_subject_name(cmp_ctx *ctx, const char *subject_name)
 }
 
 /* **************************************************************** */
-void cmp_ctx_set_new_key(cmp_ctx *ctx, mbedtls_pk_context *new_key)
+void cmp_ctx_set_new_key(cmp_ctx *ctx, const mbedtls_pk_context *new_key)
 {
     ctx->new_key = new_key;
 }
@@ -273,9 +270,9 @@ void cmp_ctx_set_cache_extracerts(cmp_ctx *ctx, int cache)
     ctx->cache_extracerts = cache;
 }
 /* **************************************************************** */
-void cmp_ctx_set_unprotected_ir(cmp_ctx *ctx, int unprot)
+void cmp_ctx_set_unprotected_requests(cmp_ctx *ctx, int unprot)
 {
-    ctx->unprotected_ir = unprot;
+    ctx->unprotected_requests = unprot;
 }
 /* **************************************************************** */
 
@@ -337,6 +334,8 @@ void cmp_ctx_free(cmp_ctx *ctx)
         mbedtls_x509_crt_free(ctx->new_cert);
         mbedtls_free(ctx->new_cert);
     }
+    mbedtls_ctr_drbg_free(ctx->ctr_drbg);
+    mbedtls_entropy_free(ctx->entropy);
     mbedtls_platform_zeroize(ctx, sizeof(cmp_ctx));
     mbedtls_free(ctx);
 }

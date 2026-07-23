@@ -23,7 +23,8 @@
 /* Include */
 /* **************************************************************** */
 
-#include "cmpcl_low.h"
+#include "cmpcl_low.h" /* TODO remove after switching to use of high-level API */
+#include "cmpcl_high.h"
 
 int invoke_ir_transaction(cmp_send_receive_cb send_receive_func,
                           void *cb_context,
