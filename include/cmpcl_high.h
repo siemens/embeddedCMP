@@ -103,16 +103,16 @@ void cmp_client_set_transport(cmp_ctx *ctx, void *cb_context,
  * \param server FQDN of upstream CMP entity
  * \param port TCP port number as string, or NULL for default (80/443)
  * \param path HTTP path part of server URL
+ * \param tls_trusted TLS trusted certificates path, or NULL for plain HTTP
  * \param tls_key TLS client key path, or NULL for not authenticating as TLS client
  * \param tls_cert TLS client certificate path, or NULL for not authenticating as TLS client
- * \param tls_trusted TLS trusted certificates path, or NULL for plain HTTP
  * \retval 0 OK
  */
 int cmp_client_set_http(cmp_ctx *ctx,
                         const char *server, OPTIONAL const char *port,
                         const char *path,
-                        OPTIONAL const char *tls_key, OPTIONAL const char *tls_cert,
-                        OPTIONAL const char *tls_trusted);
+                        OPTIONAL const char *tls_trusted,
+                        OPTIONAL const char *tls_key, OPTIONAL const char *tls_cert);
 
 /*!
  * \brief enable the use of signature-based protection for requests and/or responses.

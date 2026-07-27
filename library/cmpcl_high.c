@@ -38,8 +38,8 @@ void cmp_client_set_transport(cmp_ctx *ctx,
 int cmp_client_set_http(cmp_ctx *ctx,
                         const char *server, OPTIONAL const char *port,
                         const char *path,
-                        OPTIONAL const char *tls_key, OPTIONAL const char *tls_cert,
-                        OPTIONAL const char *tls_trusted)
+                        OPTIONAL const char *tls_trusted,
+                        OPTIONAL const char *tls_key, OPTIONAL const char *tls_cert)
 {
     ctx->cb_context = mbedtls_calloc(1, sizeof(mbed_tls_transport_ctx));
     if (ctx->cb_context == NULL) {

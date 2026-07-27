@@ -63,8 +63,8 @@ static int run_enroll(int body_type, const char *server_path,
         return ret;
     }
     if ((ret = cmp_client_set_http(ctx, SERVER_HOST, TOSTRING(SERVER_PORT),
-                                   server_path, TLS_CLIENT_KEY,
-                                   TLS_CLIENT_CERT, TLS_SERVER_ROOT)) != 0) {
+                                   server_path, TLS_SERVER_ROOT,
+                                   TLS_CLIENT_KEY, TLS_CLIENT_CERT)) != 0) {
         goto end;
     }
     if (prot_key_path != NULL) {
@@ -127,8 +127,8 @@ static int run_p10(mbedtls_ctr_drbg_context *ctr_drbg)
         return ret;
     }
     if ((ret = cmp_client_set_http(ctx, SERVER_HOST, TOSTRING(SERVER_PORT),
-                                   SERVER_PATH_CR, TLS_CLIENT_KEY,
-                                   TLS_CLIENT_CERT, TLS_SERVER_ROOT)) != 0) {
+                                   SERVER_PATH_CR, TLS_SERVER_ROOT,
+                                   TLS_CLIENT_KEY, TLS_CLIENT_CERT)) != 0) {
         goto end;
     }
     mbedtls_pk_context* protkey = mbedtls_calloc(1, sizeof(mbedtls_pk_context));
