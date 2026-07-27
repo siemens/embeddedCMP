@@ -41,8 +41,6 @@
 
 /* CMP server */
 
-#define USE_PLAIN_HTTP 0
-
 # define SERVER_HOST   "localhost"
 # define SERVER_PORT   6000
 # define SERVER_PATH_IR   "onlinelra"
@@ -89,7 +87,6 @@
 #ifdef MOCK_CA
 
 /* CMP test-suite Mock CA */
-#define USE_PLAIN_HTTP 1
 # define SERVER_HOST   "127.0.0.1"
 # define SERVER_PORT   5000
 # define SERVER_PATH_IR   "issuing"
@@ -137,10 +134,15 @@
 
 /* CMP server */
 
-#define USE_PLAIN_HTTP 0
-
 # define SERVER_HOST   "ppki-playground.ct.siemens.com"
-# define SERVER_PORT   443
+# define SERVER_PORT   443 // depending on TLS use, 80 or 443
+
+/* TLS configuration of CMP client */
+#define TLS_CREDENTIAL_ROOT CERTS_ROOT_PATH "tlssrv/"
+#define TLS_SERVER_ROOT TLS_CREDENTIAL_ROOT "srvcrt.crt" /* or NULL for no TLS */
+#define TLS_CLIENT_KEY TLS_CREDENTIAL_ROOT "clientkey.key" /* or NULL for no TLS client auth */
+#define TLS_CLIENT_CERT TLS_CREDENTIAL_ROOT "clientcert.crt" /* or NULL for no TLS client auth */
+
 
 # define SERVER_PATH_IR   "/ejbca/publicweb/cmp/PlaygroundECC-tmp_issuingca"
 # define SERVER_PATH_CR   "/ejbca/publicweb/cmp/PlaygroundECC-tmp_issuingca"
@@ -194,7 +196,6 @@
 #ifdef INSTA
 
 /* CMP server */
-#define USE_PLAIN_HTTP 1
 # define SERVER_HOST   "91.213.161.196" // IP address must be used if no proxy is used, corresponds to "pki.certificate.fi"
 # define SERVER_PORT   8700
 # define SERVER_PATH_IR   "pkix/" // Insta CA requires that SERVER_PATH has trailing '/'
@@ -240,7 +241,6 @@
 #ifdef DOCKER_EJBCA
 
 /* CMP server */
-#define USE_PLAIN_HTTP 1
 # define SERVER_HOST   "127.0.0.1"
 # define SERVER_PORT   6080
 # define SERVER_PATH_IR   "ejbca/publicweb/cmp/cmp_imprint_RA"
@@ -304,11 +304,7 @@
 # define PBM_SECRET "9pp8-b35i-Xd3Q-udNR"
 # define PBM_KID "4787"
 
-#endif
-
-#ifndef USE_PLAIN_HTTP
-# define USE_PLAIN_HTTP 0
-#endif
+#endif // def NETGUARD
 
 #ifndef SNI_HOSTNAME
 # define SNI_HOSTNAME SERVER_HOST
@@ -349,13 +345,6 @@ static unsigned char crmf_extensions[] = {
 
 static size_t crmf_extensions_len = sizeof(crmf_extensions);
 #endif
-
-
-/* MBED TLS server configuration */
-#define TLS_CREDENTIAL_ROOT CERTS_ROOT_PATH "tlssrv/"
-#define TLS_SERVER_ROOT TLS_CREDENTIAL_ROOT "srvcrt.crt"
-#define TLS_CLIENT_KEY TLS_CREDENTIAL_ROOT "clientkey.key"
-#define TLS_CLIENT_CERT TLS_CREDENTIAL_ROOT "clientcert.crt"
 
 #ifndef IMPRINTING_SERVER_HOST
 # define IMPRINTING_SERVER_HOST SERVER_HOST
