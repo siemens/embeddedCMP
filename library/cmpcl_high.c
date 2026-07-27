@@ -46,9 +46,9 @@ int cmp_client_set_http(cmp_ctx *ctx,
         CMPERRS("Out of memory\n");
         return CMPCL_ERR_MEMORY_ALLOCATION;
     }
-    int use_plain_http = tls_key == NULL;
+    int use_plain_http = tls_trusted == NULL;
     if (port == NULL) {
-        port = use_plain_http?"80":"443";
+        port = use_plain_http ? "80" : "443";
     }
     int ret = mbed_tls_transport_init(ctx->cb_context, use_plain_http, ctx->ctr_drbg,
             tls_cert, tls_key, tls_trusted, server, port, path);
