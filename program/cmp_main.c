@@ -31,7 +31,6 @@
 #include "cmpclient_config.h"
 #include "credential_storage.h"
 #include "debug_macros.h"
-#include "mbedtls/ctr_drbg.h"
 #include "mbedtls/platform.h"
 
 #define STRINGIFY(x) #x
@@ -55,8 +54,7 @@ static int run_enroll(int body_type, const char *server_path,
                       /* output paths: */
                       OPTIONAL const char *out_key_path,
                       const char *out_cert_path,
-                      const char *out_chain_path,
-                      mbedtls_ctr_drbg_context *ctr_drbg)
+                      const char *out_chain_path)
 {
     unsigned char *p10 = NULL;
     size_t p10_len = 0;
@@ -73,16 +71,8 @@ static int run_enroll(int body_type, const char *server_path,
     }
     if (prot_key_path != NULL) {
         /* signature-based protection using existing credentials */
-        mbedtls_pk_context *protkey = mbedtls_calloc(1, sizeof(mbedtls_pk_context));
-        if (protkey == NULL) {
-            CMPERRS("Out of memory\n");
-            goto end;
-        }
-        if ((ret = parse_key_from_pem(protkey, prot_key_path, ctr_drbg)) < 0) {
-            goto end;
-        }
         if ((ret = cmp_client_enable_signature_protection(ctx, SIG_PROT_MD_ALG,
-                                                          protkey, prot_cert_path,
+                                                          prot_key_path, prot_cert_path,
                                                           prot_chain_path,
                                                           PATH_TO_PROTECTION_TRUST_ANCHOR_PEM,
                                                           PATH_TO_PROTECTION_CRLS)) < 0) {
@@ -150,22 +140,7 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-    mbedtls_ctr_drbg_context ctr_drbg;
-    mbedtls_ctr_drbg_init(&ctr_drbg);
-    /**
-     * init pseudorandom generator
-     */
-    mbedtls_entropy_context entropy;
-    mbedtls_entropy_init(&entropy);
-
     int ret = 0;
-    const char *pers = "cmp_client";
-    if ((ret = mbedtls_ctr_drbg_seed(&ctr_drbg, mbedtls_entropy_func, &entropy,
-                                     (const unsigned char *) pers,
-                                     strlen(pers))) != 0) {
-        PRINTF(" failed\n  ! mbedtls_ctr_drbg_seed returned %d\n", ret);
-        goto end;
-    }
     int opt;
     while ((opt = getopt(argc, argv, "icpk")) != -1) {
         switch (opt) {
@@ -176,8 +151,7 @@ int main(int argc, char *argv[])
                                  NULL /* no p10 for IR */,
                                  PATH_TO_VENDOR_KEY_PEM,
                                  PATH_TO_VENDOR_CERT_PEM,
-                                 PATH_TO_VENDOR_CHAIN_PEM,
-                                 &ctr_drbg);
+                                 PATH_TO_VENDOR_CHAIN_PEM);
                 break;
             case 'c':
                 ret = run_enroll(MBEDTLS_CMP_PKIBODY_CR, SERVER_PATH_CR,
@@ -188,8 +162,7 @@ int main(int argc, char *argv[])
                                  NULL /* no p10 for CR */,
                                  PATH_TO_OPERATIONAL_KEY_PEM,
                                  PATH_TO_OPERATIONAL_CERT_PEM,
-                                 PATH_TO_OPERATIONAL_CHAIN_PEM,
-                                 &ctr_drbg);
+                                 PATH_TO_OPERATIONAL_CHAIN_PEM);
                 break;
             case 'p':
                 ret = run_enroll(MBEDTLS_CMP_PKIBODY_P10CR, SERVER_PATH_CR,
@@ -200,8 +173,7 @@ int main(int argc, char *argv[])
                                  PATH_TO_VENDOR_P10_DER,
                                  NULL /* no key output for P10CR */,
                                  PATH_TO_OPERATIONAL_CERT_PEM,
-                                 PATH_TO_OPERATIONAL_CHAIN_PEM,
-                                 &ctr_drbg);
+                                 PATH_TO_OPERATIONAL_CHAIN_PEM);
                 break;
             case 'k':
                 ret = run_enroll(MBEDTLS_CMP_PKIBODY_KUR, SERVER_PATH_KUR,
@@ -212,8 +184,7 @@ int main(int argc, char *argv[])
                                  NULL /* no p10 for KUR */,
                                  PATH_TO_OPERATIONAL_KEY_PEM,
                                  PATH_TO_OPERATIONAL_CERT_PEM,
-                                 PATH_TO_OPERATIONAL_CHAIN_PEM,
-                                 &ctr_drbg);
+                                 PATH_TO_OPERATIONAL_CHAIN_PEM);
                 break;
             default:
                 usage(argv);
@@ -224,8 +195,6 @@ int main(int argc, char *argv[])
         }
     }
 end:
-    mbedtls_ctr_drbg_free(&ctr_drbg);
-    mbedtls_entropy_free(&entropy);
     mbedtls_psa_crypto_free();
     return ret;
 }

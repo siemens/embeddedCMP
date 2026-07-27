@@ -122,7 +122,7 @@ int cmp_client_set_http(cmp_ctx *ctx,
  *
  * \param ctx already initialized context
  * \param md_alg message digest algorithm to be used for protection, or 0 for default
- * \param key path of private key to use for protecting request messages
+ * \param key path to private key file to use for protecting request messages,
           unless password-based protection is set up in addition;
           can be NULL if unprotected request shall be used
  * \param crt path of certificate to use in case the private key is used,
@@ -136,7 +136,7 @@ int cmp_client_set_http(cmp_ctx *ctx,
  *
  */
 int cmp_client_enable_signature_protection(cmp_ctx *ctx, int md_alg,
-                                           OPTIONAL const mbedtls_pk_context *key,
+                                           OPTIONAL const char *key,
                                            OPTIONAL const char *crt,
                                            OPTIONAL const char *crt_chain,
                                            OPTIONAL const char *trusted,

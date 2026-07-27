@@ -154,7 +154,7 @@ static mbedtls_x509_crl* new_crl_from_pem(const char *path_to_pem) {
 
 
 int cmp_client_enable_signature_protection(cmp_ctx *ctx, int md_alg,
-                                           OPTIONAL const mbedtls_pk_context *key,
+                                           OPTIONAL const char *key,
                                            OPTIONAL const char *crt,
                                            OPTIONAL const char *crt_chain,
                                            OPTIONAL const char *trusted,
@@ -184,8 +184,18 @@ int cmp_client_enable_signature_protection(cmp_ctx *ctx, int md_alg,
         CMPERRS("key and crt must be given");
         return ret;
     }  else {
+        mbedtls_pk_context *prot_key = mbedtls_calloc(1, sizeof(mbedtls_pk_context));
+        if (prot_key == NULL) {
+            CMPERRS("Out of memory");
+            return ret;
+        }
+        if ((ret = parse_key_from_pem(prot_key, key, ctx->ctr_drbg)) != 0) {
+            mbedtls_pk_free(prot_key);
+            mbedtls_free(prot_key);
+            return ret;
+        }
         cmp_ctx_set_sig_prot_md_alg(ctx, md_alg);
-        cmp_ctx_set_prot_key(ctx, key);
+        cmp_ctx_set_prot_key(ctx, prot_key);
         mbedtls_x509_crt *mcrt = new_crt_from_pem(crt);
         if (mcrt == NULL) {
             goto err;
