@@ -45,19 +45,23 @@ static int implicit_confirm = 0;
 #endif
 
 static int run_enroll(int body_type, const char *server_path,
-                      const char *subject,
+                      OPTIONAL const char *subject,
                       /* signature-based protection (NULL for PBM-only): */
-                      const char *prot_key_path,
-                      const char *prot_cert_path,
-                      const char *prot_chain_path,
+                      OPTIONAL const char *prot_key_path,
+                      OPTIONAL const char *prot_cert_path,
+                      OPTIONAL const char *prot_chain_path,
+                      /* P10CR: path to DER-encoded CSR, or NULL for IR/CR/KUR: */
+                      OPTIONAL const char *p10_path,
                       /* output paths: */
-                      const char *out_key_path,
+                      OPTIONAL const char *out_key_path,
                       const char *out_cert_path,
                       const char *out_chain_path,
                       mbedtls_ctr_drbg_context *ctr_drbg)
 {
+    unsigned char *p10 = NULL;
+    size_t p10_len = 0;
     int ret = -1;
-    cmp_ctx *ctx = cmp_client_init(subject, RECIPIENT_NAME, 1);
+    cmp_ctx *ctx = cmp_client_init(subject /* taken as sender name */, RECIPIENT_NAME, 1);
     if (ctx == NULL) {
         PRINTF("failed to initialize CMP context\n");
         return ret;
@@ -100,11 +104,20 @@ static int run_enroll(int body_type, const char *server_path,
             goto end;
         }
     }
+    if (p10_path != NULL) {
+        if ((ret = read_file(&p10, p10_path)) < 0) {
+            goto end;
+        }
+        p10_len = ret;
+    }
     mbedtls_pk_context *newkey = NULL;
-    if ((ret = cmp_client_enroll_cert(ctx, body_type, subject,
-                                      NEW_KEY_ECCURVE, &newkey, out_key_path,
+    if ((ret = cmp_client_enroll_cert(ctx, body_type,
+                                      p10 != NULL ? NULL : subject,
+                                      p10 != NULL ? NULL : NEW_KEY_ECCURVE,
+                                      p10 != NULL ? NULL : &newkey,
+                                      p10 != NULL ? NULL : out_key_path,
                                       POPO_MD_ALG,
-                                      NULL, 0,
+                                      p10, p10_len,
                                       PATH_TO_ENROLLMENT_TRUST_ANCHOR_PEM,
                                       PATH_TO_ENROLLMENT_CRLS,
                                       implicit_confirm,
@@ -113,57 +126,6 @@ static int run_enroll(int body_type, const char *server_path,
     }
     ret = 0;
   end:
-    cmp_client_free(ctx);
-    return ret;
-}
-
-static int run_p10(mbedtls_ctr_drbg_context *ctr_drbg)
-{
-    unsigned char* p10 = NULL;
-    size_t p10_len = 0;
-    int ret = -1;
-    cmp_ctx *ctx = cmp_client_init(BOOTSTRAPPING_SUBJECT_NAME, RECIPIENT_NAME, 1);
-    if (ctx == NULL) {
-        PRINTF("failed to initialize p10 context\n");
-        return ret;
-    }
-    if ((ret = cmp_client_set_http(ctx, SERVER_HOST, TOSTRING(SERVER_PORT),
-                                   SERVER_PATH_CR, TLS_SERVER_ROOT,
-                                   TLS_CLIENT_KEY, TLS_CLIENT_CERT)) != 0) {
-        goto end;
-    }
-    mbedtls_pk_context* protkey = mbedtls_calloc(1, sizeof(mbedtls_pk_context));
-    if (protkey == NULL) {
-        CMPERRS("Out of memory\n");
-        goto end;
-    }
-    if ((ret =  parse_key_from_pem(protkey, PATH_TO_PROTECTION_KEY, ctr_drbg)) < 0) {
-        goto end;
-    }
-    if ((ret = cmp_client_enable_signature_protection(ctx, SIG_PROT_MD_ALG,
-                                                      protkey, PATH_TO_PROTECTION_CERT,
-                                                      PATH_TO_PROTECTION_CHAIN,
-                                                      PATH_TO_PROTECTION_TRUST_ANCHOR_PEM,
-                                                      PATH_TO_PROTECTION_CRLS)) < 0) {
-        goto end;
-    };
-    if ((ret = read_file(&p10, PATH_TO_VENDOR_P10_DER))<0) {
-        goto end;
-    }
-    p10_len = ret;
-    if ((ret = cmp_client_enroll_cert(ctx, MBEDTLS_CMP_PKIBODY_P10CR, NULL,
-                                      NULL, NULL, NULL,
-                                      -1,
-                                      p10, p10_len,
-                                      PATH_TO_ENROLLMENT_TRUST_ANCHOR_PEM,
-                                      PATH_TO_ENROLLMENT_CRLS,
-                                      implicit_confirm,
-                                      PATH_TO_OPERATIONAL_CERT_PEM,
-                                      PATH_TO_OPERATIONAL_CHAIN_PEM)) < 0) {
-        goto end;
-    };
-    ret = 0;
-    end:
     mbedtls_free(p10);
     cmp_client_free(ctx);
     return ret;
@@ -210,7 +172,8 @@ int main(int argc, char *argv[])
             case 'i':
                 ret = run_enroll(MBEDTLS_CMP_PKIBODY_IR, SERVER_PATH_IR,
                                  IMPRINTING_SUBJECT_NAME,
-                                 NULL, NULL, NULL,
+                                 NULL, NULL, NULL, /* no signature-based protection used */
+                                 NULL /* no p10 for IR */,
                                  PATH_TO_VENDOR_KEY_PEM,
                                  PATH_TO_VENDOR_CERT_PEM,
                                  PATH_TO_VENDOR_CHAIN_PEM,
@@ -222,15 +185,23 @@ int main(int argc, char *argv[])
                                  PATH_TO_PROTECTION_KEY,
                                  PATH_TO_PROTECTION_CERT,
                                  PATH_TO_PROTECTION_CHAIN,
+                                 NULL /* no p10 for CR */,
                                  PATH_TO_OPERATIONAL_KEY_PEM,
                                  PATH_TO_OPERATIONAL_CERT_PEM,
                                  PATH_TO_OPERATIONAL_CHAIN_PEM,
                                  &ctr_drbg);
                 break;
             case 'p':
-                if ((ret = run_p10(&ctr_drbg)) != 0) {
-                    goto end;
-                }
+                ret = run_enroll(MBEDTLS_CMP_PKIBODY_P10CR, SERVER_PATH_CR,
+                                 BOOTSTRAPPING_SUBJECT_NAME,
+                                 PATH_TO_PROTECTION_KEY,
+                                 PATH_TO_PROTECTION_CERT,
+                                 PATH_TO_PROTECTION_CHAIN,
+                                 PATH_TO_VENDOR_P10_DER,
+                                 NULL /* no key output for P10CR */,
+                                 PATH_TO_OPERATIONAL_CERT_PEM,
+                                 PATH_TO_OPERATIONAL_CHAIN_PEM,
+                                 &ctr_drbg);
                 break;
             case 'k':
                 ret = run_enroll(MBEDTLS_CMP_PKIBODY_KUR, SERVER_PATH_KUR,
@@ -238,6 +209,7 @@ int main(int argc, char *argv[])
                                  PATH_TO_OPERATIONAL_KEY_PEM,
                                  PATH_TO_OPERATIONAL_CERT_PEM,
                                  PATH_TO_OPERATIONAL_CHAIN_PEM,
+                                 NULL /* no p10 for KUR */,
                                  PATH_TO_OPERATIONAL_KEY_PEM,
                                  PATH_TO_OPERATIONAL_CERT_PEM,
                                  PATH_TO_OPERATIONAL_CHAIN_PEM,
