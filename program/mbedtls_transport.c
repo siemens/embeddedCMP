@@ -83,20 +83,28 @@ int mbed_tls_transport_init(mbed_tls_transport_ctx *ctx,
      */
 
     if (!ctx->use_plain_http) {
-        ret = append_certs_from_pem(&ctx->owncert, path_to_client_cert);
-        if (ret != 0) {
-            PRINTF("\r\n error parsing own TLS chain from %s:%d\r\n",
-                   path_to_client_cert, ret);
+        if (path_to_client_cert != NULL && path_to_client_Key != NULL) {
+            ret = append_certs_from_pem(&ctx->owncert, path_to_client_cert);
+            if (ret != 0) {
+                PRINTF("\r\n error parsing own TLS chain from %s:%d\r\n",
+                       path_to_client_cert, ret);
+                return -1;
+            }
+
+            ret = parse_key_from_pem(&ctx->ownpkey, path_to_client_Key, ctr_drbg);
+            if (ret != 0) {
+                PRINTF("\r\n error parsing own TLS key from %s:%d\r\n",
+                       path_to_client_Key, ret);
+                return -1;
+            }
+        } else if (path_to_client_cert != NULL || path_to_client_Key != NULL) {
+            PRINTF("\r\n error: both TLS client cert and key must be provided, or neither\r\n");
             return -1;
         }
-
-        ret = parse_key_from_pem(&ctx->ownpkey, path_to_client_Key, ctr_drbg);
-        if (ret != 0) {
-            PRINTF("\r\n error parsing own TLS key from %s:%d\r\n",
-                   path_to_client_Key, ret);
+        if (path_to_server_root == NULL) {
+            PRINTF("\r\n error: TLS server root certificate path must not be NULL unless use_plain_http\r\n");
             return -1;
         }
-
         ret = append_certs_from_pem(&ctx->trustedserverroots, path_to_server_root);
         if (ret != 0) {
             PRINTF("\r\n error parsing TLS server certificate from %s:%d\r\n",
@@ -123,11 +131,13 @@ int mbed_tls_transport_init(mbed_tls_transport_ctx *ctx,
         mbedtls_ssl_conf_renegotiation(&ctx->conf, MBEDTLS_SSL_RENEGOTIATION_ENABLED);
         // mbedtls_debug_set_threshold(3);
         mbedtls_ssl_conf_ca_chain(&ctx->conf, &ctx->trustedserverroots, NULL);
-        if ((ret = mbedtls_ssl_conf_own_cert(&ctx->conf, &ctx->owncert, &ctx->ownpkey)) != 0) {
-            mbedtls_strerror(ret, errbuf, sizeof(errbuf));
-            PRINTF(" failed\r\n  ! mbedtls_ssl_conf_own_cert returned %s\r\n\r\n",
-                   errbuf);
-            return -1;
+        if (ctx->owncert.raw.p != NULL && mbedtls_pk_get_type(&ctx->ownpkey) != MBEDTLS_PK_NONE) {
+            if ((ret = mbedtls_ssl_conf_own_cert(&ctx->conf, &ctx->owncert, &ctx->ownpkey)) != 0) {
+                mbedtls_strerror(ret, errbuf, sizeof(errbuf));
+                PRINTF(" failed\r\n  ! mbedtls_ssl_conf_own_cert returned %s\r\n\r\n",
+                       errbuf);
+                return -1;
+            }
         }
 
         if ((ret = mbedtls_ssl_setup(&ctx->ssl, &ctx->conf)) != 0) {

@@ -38,9 +38,9 @@ typedef struct {
  * \param ctx       mbed_tls_transport_ctx context to initialise
  * \param use_plain_http set to \c 1 if TLS layer should be bypassed
  * \param ctr_drbg pseudorandom context to use
- * \param path_to_client_cert path to TLS client certificate
- * \param path_to_client_Key path to TLS client private key
- * \param path_to_server_root path to servers trust root
+ * \param path_to_client_cert path to TLS client certificate, or NULL
+ * \param path_to_client_Key path to TLS client private key, or NULL
+ * \param path_to_server_root path to servers trust root, or NULL if use_plain_http
  * \param server_fqdn TLS server hostname
  * \param server_port TLS server TCP port as string
  * \param server_path HTTP path to access
