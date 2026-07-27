@@ -38,6 +38,7 @@
 *.i*86
 *.x86_64
 *.hex
+embedded_cmp
 
 # Debug files
 *.dSYM/
@@ -46,15 +47,21 @@
 *.pdb
 /Debug/
 
-# Kernel Module Compile Results
-*.mod*
 *.cmd
 .tmp_versions/
-modules.order
-Module.symvers
-Mkfile.old
-dkms.conf
 vendor
 operat
 build
 *.der
+
+CMakeCache.txt
+CMakeFiles
+CTestTestfile.cmake
+CTestCustom.cmake
+cmake_install.cmake
+Makefile
+Testing
+
+admin
+mbedtls
+external
