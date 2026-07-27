@@ -104,6 +104,7 @@ if (SELFHOSTED)
 		library/cmpcl_write.c
 		library/cmpcl_high.c
 		program/cmp_main.c
+                # TODO move to library/:
 		program/cmpclient.c
 		program/mbedtls_transport.c
 		program/credential_storage.c
