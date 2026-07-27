@@ -414,10 +414,16 @@ int cmp_client_enroll_cert(cmp_ctx *ctx, int request_body_type,
 
   err:
     if (generated) {
-        mbedtls_pk_free(key);
-        mbedtls_free(key);
+        /* Use cmp_ctx_set_new_key(NULL) to free the key and clear ctx->new_key
+         * in one step, preventing the double-free that would otherwise occur
+         * when cmp_client_free() calls key_free(ctx->new_key) later. */
+        cmp_ctx_set_new_key(ctx, NULL);
         if (pkey != NULL)
             *pkey = NULL;
+    } else {
+        /* Key is caller-owned; just clear the pointer so cmp_client_free()
+         * does not free memory it does not own. */
+        ctx->new_key = NULL;
     }
     return ret != 0 ? ret : -1;
 }
