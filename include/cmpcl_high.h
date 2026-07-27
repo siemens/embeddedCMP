@@ -67,6 +67,7 @@ int print_certinfo(const char *cert_prefix, const char *line_prefix, const mbedt
 /* API-level PKIBODY TYPES */
 #define MBEDTLS_CMP_PKIBODY_IR                0
 #define MBEDTLS_CMP_PKIBODY_CR                2
+#define MBEDTLS_CMP_PKIBODY_P10CR             4
 #define MBEDTLS_CMP_PKIBODY_KUR               7
 
 typedef struct cmp_ctx cmp_ctx;
@@ -189,23 +190,28 @@ int generate_key(const char *key_type,
                  mbedtls_pk_context **pkey);
 
 /*!
- * \brief start an enrollment transaction
+ * \brief perform an enrollment transaction with request body type IR, CR, KUR, or P10CR
  * \param ctx already initialized context
- * \param request_body_type MBEDTLS_CMP_PKIBODY_IR, MBEDTLS_CMP_PKIBODY_CR
- *        or MBEDTLS_CMP_PKIBODY_KUR
- * \param subject RDN of certificate to enroll
+ * \param request_body_type MBEDTLS_CMP_PKIBODY_IR, MBEDTLS_CMP_PKIBODY_CR,
+ *        MBEDTLS_CMP_PKIBODY_KUR, or MBEDTLS_CMP_PKIBODY_P10CR
+ * \param subject DN of certificate to enroll; ignored with P10CR
  * \param new_key_type key type specification for generating a new key
  *        (e.g. "EC:secp256r1", "RSA:2048", or bare curve name for backward compat),
- *        or NULL to use *pkey as given (unless pkey is NULL)
- * \param pkey pointer to keypair for enrollment (input/output) unless NULL:
+ *        or NULL to use *pkey as given (unless pkey is NULL); ignored with P10CR
+ * \param pkey pointer to keypair for enrollment (input/output) unless NULL;
+ *        ignored with P10CR:
  *        - if new_key_type is given, the generated key is returned in *pkey on success
  *          (NULL on failure)
  *        - if new_key_type is NULL, *pkey is used as input key for enrollment
  * \param key_file file path to store the private key (generated or given) on success,
- *        or NULL to not write the key to a file
- * \param popo_md_alg message digest algorithm used for POPO, 0 for default
+ *        or NULL to not write the key to a file; ignored with P10CR
+ * \param popo_md_alg message digest algorithm used for POPO, 0 for default;
+ *        ignored with P10CR
+ * \param p10 DER-encoded PKCS#10 CSR to use with P10CR, or NULL for
+ *        IR/CR/KUR (in which case subject, new_key_type/pkey, and popo_md_alg are used)
+ * \param p10_len length of p10 in bytes; ignored when p10 is NULL
  * \param enrol_trusted path to trust anchors used for verifying enrolled certificate
- * \param enrol_crls path to CRLs anchors used for verifying enrolled certificate
+ * \param enrol_CRLs path to CRLs used for verifying enrolled certificate
  * \param implicit_confirm use implicit confirmation in CMP transaction, otherwise 0
  * \param new_cert path to store enrolled certificate
  * \param extraCerts path to store extra certificates received during enrollment
@@ -218,29 +224,11 @@ int cmp_client_enroll_cert(cmp_ctx *ctx, int request_body_type,
                            OPTIONAL const char *key_file,
                            // TODO OPTIONAL const ... extensions,
                            int popo_md_alg,
+                           const unsigned char *p10, size_t p10_len,
                            OPTIONAL const char *enrol_trusted,
                            OPTIONAL const char *enrol_CRLs,
                            int implicit_confirm,
                            const char *new_cert, const char *extraCerts);
-
-/**
- * \brief start a enrollment transaction
- * \param ctx already initialized context
- * \param p10 DER encoded PKCS#10 CSR
- * \param p10_len length of p10
- * \param enrol_trusted path to trust anchors used for verifying enrolled certificate
- * \param enrol_crls path to CRLs anchors used for verifying enrolled certificate
- * \param implicit_confirm use implicit confirmation in CMP transaction, otherwise 0
- * \param new_cert path to store enrolled certificate
- * \param extraCerts path to store extra certificates received during enrollment
- * \retval 0 OK
- */
-int cmp_client_enroll_p10(cmp_ctx *ctx,
-                          const unsigned char *p10, size_t p10_len,
-                          OPTIONAL const char *enrol_trusted,
-                          OPTIONAL const char *enrol_CRLs,
-                          int implicit_confirm,
-                          char *new_cert, char *extraCerts);
 
 /**
  * \brief deallocate an initalized context

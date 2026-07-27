@@ -346,33 +346,47 @@ int cmp_client_enroll_cert(cmp_ctx *ctx, int request_body_type,
                            OPTIONAL const char *key_file,
                            // TODO OPTIONAL const ... extensions,
                            int popo_md_alg,
+                           const unsigned char *p10, size_t p10_len,
                            OPTIONAL const char *enrol_trusted,
                            OPTIONAL const char *enrol_CRLs,
                            int implicit_confirm,
-                           const char *new_cert, const char *extraCerts
-                           /*mbedtls_x509_crt **new_cert, mbedtls_x509_crt **extraCerts*/)
+                           const char *new_cert, const char *extraCerts)
 {
     mbedtls_pk_context *key = NULL;
     int generated = 0;
-    int ret;
+    int ret = -1;
+    int do_p10cr = request_body_type == MBEDTLS_CMP_PKIBODY_P10CR;
 
-    if (new_key_type != NULL) {
-        ret = generate_key(new_key_type, ctx->ctr_drbg, &key);
-        if (ret != 0) {
+    if (do_p10cr) {
+        if (p10 == NULL || p10_len == 0) {
+            CMPERRS("P10CR request requires a non-empty p10 CSR");
             return ret;
         }
-        generated = 1;
-    } else if (pkey != NULL) {
-        key = *pkey;
+        ctx->p10 = p10;
+        ctx->p10_len = p10_len;
+    } else {
+        if (p10 != NULL) {
+            CMPERRS("p10 CSR given but request type is not P10CR");
+            return ret;
+        }
+        if (new_key_type != NULL) {
+            ret = generate_key(new_key_type, ctx->ctr_drbg, &key);
+            if (ret != 0) {
+                return ret;
+            }
+            generated = 1;
+        } else if (pkey != NULL) {
+            key = *pkey;
+        }
+
+        cmp_ctx_set_subject_name(ctx, subject);
+        cmp_ctx_set_new_key(ctx, key);
+        /* use CMP_CTX_POPO_RAVERIFIED if popo_md_alg == -1 */
+        cmp_ctx_set_popo_method(ctx, popo_md_alg == -1 ?
+            CMP_CTX_POPO_RAVERIFIED : CMP_CTX_POPO_SIGNATURE);
+        cmp_ctx_set_popo_md_alg(ctx, popo_md_alg);
     }
 
-    cmp_ctx_set_subject_name(ctx, subject);
-    cmp_ctx_set_new_key(ctx, key);
-    /* use CMP_CTX_POPO_RAVERIFIED if popo_md_alg == -1 */
-    cmp_ctx_set_popo_method(ctx, popo_md_alg == -1 ?
-    CMP_CTX_POPO_RAVERIFIED : CMP_CTX_POPO_SIGNATURE);
-    cmp_ctx_set_popo_md_alg(ctx, popo_md_alg);
-    ret = -1;
     if (enrol_trusted) {
         mbedtls_x509_crt *menrol_trusted = new_crt_from_pem(enrol_trusted);
         if (menrol_trusted == NULL) {
@@ -389,7 +403,6 @@ int cmp_client_enroll_cert(cmp_ctx *ctx, int request_body_type,
     }
     cmp_ctx_set_implicit_confirm(ctx, implicit_confirm);
 
-
     if ((ret = cmpcl_do_transaction(ctx, request_body_type)) != 0) {
         goto err;
     }
@@ -403,70 +416,32 @@ int cmp_client_enroll_cert(cmp_ctx *ctx, int request_body_type,
         CMPERRV("Failed to write new chain to file %s", extraCerts);
         goto err;
     }
-    if (key_file != NULL && (ret = write_private_key_pem(key, key_file)) != 0) {
-        CMPERRV("Failed to write key to file %s", key_file);
-        goto err;
-    }
-    if (pkey != NULL) {
-        *pkey = key;
-    }
-    return 0;
 
-  err:
-    if (generated) {
-        /* Use cmp_ctx_set_new_key(NULL) to free the key and clear ctx->new_key
-         * in one step, preventing the double-free that would otherwise occur
-         * when cmp_client_free() calls key_free(ctx->new_key) later. */
-        cmp_ctx_set_new_key(ctx, NULL);
-        if (pkey != NULL)
-            *pkey = NULL;
-    } else {
-        /* Key is caller-owned; just clear the pointer so cmp_client_free()
-         * does not free memory it does not own. */
-        ctx->new_key = NULL;
-    }
-    return ret != 0 ? ret : -1;
-}
-
-int cmp_client_enroll_p10(cmp_ctx *ctx,
-                          const unsigned char *p10, size_t p10_len,
-                          OPTIONAL const char *enrol_trusted,
-                          OPTIONAL const char *enrol_CRLs,
-                          int implicit_confirm,
-                          char *new_cert, char *extraCerts) {
-    int ret = -1;
-    if (p10 == NULL || p10_len == 0) {
-        CMPERRS("invalid p10 ");
-        return -1;
-    }
-    ctx->p10 = p10;
-    ctx->p10_len = p10_len;
-    if (enrol_CRLs) {
-        mbedtls_x509_crl *menrol_CRLs = new_crl_from_pem(enrol_CRLs);
-        if (menrol_CRLs == NULL) {
+    if (!do_p10cr) {
+        if (key_file != NULL && (ret = write_private_key_pem(key, key_file)) != 0) {
+            CMPERRV("Failed to write key to file %s", key_file);
             goto err;
         }
-        cmp_ctx_set_enrol_crls(ctx, menrol_CRLs);
-    }
-    cmp_ctx_set_implicit_confirm(ctx, implicit_confirm);
-
-
-    if ((ret = cmpcl_do_transaction(ctx, MBEDTLS_CMP_PKIBODY_P10CR)) != 0) {
-        goto err;
-    }
-    print_certinfo("new cert received:\n", "  ", cmp_ctx_get_new_cert(ctx)); /* TODO: find more elegant way to deal with Eclipse terminal */
-
-    if ((ret = write_cert_pem(cmp_ctx_get_new_cert(ctx), new_cert)) != 0) {
-        CMPERRV("Failed to write new cert to file %s", new_cert);
-        goto err;
-    }
-    if ((ret = write_cert_pem(cmp_ctx_get_extraCerts(ctx), extraCerts)) != 0) {
-        CMPERRV("Failed to write new chain to file %s", extraCerts);
-        goto err;
+        if (pkey != NULL)
+            *pkey = key;
     }
     return 0;
 
   err:
+    if (!do_p10cr) {
+        if (generated) {
+            /* Use cmp_ctx_set_new_key(NULL) to free the key and clear ctx->new_key
+             * in one step, preventing the double-free that would otherwise occur
+             * when cmp_client_free() calls key_free(ctx->new_key) later. */
+            cmp_ctx_set_new_key(ctx, NULL);
+            if (pkey != NULL)
+                *pkey = NULL;
+        } else {
+            /* Key is caller-owned; just clear the pointer so cmp_client_free()
+             * does not free memory it does not own. */
+            ctx->new_key = NULL;
+        }
+    }
     return ret != 0 ? ret : -1;
 }
 

@@ -104,6 +104,7 @@ static int run_enroll(int body_type, const char *server_path,
     if ((ret = cmp_client_enroll_cert(ctx, body_type, subject,
                                       NEW_KEY_ECCURVE, &newkey, out_key_path,
                                       POPO_MD_ALG,
+                                      NULL, 0,
                                       PATH_TO_ENROLLMENT_TRUST_ANCHOR_PEM,
                                       PATH_TO_ENROLLMENT_CRLS,
                                       implicit_confirm,
@@ -150,12 +151,15 @@ static int run_p10(mbedtls_ctr_drbg_context *ctr_drbg)
         goto end;
     }
     p10_len = ret;
-    if ((ret = cmp_client_enroll_p10(ctx, p10, p10_len,
-                                     PATH_TO_ENROLLMENT_TRUST_ANCHOR_PEM,
-                                     PATH_TO_ENROLLMENT_CRLS,
-                                     implicit_confirm,
-                                     PATH_TO_OPERATIONAL_CERT_PEM,
-                                     PATH_TO_OPERATIONAL_CHAIN_PEM)) < 0) {
+    if ((ret = cmp_client_enroll_cert(ctx, MBEDTLS_CMP_PKIBODY_P10CR, NULL,
+                                      NULL, NULL, NULL,
+                                      -1,
+                                      p10, p10_len,
+                                      PATH_TO_ENROLLMENT_TRUST_ANCHOR_PEM,
+                                      PATH_TO_ENROLLMENT_CRLS,
+                                      implicit_confirm,
+                                      PATH_TO_OPERATIONAL_CERT_PEM,
+                                      PATH_TO_OPERATIONAL_CHAIN_PEM)) < 0) {
         goto end;
     };
     ret = 0;
