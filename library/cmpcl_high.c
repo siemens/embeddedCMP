@@ -354,7 +354,7 @@ int cmp_client_enroll_cert(cmp_ctx *ctx, int request_body_type,
                            OPTIONAL const char *new_key_type,
                            OPTIONAL mbedtls_pk_context **pkey,
                            OPTIONAL const char *key_file,
-                           // TODO OPTIONAL const ... extensions,
+                           const unsigned char *exts, size_t exts_len,
                            int popo_md_alg,
                            const unsigned char *p10, size_t p10_len,
                            OPTIONAL const char *enrol_trusted,
@@ -379,6 +379,10 @@ int cmp_client_enroll_cert(cmp_ctx *ctx, int request_body_type,
             CMPERRS("p10 CSR given but request type is not P10CR");
             return ret;
         }
+        if ((exts == NULL) != (exts_len == 0)) {
+            CMPERRS("Presence of parameters 'exts' and 'exts_len' for X.509 extensions is inconsistent");
+            return ret;
+        }
         if (new_key_type != NULL) {
             ret = generate_key(new_key_type, ctx->ctr_drbg, &key);
             if (ret != 0) {
@@ -391,6 +395,8 @@ int cmp_client_enroll_cert(cmp_ctx *ctx, int request_body_type,
 
         cmp_ctx_set_subject_name(ctx, subject);
         cmp_ctx_set_new_key(ctx, key);
+        if (exts != NULL)
+            cmp_ctx_set_crmf_extension(ctx, exts, exts_len);
         /* use CMP_CTX_POPO_RAVERIFIED if popo_md_alg == -1 */
         cmp_ctx_set_popo_method(ctx, popo_md_alg == -1 ?
             CMP_CTX_POPO_RAVERIFIED : CMP_CTX_POPO_SIGNATURE);

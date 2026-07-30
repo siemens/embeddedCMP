@@ -248,14 +248,14 @@ void cmp_ctx_set_unprotected_requests(cmp_ctx *ctx, int unprot);
 
 
 /**
- * \brief                   Set raw CRMF template extensions
+ * \brief                   Set raw extensions to use in CRMF template
  * \param ctx               CMP context
- * \param raw_extension     DER encoded extensions to add
- * \param raw_extension_len length of raw_extension in bytes
+ * \param exts              DER-encoded list of extensions to add, or NULL
+ * \param len               length of exts in bytes, or 0 if exts == NULL
  *
  */
 void cmp_ctx_set_crmf_extension(cmp_ctx *ctx,
-                        unsigned char *raw_extensions, size_t len);
+                                const unsigned char *exts, size_t len);
 
 /* **************************************************************** */
 /* CMP transactions */

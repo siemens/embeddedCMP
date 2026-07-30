@@ -182,6 +182,8 @@
 # define BOOTSTRAPPING_SUBJECT_NAME \
     "CN=test-LDevID-embeddedCMP,OU=PPKI Playground for internal test purposes only,O=Siemens,C=DE"
 
+#define CRMF_EXTENSIONS
+
 # define PBM_SECRET "SecretCmp"
 # define PBM_KID "keyIdentification"
 
@@ -310,7 +312,6 @@
 # define SNI_HOSTNAME SERVER_HOST
 #endif
 
-// #define CRMF_EXTENSIONS
 #ifdef CRMF_EXTENSIONS
 
 static unsigned char crmf_extensions[] = {
@@ -344,6 +345,9 @@ static unsigned char crmf_extensions[] = {
 */
 
 static size_t crmf_extensions_len = sizeof(crmf_extensions);
+#else
+static unsigned char crmf_extensions = NULL;
+static size_t crmf_extensions_len = 0;
 #endif
 
 #ifndef IMPRINTING_SERVER_HOST

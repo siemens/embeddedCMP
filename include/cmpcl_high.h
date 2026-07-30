@@ -205,6 +205,9 @@ int generate_key(const char *key_type,
  *        - if new_key_type is NULL, *pkey is used as input key for enrollment
  * \param key_file file path to store the private key (generated or given) on success,
  *        or NULL to not write the key to a file; ignored with P10CR
+ * \param exts DER-encoded list of X.509 Extension to use with IR/CR/KUR
+ *        in CRMF template, or NULL if none; ignored with P10CR
+ * \param exts_len length of exts in bytes, or 0 if exts is NULL; ignored with P10CR
  * \param popo_md_alg message digest algorithm used for POPO, 0 for default;
  *        ignored with P10CR
  * \param p10 DER-encoded PKCS#10 CSR to use with P10CR, or NULL for
@@ -222,7 +225,7 @@ int cmp_client_enroll_cert(cmp_ctx *ctx, int request_body_type,
                            OPTIONAL const char *new_key_type,
                            OPTIONAL mbedtls_pk_context **pkey,
                            OPTIONAL const char *key_file,
-                           // TODO OPTIONAL const ... extensions,
+                           const unsigned char *exts, size_t exts_len,
                            int popo_md_alg,
                            const unsigned char *p10, size_t p10_len,
                            OPTIONAL const char *enrol_trusted,

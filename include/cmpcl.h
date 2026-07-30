@@ -286,6 +286,9 @@ typedef struct cmp_ctx {
 
     mbedtls_x509_name *subject;
 
+    const unsigned char *crmf_extensions;
+    size_t crmf_extensions_len;
+
     int popo_method;
     mbedtls_md_type_t popo_md_alg;
 
@@ -320,10 +323,6 @@ typedef struct cmp_ctx {
     const mbedtls_x509_crt *prot_cert;
     const mbedtls_x509_crt *prot_chain;
     mbedtls_md_type_t sig_prot_md_alg; /* hash algorithm to use for signature-based protection */
-
-    /* CRMF template*/
-    unsigned char *crmf_extensions;
-    size_t crmf_extensions_len;
 
     /* enrollment */
     const mbedtls_x509_crt *enrol_trust_anchor;
