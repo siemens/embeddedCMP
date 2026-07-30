@@ -119,8 +119,8 @@ if (SELFHOSTED)
     )
     add_test(NAME TestImprinting.   COMMAND embedded_cmp -i WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
     add_test(NAME TestBootstrapping COMMAND embedded_cmp -c WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
-    add_test(NAME TestP10CR         COMMAND embedded_cmp -p WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
     add_test(NAME TestKeyupdate     COMMAND embedded_cmp -k WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+    add_test(NAME TestP10CR         COMMAND embedded_cmp -p WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}) # cannot update the resulting cert because the private key is not available here
     add_custom_target(check
         COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
         DEPENDS embedded_cmp
