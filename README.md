@@ -6,7 +6,7 @@ SPDX-License-Identifier: Apache-2.0 -->
 
 # CMP Client
 
-This project is a proof-of-concept of an embedded CMP client,
+This project provides a simple embedded CMP client,
 so far based on Mbed TLS.
 It implements the mandatory feature set of Certificate Management Protocol
 (CMP) for end entities according to section 7.1 of the Lightweight CMP Profile
@@ -44,22 +44,38 @@ please refer to [HOWTO.md](/doc/HOWTO.md).
 
 The following picture gives a rough overview of the software components used by the embedded CMP client.
 
+<!--
+[CMP main] as mainS
+note as mainS
+test program entry point with CLI using alternative single-shot API
+file: program/cmp_main_single.c
+endnote
+mainS .. main
+
+[CMP client] as client
+note as clientS
+implements alternative single-shot API
+for IR, CR, and KUR transactions
+file: program/cmp_client.c
+endnote
+clientS .. client
+-->
+
 ```plantuml
 @startuml
 [CMP main] as main
 note as mainN
-program entry point
+test program entry point with CLI
 file: program/cmp_main.c
 endnote
 mainN .. main
 
 [CMP client] as client
-note as clientN
-implements toplevel CR, IR
-and KUR transactions
-file: program/cmp_client.c
+note as clientH
+implements alternative high-level API
+file: program/cmpcl_high.c
 endnote
-clientN .. client
+clientH .. client
 
 [Credential Storage] as storage
 note as storageN

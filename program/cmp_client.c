@@ -24,8 +24,7 @@
 /*******************************************************************************
  * Includes
  ******************************************************************************/
-#include "cmpclient.h"
-#include "cmpclient_config.h"
+#include "cmp_client.h"
 #include "debug_macros.h"
 #include <string.h>
 #include "credential_storage.h"
@@ -37,7 +36,7 @@
 
 /* ************************************************************************** */
 
-static int gen_ec_key(mbedtls_pk_context *key, mbedtls_ctr_drbg_context *ctr_drbg)
+static int gen_ec_key(const char *ecc_curve, mbedtls_pk_context *key, mbedtls_ctr_drbg_context *ctr_drbg)
 {
     int ret;
     const mbedtls_ecp_curve_info *curve_info;
@@ -48,9 +47,9 @@ static int gen_ec_key(mbedtls_pk_context *key, mbedtls_ctr_drbg_context *ctr_drb
         return ret;
     }
 
-    curve_info = mbedtls_ecp_curve_info_from_name(NEW_KEY_ECCURVE);
+    curve_info = mbedtls_ecp_curve_info_from_name(ecc_curve);
     if (!curve_info) {
-        CMPERRS("Failed to extract ecp curve from given parameter 'NEW_KEY_ECCURVE'");
+        CMPERRV("Failed to extract ecc curve from given name '%s'", ecc_curve);
         return -1;
     }
     ret = mbedtls_ecp_gen_key(curve_info->grp_id, mbedtls_pk_ec(*key),
@@ -65,9 +64,11 @@ static int gen_ec_key(mbedtls_pk_context *key, mbedtls_ctr_drbg_context *ctr_drb
 }
 
 /* ************************************************************************** */
-static
+
 int invoke_cert_request(const int body_type,
                         const char *subject_name,
+                        const char *ecc_curve,
+                        int popo_method, int popo_md_alg,
                         OPTIONAL const char *sender_name,
                         OPTIONAL const char *recipient_name,
                         OPTIONAL const char *reference,
@@ -75,6 +76,8 @@ int invoke_cert_request(const int body_type,
                         void *cb_context,
                         cmp_send_receive_cb send_receive_func,
                         mbedtls_ctr_drbg_context *ctr_drbg,
+                        mbedtls_md_type_t owf, mbedtls_md_type_t mac,
+                        int prot_md_alg,
                         OPTIONAL const char *path_to_protection_cert,
                         OPTIONAL const char *path_to_protection_key,
                         OPTIONAL const char *path_to_protection_chain,
@@ -86,7 +89,8 @@ int invoke_cert_request(const int body_type,
                         const char *path_to_new_key,
                         const char *path_to_new_chain)
 {
-    /* TODO use cmp_ctx *cmp_client_init(), cmp_client_set_signature_protection(),
+    /* TODO support P10CR,
+       use cmp_ctx *cmp_client_init(), cmp_client_set_signature_protection(),
        cmp_client_set_pbm_protection(), and cmp_client_enroll_cert(),
        moving repective code portions from there to those functions in cmpcl_high.c */
 
@@ -113,8 +117,7 @@ int invoke_cert_request(const int body_type,
     int ret = -1;
     /* create new context */
     cmp_ctx *ctx = cmp_ctx_init(ctr_drbg, cb_context, send_receive_func,
-                           POPO_METHOD, SIG_PROT_MD_ALG,
-                           POPO_MD_ALG);
+                           popo_method, prot_md_alg, popo_md_alg);
     if (ctx == NULL) {
         CMPERRS("Error initializing context");
         goto err;
@@ -255,7 +258,7 @@ int invoke_cert_request(const int body_type,
     }
 
     /* set request specific fields */
-    if ((ret = gen_ec_key(&enrol_key, ctr_drbg)) < 0) {
+    if ((ret = gen_ec_key(ecc_curve, &enrol_key, ctr_drbg)) < 0) {
         goto err;
     }
     cmp_ctx_set_new_key(ctx, &enrol_key);
@@ -287,7 +290,7 @@ int invoke_cert_request(const int body_type,
         }
         cmp_ctx_set_prot_key(ctx, &prot_key);
     } else if (pbm_secret != NULL && body_type != MBEDTLS_CMP_PKIBODY_KUR) { /* this enables use of PBM */
-        ret = cmp_ctx_set_prot_pbm_secret(ctx, ctr_drbg, PBM_OWF, PBM_MAC,
+        ret = cmp_ctx_set_prot_pbm_secret(ctx, ctr_drbg, owf, mac,
                                           (const unsigned char *) pbm_secret,
                                           strlen((const char *) pbm_secret));
         if (ret != 0) {
@@ -345,122 +348,4 @@ err:
     mbedtls_x509_crl_free(&enrol_crls);
     return ret;
 
-}
-
-//====================================================================================================
-int invoke_kur_transaction(cmp_send_receive_cb send_receive_func,
-                           void *cb_context,
-                           mbedtls_ctr_drbg_context *ctr_drbg)
-{
-
-    int ret = -1;
-
-    //CMPINFOV("### Starting KUR transaction ###");
-    ret = invoke_cert_request(MBEDTLS_CMP_PKIBODY_KUR,
-                              NULL,
-                              NULL,
-                              NULL, // recipient_name
-                              NULL,
-                              NULL,
-                              cb_context,
-                              send_receive_func,
-                              ctr_drbg,
-                              PATH_TO_OPERATIONAL_CERT_PEM,
-                              PATH_TO_OPERATIONAL_KEY_PEM,
-                              PATH_TO_OPERATIONAL_CHAIN_PEM,
-                              PATH_TO_PROTECTION_TRUST_ANCHOR_PEM,
-                              PATH_TO_PROTECTION_CRLS,
-                              PATH_TO_ENROLLMENT_TRUST_ANCHOR_PEM,
-                              PATH_TO_ENROLLMENT_CRLS,
-                              PATH_TO_OPERATIONAL_CERT_PEM,
-                              PATH_TO_OPERATIONAL_KEY_PEM,
-                              PATH_TO_OPERATIONAL_CHAIN_PEM);
-
-    if (ret != 0) {
-        CMPERRV("### KUR transaction returned code %d ###\r\n", ret);
-    }
-
-    return ret;
-}
-
-
-
-//====================================================================================================
-int invoke_cr_transaction(cmp_send_receive_cb send_receive_func,
-                          void *cb_context,
-                          mbedtls_ctr_drbg_context *ctr_drbg)
-{
-
-    int ret = -1;
-
-    //CMPINFOV("### Starting CR transaction ###");
-    ret = invoke_cert_request(MBEDTLS_CMP_PKIBODY_CR,
-                              BOOTSTRAPPING_SUBJECT_NAME,
-                              NULL,
-                              RECIPIENT_NAME, // recipient_name
-                              NULL,
-                              NULL,
-                              cb_context,
-                              send_receive_func,
-                              ctr_drbg,
-                              PATH_TO_PROTECTION_CERT,
-                              PATH_TO_PROTECTION_KEY,
-                              PATH_TO_PROTECTION_CHAIN,
-                              PATH_TO_PROTECTION_TRUST_ANCHOR_PEM,
-                              PATH_TO_PROTECTION_CRLS,
-                              PATH_TO_ENROLLMENT_TRUST_ANCHOR_PEM,
-                              PATH_TO_ENROLLMENT_CRLS,
-                              PATH_TO_OPERATIONAL_CERT_PEM,
-                              PATH_TO_OPERATIONAL_KEY_PEM,
-                              PATH_TO_OPERATIONAL_CHAIN_PEM);
-
-    CMPDBGV("### CR transaction returned code %d ###\r\n", ret);
-
-    return ret;
-}
-
-//====================================================================================================
-int invoke_ir_transaction(cmp_send_receive_cb send_receive_func,
-                          void *cb_context,
-                          mbedtls_ctr_drbg_context *ctr_drbg)
-{
-
-    int ret = -1;
-
-    //CMPINFOV("### Starting IR transaction ###");
-
-    ret = invoke_cert_request(
-        MBEDTLS_CMP_PKIBODY_IR,         // body_type,
-        IMPRINTING_SUBJECT_NAME,        // subject_name,
-        IMPRINTING_SUBJECT_NAME,        // sender_name,
-        RECIPIENT_NAME,                 // recipient_name
-#ifdef PBM_KID                        // reference
-        PBM_KID
-#else
-        NULL
-#endif
-        ,
-#ifdef      PBM_SECRET
-        PBM_SECRET
-#else
-        NULL
-#endif
-        ,                               // pbm_secret
-        cb_context,
-        send_receive_func,
-        ctr_drbg,
-        NULL,                           // path_to_protecting_cert
-        NULL,                           // path_to_protecting_key
-        NULL,                           // path_to_protecting_chain
-        PATH_TO_PROTECTION_TRUST_ANCHOR_PEM,
-        PATH_TO_PROTECTION_CRLS,
-        PATH_TO_ENROLLMENT_TRUST_ANCHOR_PEM,
-        PATH_TO_ENROLLMENT_CRLS,
-        PATH_TO_VENDOR_CERT_PEM,        // path_to_new_cert,
-        PATH_TO_VENDOR_KEY_PEM,         // path_to_new_key
-        PATH_TO_VENDOR_CHAIN_PEM);      // path_to_new_chain
-
-    CMPDBGV("### IR transaction returned code %d ###\r\n", ret);
-
-    return ret;
 }

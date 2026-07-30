@@ -102,10 +102,11 @@ if (SELFHOSTED)
 		library/cmpcl_read.c
 		library/cmpcl_ses.c
 		library/cmpcl_write.c
-		library/cmpcl_high.c
-		program/cmp_main.c
-                # TODO move to library/:
-		program/cmpclient.c
+		# program/cmp_main_single.c # CLI for testing single-shot API
+		program/cmp_main.c # CLI for testing high-level API
+                # implementation of single-shot and high-level API:
+		program/cmp_client.c
+		program/cmpcl_high.c
 		program/mbedtls_transport.c
 		program/credential_storage.c
     )
