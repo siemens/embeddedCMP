@@ -68,7 +68,9 @@ static int gen_ec_key(const char *ecc_curve, mbedtls_pk_context *key, mbedtls_ct
 int invoke_cert_request(const int body_type,
                         const char *subject_name,
                         const char *ecc_curve,
+                        OPTIONAL const unsigned char *exts, size_t exts_len,
                         int popo_method, int popo_md_alg,
+                        OPTIONAL const unsigned char *p10, size_t p10_len,
                         OPTIONAL const char *sender_name,
                         OPTIONAL const char *recipient_name,
                         OPTIONAL const char *reference,
@@ -89,8 +91,10 @@ int invoke_cert_request(const int body_type,
                         const char *path_to_new_key,
                         const char *path_to_new_chain)
 {
-    /* TODO support P10CR,
-       use cmp_ctx *cmp_client_init(), cmp_client_set_signature_protection(),
+    int do_p10cr = body_type == MBEDTLS_CMP_PKIBODY_P10CR;
+
+    /* TODO better use
+       cmp_ctx *cmp_client_init(), cmp_client_set_signature_protection(),
        cmp_client_set_pbm_protection(), and cmp_client_enroll_cert(),
        moving repective code portions from there to those functions in cmpcl_high.c */
 
@@ -258,25 +262,38 @@ int invoke_cert_request(const int body_type,
     }
 
     /* set request specific fields */
-    if ((ret = gen_ec_key(ecc_curve, &enrol_key, ctr_drbg)) < 0) {
-        goto err;
-    }
-    cmp_ctx_set_new_key(ctx, &enrol_key);
-
-    /* take given subject name or read from existing cert */
-    char subject_name_aux[MAX_NAME_LENGTH];
-    if (subject_name == NULL && path_to_protection_cert != NULL) {
-        if (mbedtls_x509_dn_gets(subject_name_aux, MAX_NAME_LENGTH,
-                                 &prot_cert.subject) < 0) {
-            CMPERRS("Error reading subject name from existing cert");
+    if (do_p10cr) {
+        if (p10 == NULL || p10_len == 0) {
+            CMPERRS("P10CR request requires a non-empty p10 CSR");
             goto err;
         }
-        subject_name = subject_name_aux;
-    }
+        cmp_ctx_set_p10(ctx, p10, p10_len);
+    } else {
+        if (p10 != NULL) {
+            CMPERRS("p10 CSR given but request type is not P10CR");
+            goto err;
+        }
+        if ((ret = gen_ec_key(ecc_curve, &enrol_key, ctr_drbg)) < 0) {
+            goto err;
+        }
+        cmp_ctx_set_new_key(ctx, &enrol_key);
 
-    if ((ret = cmp_ctx_set_subject_name(ctx, subject_name)) != 0) {
-        CMPERRS("Error setting subject name");
-        goto err;
+        /* take given subject name or read from existing cert */
+        char subject_name_aux[MAX_NAME_LENGTH];
+        if (subject_name == NULL && path_to_protection_cert != NULL) {
+            if (mbedtls_x509_dn_gets(subject_name_aux, MAX_NAME_LENGTH,
+                                     &prot_cert.subject) < 0) {
+                CMPERRS("Error reading subject name from existing cert");
+                goto err;
+            }
+            subject_name = subject_name_aux;
+        }
+        if ((ret = cmp_ctx_set_subject_name(ctx, subject_name)) != 0) {
+            CMPERRS("Error setting subject name");
+            goto err;
+        }
+        if (exts != NULL)
+            cmp_ctx_set_crmf_extension(ctx, exts, exts_len);
     }
 
     if (body_type != MBEDTLS_CMP_PKIBODY_IR) { /* cert-based protection */
@@ -321,7 +338,7 @@ int invoke_cert_request(const int body_type,
     } else {
         print_certinfo("new cert received:\n", "  ", cmp_ctx_get_new_cert(ctx)); /* TODO: find more elegant way to deal with Eclipse terminal */
 
-        if (write_private_key_pem(&enrol_key, path_to_new_key) != 0) {
+        if (!do_p10cr && write_private_key_pem(&enrol_key, path_to_new_key) != 0) {
             CMPERRV("Failed to write new key to file %s", path_to_new_key);
             ret = -1;
         }

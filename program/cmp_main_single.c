@@ -27,9 +27,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include "mbedtls/platform.h"
 #include "mbedtls_transport.h"
 #include "cmpcl_single.h"
 #include "cmpclient_config.h"
+#include "credential_storage.h"
 #include "debug_macros.h"
 
 #define STRINGIFY(x) #x
@@ -50,7 +52,9 @@ int invoke_kur_transaction(cmp_send_receive_cb send_receive_func,
     ret = invoke_cert_request(MBEDTLS_CMP_PKIBODY_KUR,
                               NULL,
                               NEW_KEY_ECCURVE,
+                              NULL, 0,
                               POPO_METHOD, POPO_MD_ALG,
+                              NULL, 0,
                               NULL,
                               NULL, // recipient_name
                               NULL,
@@ -93,7 +97,9 @@ int invoke_cr_transaction(cmp_send_receive_cb send_receive_func,
     ret = invoke_cert_request(MBEDTLS_CMP_PKIBODY_CR,
                               BOOTSTRAPPING_SUBJECT_NAME,
                               NEW_KEY_ECCURVE,
+                              NULL, 0,
                               POPO_METHOD, POPO_MD_ALG,
+                              NULL, 0,
                               NULL,
                               RECIPIENT_NAME, // recipient_name
                               NULL,
@@ -121,6 +127,53 @@ int invoke_cr_transaction(cmp_send_receive_cb send_receive_func,
 
 //====================================================================================================
 static
+int invoke_p10cr_transaction(cmp_send_receive_cb send_receive_func,
+                             void *cb_context,
+                             mbedtls_ctr_drbg_context *ctr_drbg)
+{
+    unsigned char *p10 = NULL;
+    size_t p10_len = 0;
+    int ret = -1;
+
+    if ((ret = read_file(&p10, PATH_TO_VENDOR_P10_DER)) < 0) {
+        CMPERRS("Failed to read P10 DER file");
+        return ret;
+    }
+    p10_len = (size_t) ret;
+
+    ret = invoke_cert_request(MBEDTLS_CMP_PKIBODY_P10CR,
+                              NULL,              // subject_name: ignored for P10CR
+                              NULL,              // ecc_curve: ignored for P10CR
+                              NULL, 0,           // exts: ignored for P10CR
+                              -1, -1,            // popo_method, popo_md_alg: ignored for P10CR
+                              p10, p10_len,
+                              NULL,
+                              RECIPIENT_NAME,    // recipient_name
+                              NULL,
+                              NULL,
+                              cb_context,
+                              send_receive_func,
+                              ctr_drbg,
+                              PBM_OWF, PBM_MAC,
+                              SIG_PROT_MD_ALG,
+                              PATH_TO_PROTECTION_CERT,
+                              PATH_TO_PROTECTION_KEY,
+                              PATH_TO_PROTECTION_CHAIN,
+                              PATH_TO_PROTECTION_TRUST_ANCHOR_PEM,
+                              PATH_TO_PROTECTION_CRLS,
+                              PATH_TO_ENROLLMENT_TRUST_ANCHOR_PEM,
+                              PATH_TO_ENROLLMENT_CRLS,
+                              PATH_TO_OPERATIONAL_CERT_PEM,
+                              NULL,              // path_to_new_key: no key output for P10CR
+                              PATH_TO_OPERATIONAL_CHAIN_PEM);
+
+    CMPDBGV("### P10CR transaction returned code %d ###\r\n", ret);
+    mbedtls_free(p10);
+    return ret;
+}
+
+//====================================================================================================
+static
 int invoke_ir_transaction(cmp_send_receive_cb send_receive_func,
                           void *cb_context,
                           mbedtls_ctr_drbg_context *ctr_drbg)
@@ -134,7 +187,9 @@ int invoke_ir_transaction(cmp_send_receive_cb send_receive_func,
         MBEDTLS_CMP_PKIBODY_IR,         // body_type,
         IMPRINTING_SUBJECT_NAME,        // subject_name,
         NEW_KEY_ECCURVE,
+        NULL, 0,
         POPO_METHOD, POPO_MD_ALG,
+        NULL, 0,
         IMPRINTING_SUBJECT_NAME,        // sender_name,
         RECIPIENT_NAME,                 // recipient_name
 #ifdef PBM_KID                        // reference
@@ -200,6 +255,28 @@ static int run_ir(mbedtls_ctr_drbg_context *ctr_drbg)
 }
 
 
+static int run_p10cr(mbedtls_ctr_drbg_context *ctr_drbg)
+{
+    mbed_tls_transport_ctx ctx;
+    int ret = -1;
+    if ((ret =
+             mbed_tls_transport_init(&ctx, USE_PLAIN_HTTP, ctr_drbg, TLS_CLIENT_CERT,
+                                     TLS_CLIENT_KEY,
+                                     TLS_SERVER_ROOT,
+                                     SERVER_HOST, TOSTRING(SERVER_PORT), SERVER_PATH_CR)) != 0) {
+        PRINTF("failed to initialize p10cr transport context\n");
+        mbed_tls_transport_free(&ctx);
+        return ret;
+    }
+    if ((ret = invoke_p10cr_transaction(mbed_tls_send_receive, (void *) &ctx, ctr_drbg)) != 0) {
+        PRINTF("failed to execute p10cr transaction\n");
+        mbed_tls_transport_free(&ctx);
+        return ret;
+    }
+    mbed_tls_transport_free(&ctx);
+    return ret;
+}
+
 static int run_cr(mbedtls_ctr_drbg_context *ctr_drbg)
 {
     mbed_tls_transport_ctx ctx;
@@ -252,7 +329,7 @@ static int run_kur(mbedtls_ctr_drbg_context *ctr_drbg)
 
 void usage(char *argv[])
 {
-    PRINTF("Usage: %s [-i][-c][-k]\n", argv[0]);
+    PRINTF("Usage: %s [-i][-c][-p][-k]\n", argv[0]);
 }
 
 int main(int argc, char *argv[])
@@ -285,7 +362,7 @@ int main(int argc, char *argv[])
         goto end;
     }
     int opt;
-    while ((opt = getopt(argc, argv, "ick")) != -1) {
+    while ((opt = getopt(argc, argv, "icpk")) != -1) {
         switch (opt) {
             case 'i':
                 if ((ret = run_ir(&ctr_drbg)) != 0) {
@@ -294,6 +371,11 @@ int main(int argc, char *argv[])
                 break;
             case 'c':
                 if ((ret = run_cr(&ctr_drbg)) != 0) {
+                    goto end;
+                }
+                break;
+            case 'p':
+                if ((ret = run_p10cr(&ctr_drbg)) != 0) {
                     goto end;
                 }
                 break;

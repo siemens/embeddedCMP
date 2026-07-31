@@ -216,6 +216,14 @@ void cmp_ctx_set_crmf_extension(cmp_ctx *ctx,
     ctx->crmf_extensions_len = len;
 }
 
+/* **************************************************************** */
+void cmp_ctx_set_p10(cmp_ctx *ctx,
+                     OPTIONAL const unsigned char *p10, size_t len)
+{
+    ctx->p10 = p10;
+    ctx->p10_len = len;
+}
+
 
 /* **************************************************************** */
 void cmp_ctx_set_enrol_trust_anchor(cmp_ctx *ctx, const mbedtls_x509_crt *crt)

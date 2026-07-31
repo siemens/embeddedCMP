@@ -257,6 +257,16 @@ void cmp_ctx_set_unprotected_requests(cmp_ctx *ctx, int unprot);
 void cmp_ctx_set_crmf_extension(cmp_ctx *ctx,
                                 const unsigned char *exts, size_t len);
 
+/**
+ * \brief                   Set DER-encoded PKCS#10 CSR for use with P10CR
+ * \param ctx               CMP context
+ * \param p10               DER-encoded PKCS#10 CSR, or NULL
+ * \param len               length of p10 in bytes, or 0 if p10 == NULL
+ *
+ */
+void cmp_ctx_set_p10(cmp_ctx *ctx,
+                     OPTIONAL const unsigned char *p10, size_t len);
+
 /* **************************************************************** */
 /* CMP transactions */
 /* **************************************************************** */

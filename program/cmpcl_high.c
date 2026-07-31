@@ -372,8 +372,7 @@ int cmp_client_enroll_cert(cmp_ctx *ctx, int request_body_type,
             CMPERRS("P10CR request requires a non-empty p10 CSR");
             return ret;
         }
-        ctx->p10 = p10;
-        ctx->p10_len = p10_len;
+        cmp_ctx_set_p10(ctx, p10, p10_len);
     } else {
         if (p10 != NULL) {
             CMPERRS("p10 CSR given but request type is not P10CR");
