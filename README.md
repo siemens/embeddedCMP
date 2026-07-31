@@ -44,36 +44,22 @@ please refer to [HOWTO.md](/doc/HOWTO.md).
 
 The following picture gives a rough overview of the software components used by the embedded CMP client.
 
-<!--
-[CMP main] as mainS
-note as mainS
-test program entry point with CLI using alternative single-shot API
-file: program/cmp_main_single.c
-endnote
-mainS .. main
-
-[CMP client] as client
-note as clientS
-implements alternative single-shot API
-for IR, CR, and KUR transactions
-file: program/cmp_client.c
-endnote
-clientS .. client
--->
-
 ```plantuml
 @startuml
 [CMP main] as main
 note as mainN
 test program entry point with CLI
-file: program/cmp_main.c
+file: program/cmp_main.c (using high-level API) or
+program//cmp_main_single.c (using single-shot API)
 endnote
 mainN .. main
 
 [CMP client] as client
 note as clientH
-implements alternative high-level API
+implements high-level API
 file: program/cmpcl_high.c
+Alternative: single-shop API in
+file: program/cmpcl_single.c
 endnote
 clientH .. client
 

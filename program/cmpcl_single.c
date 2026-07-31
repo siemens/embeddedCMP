@@ -24,7 +24,7 @@
 /*******************************************************************************
  * Includes
  ******************************************************************************/
-#include "cmp_client.h"
+#include "cmpcl_single.h"
 #include "debug_macros.h"
 #include <string.h>
 #include "credential_storage.h"

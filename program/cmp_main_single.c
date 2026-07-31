@@ -28,14 +28,12 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include "mbedtls_transport.h"
-#include "cmp_client.h"
+#include "cmpcl_single.h"
 #include "cmpclient_config.h"
 #include "debug_macros.h"
 
 #define STRINGIFY(x) #x
 #define TOSTRING(x) STRINGIFY(x)
-
-#include "cmp_client.h"
 
 #define USE_PLAIN_HTTP (TLS_SERVER_ROOT == NULL)
 
