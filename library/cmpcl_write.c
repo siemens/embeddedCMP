@@ -235,13 +235,11 @@ int cmpcl_CRMFwrite_CertReqMessages_der(unsigned char **p, unsigned char *start,
 
     switch (ctx->popo_method) {
         case CMP_CTX_POPO_RAVERIFIED:
-            CMPCL_ASN1_CHK_ADD(len, mbedtls_asn1_write_null(p, start));
-            len--; /* -1 is as we're intentionally overwriting the SEQUENCE TAG from the function for IMPLICIT */
-            (*p)++;   /* +1 is as we're intentionally overwriting the SEQUENCE TAG from the function for IMPLICIT */
+            /* raVerified ::= [0] NULL, encoded as primitive context-specific tag with zero-length value. */
+            CMPCL_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(p, start, 0));
             CMPCL_ASN1_CHK_ADD(len,
                                mbedtls_asn1_write_tag(p, start,
                                                       MBEDTLS_ASN1_CONTEXT_SPECIFIC |
-                                                      MBEDTLS_ASN1_CONSTRUCTED |
                                                       0 /* raVerified */));
             break;
         case CMP_CTX_POPO_SIGNATURE:
