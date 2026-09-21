@@ -110,7 +110,7 @@ int setStr(unsigned char **dst, const unsigned char *src, const size_t len)
     return 0;
 }
 
-#ifdef DEVELOPMENT
+#ifdef EMBEDDEDCMP_WRITE_FILES
 int write_to_file(char *output_file, const unsigned char *data, size_t len)
 {
     FILE *f;

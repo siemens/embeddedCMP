@@ -14,7 +14,7 @@
 #include "credential_storage.h"
 
 #include "cmpcl.h"
-#include "debug_macros.h"
+#include "cmpcl_log.h"
 #include "mbedtls/platform.h"
 #include "mbedtls/pem.h"
 #include <string.h>

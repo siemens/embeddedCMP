@@ -32,7 +32,7 @@
 #include "cmpcl_single.h"
 #include "cmpclient_config.h"
 #include "credential_storage.h"
-#include "debug_macros.h"
+#include "cmpcl_log.h"
 
 #define STRINGIFY(x) #x
 #define TOSTRING(x) STRINGIFY(x)
@@ -344,6 +344,12 @@ int main(int argc, char *argv[])
                (int) status);
         return -1;
     }
+
+//#ifndef EMBEDDEDCMP_DEBUG
+    // Silence everything 
+     //cmp_silence_log();
+     //CMPERRS("This goes nowhere");
+//#endif
 
     mbedtls_ctr_drbg_context ctr_drbg;
     mbedtls_ctr_drbg_init(&ctr_drbg);

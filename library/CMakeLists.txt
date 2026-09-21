@@ -4,6 +4,7 @@ set(embedded_cmp
 	cmpcl_read.c
 	cmpcl_ses.c
 	cmpcl_write.c
+	cmpcl_log.c
 )
 
 if(CMAKE_COMPILER_IS_GNUCC)

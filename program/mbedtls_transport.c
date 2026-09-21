@@ -30,7 +30,7 @@
 #include "mbedtls/ssl.h"
 #include "mbedtls/debug.h"
 #include "credential_storage.h"
-#include "debug_macros.h"
+#include "cmpcl_log.h"
 
 /*******************************************************************************
  * Variables

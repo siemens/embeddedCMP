@@ -60,6 +60,17 @@ Debug mode implies `-=0 -g3 -fsanitize=address,undefined -fno-sanitize-recover=a
 
 To switch on verbose logging, use `cmake` with `-DEMBEDDEDCMP_DEBUG=ON`.
 
+There is an extra parameter `EMDEDDEDCMP_WRITE_FILES`.
+When set with `-DEMDEDDEDCMP_WRITE_FILES=ON`
+CMP requests and response messages will be stored as files.
+The files will be in DER (Distinguished Encoding Rules) format
+and will be written into the embeddedCMP base directory
+as `last_request.der`, `last_response.der`,
+`last_ir_request.der`, and `last_pki_conf_response.der`.
+
+Switching to Debug mode automatically turns the `EMDEDDEDCMP_WRITE_FILES` parameter on.
+
+
 # Configuring the client application
 
 The hard-coded CMP client configuration can be found in `program/cmpclient_config.h`.

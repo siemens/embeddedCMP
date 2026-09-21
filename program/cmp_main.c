@@ -30,7 +30,7 @@
 #include "cmpcl_high.h"
 #include "cmpclient_config.h"
 #include "credential_storage.h"
-#include "debug_macros.h"
+#include "cmpcl_log.h"
 #include "mbedtls/platform.h"
 
 #define STRINGIFY(x) #x
@@ -140,6 +140,12 @@ int main(int argc, char *argv[])
                (int) status);
         return -1;
     }
+    
+//#ifndef EMBEDDEDCMP_DEBUG
+    // Silence everything 
+     //cmp_silence_log();
+     //CMPERRS("This goes nowhere");
+//#endif    
 
     int ret = 0;
     int opt;

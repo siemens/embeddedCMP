@@ -134,9 +134,13 @@ int cmpcl_do_transaction(cmp_ctx *ctx, const int body_type)
         goto syserr;
     }
     if (ctx->body_type == MBEDTLS_CMP_PKIBODY_IR) {
+#ifdef EMBEDDEDCMP_WRITE_FILES    
         (void) write_to_file("last_ir_request.der", output_start, len);
+#endif /* EMBEDDEDCMP_WRITE_FILES */        
     } else {
+#ifdef EMBEDDEDCMP_WRITE_FILES    
         (void) write_to_file("last_request.der", output_start, len);
+#endif /* EMBEDDEDCMP_WRITE_FILES */        
     }
     ret = ctx->send_receive_func(ctx->cb_context,
                                  output_start, (size_t) len, &input, &inputlen);
@@ -144,7 +148,9 @@ int cmpcl_do_transaction(cmp_ctx *ctx, const int body_type)
         CMPERRS("transport failed");
         goto syserr;
     }
+#ifdef EMBEDDEDCMP_WRITE_FILES    
     (void) write_to_file("last_response.der", input, inputlen);
+#endif /* EMBEDDEDCMP_WRITE_FILES */    
 
     cmp_response = mbedtls_calloc(1, sizeof(cmp_pkimessage));
     if (!cmp_response) {
@@ -255,8 +261,9 @@ conferr:
             ret = len; /* if negative, len is an error code */
             goto syserr;
         }
+#ifdef EMBEDDEDCMP_WRITE_FILES        
         (void) write_to_file("last_pki_conf_response.der", input, inputlen);
-
+#endif /* EMBEDDEDCMP_WRITE_FILES */
         /* parse received PKIConf message */
         if ((len = cmp_pkimessage_parse_check_der(ctx, MBEDTLS_CMP_PKIBODY_PKICONF,
                                                   pki_conf_msg, input, inputlen)) < 0) {

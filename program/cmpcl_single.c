@@ -25,7 +25,7 @@
  * Includes
  ******************************************************************************/
 #include "cmpcl_single.h"
-#include "debug_macros.h"
+#include "cmpcl_log.h"
 #include <string.h>
 #include "credential_storage.h"
 

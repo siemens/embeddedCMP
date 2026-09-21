@@ -57,10 +57,32 @@ message(STATUS "build mode: ${CMAKE_BUILD_TYPE}")
 # -- Logging --
 
 option(EMBEDDEDCMP_DEBUG "Enable CMP Debugging" OFF)
-if(EMBEDDEDCMP_DEBUG)
-  add_compile_options(-DEMBEDDEDCMP_DEBUG=1)
+
+# Automatically enable EMBEDDEDCMP_WRITE_FILES if CMAKE_BUILD_TYPE is Debug
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(EMBEDDEDCMP_DEBUG ON CACHE BOOL "Enable development file writing for Debug builds" FORCE)
 endif()
 
+# Pass it to the compiler if enabled
+if(EMBEDDEDCMP_DEBUG)
+    add_compile_definitions(EMBEDDEDCMP_DEBUG)
+endif()
+
+# New option — controls write_to_file compilation
+option(EMBEDDEDCMP_WRITE_FILES "Enable development file writing" OFF)
+
+# Automatically enable EMBEDDEDCMP_WRITE_FILES if CMAKE_BUILD_TYPE is Debug
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(EMBEDDEDCMP_WRITE_FILES ON)
+else()
+    option(EMBEDDEDCMP_WRITE_FILES "Enable development file writing" OFF)
+endif()
+
+
+# Pass it to the compiler if enabled
+if(EMBEDDEDCMP_WRITE_FILES)
+    add_compile_definitions(EMBEDDEDCMP_WRITE_FILES)
+endif()
 # -- MBEDTLS --
 
 option(USE_PKCS11_HELPER_LIBRARY "Build mbed TLS with the pkcs11-helper library." OFF)
@@ -102,6 +124,7 @@ if (SELFHOSTED)
 		library/cmpcl_read.c
 		library/cmpcl_ses.c
 		library/cmpcl_write.c
+		library/cmpcl_log.c
                 # implementation of single-shot and high-level API:
 		program/cmpcl_single.c
 		program/cmpcl_high.c

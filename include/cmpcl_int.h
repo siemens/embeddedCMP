@@ -21,7 +21,6 @@
  *  SPDX-License-Identifier: Apache-2.0
  */
 
-#define DEVELOPMENT
 
 /* HARDCODED - that's not in mbedtls/include/mbedtls/oid.h */
 #define PBM_OID "\x2a\x86\x48\x86\xf6\x7d\x07\x42\x0d"
@@ -49,7 +48,7 @@ extern "C" {
 #include "mbedtls/ecdsa.h" /* for MBEDTLS_ECDSA_MAX_LEN */
 #include "mbedtls/error.h"
 
-#include "debug_macros.h"
+#include "cmpcl_log.h"
 #include "cmpcl.h"
 
 /* TODO: check this buffer size */
@@ -100,8 +99,9 @@ char *strdup(const char *src);
  * \param len number of bytes to write
  * \return number of written bytes or negative value in case of error
  */
+#ifdef EMBEDDEDCMP_WRITE_FILES
 int write_to_file(char *output_file, const unsigned char *data, size_t len);
-
+#endif /* EMBEDDEDCMP_WRITE_FILES */
 
 /* **************************************************************** */
 /* PasswordBasedMac PBM */

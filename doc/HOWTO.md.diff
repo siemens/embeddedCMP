@@ -1,0 +1,13 @@
+diff --git a/docs/HOWTO.md b/docs/HOWTO.md
+index 8b91565..29cce7e 100644
+--- a/docs/HOWTO.md
++++ b/docs/HOWTO.md
+@@ -35,6 +35,8 @@ cd mbedtls
+ git checkout master
+ pip install --break-system-packages --user -r scripts/basic.requirements.txt
+ ./framework/scripts/make_generated_files.py
++/opt/homebrew/Frameworks/Python.framework/Versions/3.13/bin/python3.13 -m pip install --break-system-packages --user jsonschema
++/opt/homebrew/Frameworks/Python.framework/Versions/3.13/bin/python3.13 -m pip install --break-system-packages --user jinja2
+ cmake -DENABLE_TESTING=Off .
+ cmake --build .
+ cd ../..
